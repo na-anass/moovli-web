@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "../ui/theme-toggle";
 import { useAuth } from "@/lib/auth/provider";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 export interface NavItem {
   label: string;
@@ -84,10 +85,11 @@ export function Sidebar({ navItems, title, subtitle, className }: SidebarProps) 
                 className="fixed right-0 top-0 h-full w-full bg-background shadow-xl z-[101] md:hidden"
               >
                 <div className="flex h-full flex-col">
-                  <div className="flex h-16 items-center px-4 border-b border-border">
+                  <div className="flex h-16 items-center gap-2.5 px-4 border-b border-border">
+                    <Image src="/img/moovli-icon.png" alt="Moovli" width={28} height={28} className="rounded-md" />
                     <span className="text-sm font-semibold">{title}</span>
                     {subtitle && (
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="ml-1 text-xs text-muted-foreground truncate">
                         {subtitle}
                       </span>
                     )}
@@ -150,16 +152,19 @@ export function Sidebar({ navItems, title, subtitle, className }: SidebarProps) 
             {/* Header */}
             <div className="flex h-16 items-center justify-between px-4 border-b border-border relative">
               {!isCollapsed ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">{title}</span>
-                  {subtitle && (
-                    <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                      {subtitle}
-                    </span>
-                  )}
+                <div className="flex items-center gap-2.5">
+                  <Image src="/img/moovli-icon.png" alt="Moovli" width={32} height={32} className="rounded-lg shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-semibold leading-tight">{title}</span>
+                    {subtitle && (
+                      <span className="text-[11px] text-muted-foreground truncate leading-tight">
+                        {subtitle}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <span className="text-sm font-bold mx-auto">M</span>
+                <Image src="/img/moovli-icon.png" alt="Moovli" width={28} height={28} className="rounded-lg mx-auto" />
               )}
               <Button
                 variant="ghost"

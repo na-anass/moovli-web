@@ -9,6 +9,7 @@ import {
   LogOutIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 interface RoleCard {
   title: string;
@@ -65,11 +66,14 @@ export default function RoleSwitcherPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-2xl space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Moovli</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {user?.email}. Choose a dashboard.
-          </p>
+        <div className="flex flex-col items-center space-y-3">
+          <Image src="/img/moovli-icon.png" alt="Moovli" width={56} height={56} className="rounded-xl" />
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
+            <p className="text-sm text-muted-foreground">
+              {user?.email} — choose a dashboard
+            </p>
+          </div>
         </div>
 
         <div className="grid gap-4">
