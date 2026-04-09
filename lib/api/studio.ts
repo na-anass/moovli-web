@@ -75,6 +75,9 @@ export const studioApi = {
       body: JSON.stringify(pricing),
     }),
 
+  getServices: (entityId: string) =>
+    apiClient<{ success: boolean; data: any[] }>(`/api/studio/${entityId}/services`),
+
   getProfile: (entityId: string) =>
     apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/profile`),
 
