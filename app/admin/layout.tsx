@@ -1,6 +1,7 @@
 "use client";
 
 import { Sidebar, type NavItem } from "@/components/layout/sidebar";
+import { TopBar } from "@/components/layout/topbar";
 import { useAuth } from "@/lib/auth/provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -10,6 +11,7 @@ import {
   BuildingIcon,
   BookOpenIcon,
   BarChart3Icon,
+  SettingsIcon,
 } from "lucide-react";
 
 const navItems: NavItem[] = [
@@ -18,6 +20,10 @@ const navItems: NavItem[] = [
   { label: "Studios", icon: BuildingIcon, href: "/admin/studios" },
   { label: "Bookings", icon: BookOpenIcon, href: "/admin/bookings" },
   { label: "Analytics", icon: BarChart3Icon, href: "/admin/analytics" },
+];
+
+const bottomItems: NavItem[] = [
+  { label: "Settings", icon: SettingsIcon, href: "/admin/settings" },
 ];
 
 export default function AdminLayout({
@@ -45,8 +51,11 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar navItems={navItems} title="Admin" subtitle="Moovli" />
-      <main className="flex-1 p-6">{children}</main>
+      <Sidebar navItems={navItems} bottomItems={bottomItems} title="Admin" subtitle="Moovli" />
+      <div className="flex-1 flex flex-col min-w-0">
+        <TopBar />
+        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+      </div>
     </div>
   );
 }

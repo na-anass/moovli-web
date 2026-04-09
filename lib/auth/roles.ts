@@ -1,5 +1,3 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-
 export interface EntityMembership {
   entityId: string;
   entityName: string;
@@ -18,44 +16,60 @@ export interface UserRoles {
   instructorEntities: InstructorMembership[];
 }
 
+/**
+ * Fetch user roles via the moovli-api (which uses supabaseAdmin, bypassing RLS).
+ * This avoids RLS issues with direct browser Supabase queries on entity_owners.
+ */
 export async function getUserRoles(
-  supabase: SupabaseClient,
-  userId: string
+  accessToken: string
 ): Promise<UserRoles> {
-  const [userResult, entityOwnersResult, instructorResult] = await Promise.all([
-    supabase.from("users").select("is_admin").eq("id", userId).single(),
-    supabase
-      .from("entity_owners")
-      .select("entity_id, role, entities(name)")
-      .eq("user_id", userId),
-    supabase
-      .from("service_providers")
-      .select("id, primary_entity_id, entities(name)")
-      .eq("user_id", userId)
-      .eq("is_active", true),
-  ]);
+  const defaults: UserRoles = {
+    isAdmin: false,
+    ownedEntities: [],
+    instructorEntities: [],
+  };
 
-  const isAdmin = (userResult.data as any)?.is_admin ?? false;
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-  const ownedEntities: EntityMembership[] = (
-    (entityOwnersResult.data as any[]) || []
-  ).map((row) => ({
-    entityId: row.entity_id,
-    entityName: row.entities?.name || "Unknown",
-    role: row.role,
-  }));
+    // Fetch all role data in parallel from our API
+    const [studioRes, instructorRes] = await Promise.all([
+      fetch(`${apiUrl}/api/studio/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }).then((r) => (r.ok ? r.json() : { data: [] })).catch(() => ({ data: [] })),
 
-  const instructorEntities: InstructorMembership[] = (
-    (instructorResult.data as any[]) || []
-  )
-    .filter((row) => row.primary_entity_id)
-    .map((row) => ({
-      providerId: row.id,
-      entityId: row.primary_entity_id,
-      entityName: row.entities?.name || "Unknown",
-    }));
+      fetch(`${apiUrl}/api/instructor/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }).then((r) => (r.ok ? r.json() : { data: [] })).catch(() => ({ data: [] })),
+    ]);
 
-  return { isAdmin, ownedEntities, instructorEntities };
+    // Check admin by trying admin endpoint
+    const adminRes = await fetch(`${apiUrl}/api/admin/dashboard`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }).catch(() => null);
+    const isAdmin = adminRes?.ok ?? false;
+
+    const ownedEntities: EntityMembership[] = ((studioRes.data as any[]) || []).map(
+      (row: any) => ({
+        entityId: row.entityId || row.entity_id,
+        entityName: row.entity?.name || "Studio",
+        role: row.role,
+      })
+    );
+
+    const instructorEntities: InstructorMembership[] = ((instructorRes.data as any[]) || []).map(
+      (row: any) => ({
+        providerId: row.id,
+        entityId: row.primary_entity_id || row.entity?.id,
+        entityName: row.entity?.name || "Studio",
+      })
+    );
+
+    return { isAdmin, ownedEntities, instructorEntities };
+  } catch (err) {
+    console.error("Failed to fetch user roles:", err);
+    return defaults;
+  }
 }
 
 /** Determine the best default redirect for a user based on their roles */

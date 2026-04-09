@@ -1,19 +1,57 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 const PUBLIC_ROUTES = ["/login", "/forgot-password"];
 
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
+
+  // Create supabase client with cookie handling
+  let response = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+          // Set cookies on the request (for downstream server components)
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          // Create a new response with updated cookies
+          response = NextResponse.next({ request });
+          // Set cookies on the response (for the browser)
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // Refresh the session — this is critical for keeping cookies alive
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Allow public routes
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
-    // If logged in and visiting login, redirect to home
     if (user && pathname.startsWith("/login")) {
-      return NextResponse.redirect(new URL("/", request.url));
+      // Logged in user visiting login — redirect to home
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      // Copy cookies to redirect response
+      const redirectResponse = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value);
+      });
+      return redirectResponse;
     }
-    return supabaseResponse;
+    return response;
   }
 
   // Not logged in — redirect to login
@@ -21,25 +59,20 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirectTo", pathname);
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    // Copy any session cookies to the redirect
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value);
+    });
+    return redirectResponse;
   }
 
-  // Role-based route protection is handled at the page level via the AuthProvider
-  // since Next.js Edge middleware cannot make Supabase DB queries (entity_owners, etc.)
-  // The middleware only handles session refresh and basic auth gating.
-
-  return supabaseResponse;
+  // Authenticated — return response with refreshed session cookies
+  return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|img/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

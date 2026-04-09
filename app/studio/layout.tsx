@@ -1,6 +1,7 @@
 "use client";
 
 import { Sidebar, type NavItem } from "@/components/layout/sidebar";
+import { TopBar } from "@/components/layout/topbar";
 import { useAuth } from "@/lib/auth/provider";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -13,6 +14,7 @@ import {
   BarChart3Icon,
   SettingsIcon,
   Users2Icon,
+  UserIcon,
 } from "lucide-react";
 import {
   Select,
@@ -62,7 +64,6 @@ export default function StudioLayout({
       items.push(
         { label: "Pricing", icon: CoinsIcon, href: "/studio/pricing" },
         { label: "Insights", icon: BarChart3Icon, href: "/studio/insights" },
-        { label: "Settings", icon: SettingsIcon, href: "/studio/settings" }
       );
     }
 
@@ -72,6 +73,10 @@ export default function StudioLayout({
 
     return items;
   }, [currentRole]);
+
+  const bottomItems: NavItem[] = [
+    { label: "Settings", icon: SettingsIcon, href: "/studio/settings" },
+  ];
 
   if (loading) {
     return (
@@ -87,12 +92,14 @@ export default function StudioLayout({
     <div className="flex min-h-screen">
       <Sidebar
         navItems={navItems}
+        bottomItems={bottomItems}
         title="Studio"
         subtitle={currentEntity?.entityName}
       />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
+        <TopBar />
         {entities.length > 1 && (
-          <div className="border-b border-border px-6 py-2">
+          <div className="border-b border-border px-6 py-2 shrink-0">
             <Select
               value={selectedEntityId ?? ""}
               onValueChange={setSelectedEntityId}
@@ -110,7 +117,7 @@ export default function StudioLayout({
             </Select>
           </div>
         )}
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Sidebar, type NavItem } from "@/components/layout/sidebar";
+import { TopBar } from "@/components/layout/topbar";
 import { useAuth } from "@/lib/auth/provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -13,6 +14,9 @@ import {
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboardIcon, href: "/instructor/dashboard" },
   { label: "Schedule", icon: CalendarIcon, href: "/instructor/schedule" },
+];
+
+const bottomItems: NavItem[] = [
   { label: "Profile", icon: UserIcon, href: "/instructor/profile" },
 ];
 
@@ -41,8 +45,11 @@ export default function InstructorLayout({
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar navItems={navItems} title="Instructor" />
-      <main className="flex-1 p-6">{children}</main>
+      <Sidebar navItems={navItems} bottomItems={bottomItems} title="Instructor" />
+      <div className="flex-1 flex flex-col min-w-0">
+        <TopBar />
+        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+      </div>
     </div>
   );
 }
