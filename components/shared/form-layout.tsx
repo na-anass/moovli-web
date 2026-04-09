@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, PencilIcon, XIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useEditMode } from "@/components/layout/topbar";
 
 interface FormLayoutProps {
   title: string;
@@ -14,7 +16,6 @@ interface FormLayoutProps {
   onEdit: () => void;
   onSave: () => void;
   onCancel: () => void;
-  /** Optional subtitle shown next to the title */
   subtitle?: string;
 }
 
@@ -30,8 +31,26 @@ export function FormLayout({
   onCancel,
   subtitle,
 }: FormLayoutProps) {
+  const { setEditMode } = useEditMode();
+
+  // Sync edit state to the top bar
+  useEffect(() => {
+    if (editing) {
+      setEditMode({
+        editing: true,
+        saving,
+        title: `Editing ${title}`,
+        onSave,
+        onCancel,
+      });
+    } else {
+      setEditMode(null);
+    }
+    return () => setEditMode(null);
+  }, [editing, saving, title, onSave, onCancel, setEditMode]);
+
   return (
-    <div className="flex flex-col min-h-[calc(100vh-3rem)]">
+    <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -40,44 +59,29 @@ export function FormLayout({
             <span className="text-sm text-muted-foreground">{subtitle}</span>
           )}
           {success && (
-            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 animate-in fade-in">
+            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
               Saved
             </Badge>
           )}
         </div>
-        {/* Desktop edit button (hidden when editing — actions move to bottom bar) */}
         {canEdit && !editing && (
-          <Button onClick={onEdit} className="hidden sm:flex">
-            <PencilIcon className="size-4 mr-2" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEdit}
+            className="hidden sm:flex gap-1.5 text-muted-foreground hover:text-foreground"
+          >
+            <PencilIcon className="size-3.5" />
             Edit
           </Button>
         )}
       </div>
 
-      {/* Content — scrollable area above the bottom bar */}
-      <div className="flex-1 pb-24">{children}</div>
+      {/* Content */}
+      <div>{children}</div>
 
-      {/* Bottom action bar — sticky, inset to avoid sidebar overlap */}
-      {editing ? (
-        <div className="sticky bottom-0 z-40 -mx-6 border-t border-border bg-background/95 backdrop-blur-sm">
-          <div className="flex items-center justify-between px-6 py-3">
-            <p className="text-sm text-muted-foreground hidden sm:block">
-              You have unsaved changes
-            </p>
-            <div className="flex items-center gap-3 ml-auto">
-              <Button variant="ghost" onClick={onCancel} disabled={saving}>
-                <XIcon className="size-4 mr-2" />
-                Discard
-              </Button>
-              <Button onClick={onSave} disabled={saving}>
-                <SaveIcon className="size-4 mr-2" />
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : canEdit ? (
-        /* Mobile-only floating edit button */
+      {/* Mobile-only floating edit button */}
+      {!editing && canEdit && (
         <div className="fixed bottom-6 right-6 sm:hidden z-50">
           <Button
             onClick={onEdit}
@@ -87,7 +91,7 @@ export function FormLayout({
             <PencilIcon className="size-5" />
           </Button>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

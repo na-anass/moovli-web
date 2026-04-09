@@ -1,7 +1,7 @@
 "use client";
 
 import { Sidebar, type NavItem } from "@/components/layout/sidebar";
-import { TopBar } from "@/components/layout/topbar";
+import { TopBar, EditModeProvider } from "@/components/layout/topbar";
 import { useAuth } from "@/lib/auth/provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -50,6 +50,7 @@ export default function AdminLayout({
   }
 
   return (
+    <EditModeProvider>
     <div className="flex min-h-screen">
       <Sidebar navItems={navItems} bottomItems={bottomItems} title="Admin" subtitle="Moovli" />
       <div className="flex-1 flex flex-col min-w-0">
@@ -57,5 +58,6 @@ export default function AdminLayout({
         <main className="flex-1 p-6 overflow-y-auto">{children}</main>
       </div>
     </div>
+    </EditModeProvider>
   );
 }

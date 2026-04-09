@@ -1,7 +1,7 @@
 "use client";
 
 import { Sidebar, type NavItem } from "@/components/layout/sidebar";
-import { TopBar } from "@/components/layout/topbar";
+import { TopBar, EditModeProvider } from "@/components/layout/topbar";
 import { useAuth } from "@/lib/auth/provider";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -11,6 +11,7 @@ import {
   BookOpenIcon,
   CoinsIcon,
   UsersIcon,
+  PackageIcon,
   BarChart3Icon,
   SettingsIcon,
   Users2Icon,
@@ -55,6 +56,7 @@ export default function StudioLayout({
   const navItems = useMemo((): NavItem[] => {
     const items: NavItem[] = [
       { label: "Dashboard", icon: LayoutDashboardIcon, href: "/studio/dashboard" },
+      { label: "Services", icon: PackageIcon, href: "/studio/services" },
       { label: "Schedule", icon: CalendarIcon, href: "/studio/schedule" },
       { label: "Bookings", icon: BookOpenIcon, href: "/studio/bookings" },
       { label: "Instructors", icon: UsersIcon, href: "/studio/instructors" },
@@ -62,7 +64,6 @@ export default function StudioLayout({
 
     if (currentRole === "manager" || currentRole === "owner") {
       items.push(
-        { label: "Pricing", icon: CoinsIcon, href: "/studio/pricing" },
         { label: "Insights", icon: BarChart3Icon, href: "/studio/insights" },
       );
     }
@@ -89,6 +90,7 @@ export default function StudioLayout({
   const currentEntity = entities.find((e) => e.entityId === selectedEntityId);
 
   return (
+    <EditModeProvider>
     <div className="flex min-h-screen">
       <Sidebar
         navItems={navItems}
@@ -120,5 +122,6 @@ export default function StudioLayout({
         <main className="flex-1 p-6 overflow-y-auto">{children}</main>
       </div>
     </div>
+    </EditModeProvider>
   );
 }

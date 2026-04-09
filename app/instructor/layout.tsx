@@ -1,7 +1,7 @@
 "use client";
 
 import { Sidebar, type NavItem } from "@/components/layout/sidebar";
-import { TopBar } from "@/components/layout/topbar";
+import { TopBar, EditModeProvider } from "@/components/layout/topbar";
 import { useAuth } from "@/lib/auth/provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -44,6 +44,7 @@ export default function InstructorLayout({
   }
 
   return (
+    <EditModeProvider>
     <div className="flex min-h-screen">
       <Sidebar navItems={navItems} bottomItems={bottomItems} title="Instructor" />
       <div className="flex-1 flex flex-col min-w-0">
@@ -51,5 +52,6 @@ export default function InstructorLayout({
         <main className="flex-1 p-6 overflow-y-auto">{children}</main>
       </div>
     </div>
+    </EditModeProvider>
   );
 }

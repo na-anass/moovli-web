@@ -75,8 +75,20 @@ export const studioApi = {
       body: JSON.stringify(pricing),
     }),
 
-  getServices: (entityId: string) =>
-    apiClient<{ success: boolean; data: any[] }>(`/api/studio/${entityId}/services`),
+  getServices: (entityId: string, all?: boolean) =>
+    apiClient<{ success: boolean; data: any[] }>(`/api/studio/${entityId}/services${all ? "?all=true" : ""}`),
+
+  createService: (entityId: string, data: Record<string, any>) =>
+    apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/services`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateService: (entityId: string, serviceId: string, data: Record<string, any>) =>
+    apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/services/${serviceId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
 
   getProfile: (entityId: string) =>
     apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/profile`),
