@@ -111,6 +111,11 @@ export const studioApi = {
   getInsights: (entityId: string, days: number = 30) =>
     apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/insights?days=${days}`),
 
+  searchUsers: (entityId: string, email: string) =>
+    apiClient<{ success: boolean; data: { id: string; name: string; email: string; avatar_url: string | null; city: string | null }[] }>(
+      `/api/studio/${entityId}/search-users?email=${encodeURIComponent(email)}`
+    ),
+
   getTeam: (entityId: string) =>
     apiClient<{ success: boolean; data: any[] }>(`/api/studio/${entityId}/team`),
 

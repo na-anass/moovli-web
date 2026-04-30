@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { studioApi } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -14,25 +17,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { studioApi } from "@/lib/api/studio";
+import { useAuth } from "@/lib/auth/provider";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  PlusIcon,
-  ListIcon,
   CalendarIcon,
-  PencilIcon,
-  Trash2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  UsersIcon,
   ClockIcon,
   CoinsIcon,
+  ListIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  UsersIcon,
 } from "lucide-react";
-import { DataTable, type Column } from "@/components/shared/data-table";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // ============================================================================
 // TYPES
@@ -115,6 +115,7 @@ export default function SchedulePage() {
     base_credit_cost: "",
     notes: "",
     is_recurring: false,
+    override_pricing: false,
   });
 
   const entityId = roles?.ownedEntities?.[0]?.entityId;
@@ -171,6 +172,7 @@ export default function SchedulePage() {
       base_credit_cost: services[0] ? String(services[0].credit_price) : "5",
       notes: "",
       is_recurring: false,
+      override_pricing: false,
     });
     setDialogOpen(true);
   };
@@ -178,6 +180,8 @@ export default function SchedulePage() {
   const openEdit = (s: Session) => {
     setEditingSession(s);
     const d = new Date(s.start_time);
+    const svc = services.find((sv) => sv.id === s.service?.id);
+    const hasOverride = svc ? (s.base_credit_cost || 0) !== svc.credit_price : false;
     setForm({
       service_id: s.service?.id || "",
       provider_id: s.provider?.id || "",
@@ -186,6 +190,7 @@ export default function SchedulePage() {
       end_time: new Date(s.end_time).toTimeString().slice(0, 5),
       capacity: String(s.capacity),
       base_credit_cost: String(s.base_credit_cost || ""),
+      override_pricing: hasOverride,
       notes: s.notes || "",
       is_recurring: s.is_recurring,
     });
@@ -196,13 +201,18 @@ export default function SchedulePage() {
     if (!entityId) return;
     setSaving(true);
     try {
+      const svc = services.find((s) => s.id === form.service_id);
+      const creditCost = form.override_pricing
+        ? parseInt(form.base_credit_cost) || 5
+        : svc?.credit_price || parseInt(form.base_credit_cost) || 5;
+
       const payload = {
         service_id: form.service_id,
         provider_id: form.provider_id || null,
         start_time: `${form.date}T${form.start_time}:00Z`,
         end_time: `${form.date}T${form.end_time}:00Z`,
         capacity: parseInt(form.capacity),
-        base_credit_cost: parseInt(form.base_credit_cost) || 5,
+        base_credit_cost: creditCost,
         notes: form.notes || null,
       };
       if (editingSession) {
@@ -446,8 +456,8 @@ export default function SchedulePage() {
                 onClick={() => setView(v)}
               >
                 {v === "list" ? <ListIcon className="size-3.5 mr-1" /> :
-                 v === "day" ? <ClockIcon className="size-3.5 mr-1" /> :
-                 <CalendarIcon className="size-3.5 mr-1" />}
+                  v === "day" ? <ClockIcon className="size-3.5 mr-1" /> :
+                    <CalendarIcon className="size-3.5 mr-1" />}
                 {v}
               </Button>
             ))}
@@ -538,93 +548,173 @@ export default function SchedulePage() {
           <DialogHeader>
             <DialogTitle>{editingSession ? "Edit Session" : "New Session"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto pr-1">
-            {/* Service */}
+          <div className="space-y-5 pt-2 max-h-[70vh] overflow-y-auto pr-1">
+            {/* What — which service */}
             <div>
-              <label className="text-sm font-medium">Service *</label>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">What</p>
               <Select value={form.service_id} onValueChange={handleServiceChange}>
-                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select a service" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select a service" /></SelectTrigger>
                 <SelectContent>
                   {services.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name} ({s.duration_minutes}min)</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{s.name}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {s.duration_minutes}min · {s.credit_price} credits · {s.capacity} spots
+                        </span>
+                      </div>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Instructor */}
+            {/* Who — instructor */}
             <div>
-              <label className="text-sm font-medium">Instructor</label>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Who teaches</p>
               <Select value={form.provider_id || "none"} onValueChange={(v) => setForm({ ...form, provider_id: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No instructor</SelectItem>
+                  <SelectItem value="none">No instructor assigned</SelectItem>
                   {providers.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}{p.tier ? ` (${p.tier})` : ""}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>{p.name}{p.tier ? ` · ${p.tier}` : ""}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Date */}
+            {/* When — date + time */}
             <div>
-              <label className="text-sm font-medium">Date *</label>
-              <Input type="date" className="mt-1.5" value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">When</p>
+              <div className="space-y-3">
+                <Input type="date" value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Start time</label>
+                    <Input type="time" className="mt-1" value={form.start_time}
+                      onChange={(e) => {
+                        const newStart = e.target.value;
+                        const service = services.find((s) => s.id === form.service_id);
+                        setForm({ ...form, start_time: newStart, end_time: service ? addMinutes(newStart, service.duration_minutes) : form.end_time });
+                      }} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">End time</label>
+                    <Input type="time" className="mt-1" value={form.end_time}
+                      onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
+                  </div>
+                </div>
+                {form.start_time && form.end_time && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <ClockIcon className="size-3" />
+                    Duration: {calcDuration(form.start_time, form.end_time)} min
+                    {form.service_id && (() => {
+                      const svc = services.find(s => s.id === form.service_id);
+                      const dur = calcDuration(form.start_time, form.end_time);
+                      return svc && dur !== svc.duration_minutes
+                        ? <span className="text-amber-600 ml-1">(service default: {svc.duration_minutes} min)</span>
+                        : null;
+                    })()}
+                  </p>
+                )}
+              </div>
             </div>
 
-            {/* Time */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium">Start *</label>
-                <Input type="time" className="mt-1.5" value={form.start_time}
-                  onChange={(e) => {
-                    const newStart = e.target.value;
-                    const service = services.find((s) => s.id === form.service_id);
-                    setForm({ ...form, start_time: newStart, end_time: service ? addMinutes(newStart, service.duration_minutes) : form.end_time });
-                  }} />
+            {/* Capacity */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Capacity</p>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <Input type="number" value={form.capacity} min="1"
+                    onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  <UsersIcon className="size-3 inline mr-1" />spots
+                </span>
               </div>
-              <div>
-                <label className="text-sm font-medium">End *</label>
-                <Input type="time" className="mt-1.5" value={form.end_time}
-                  onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
-              </div>
+              {form.service_id && (() => {
+                const svc = services.find(s => s.id === form.service_id);
+                return svc && parseInt(form.capacity) !== svc.capacity
+                  ? <p className="text-[10px] text-amber-600 mt-1">Service default: {svc.capacity} spots</p>
+                  : null;
+              })()}
             </div>
 
-            {/* Capacity + Credits */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium flex items-center gap-1"><UsersIcon className="size-3" /> Capacity *</label>
-                <Input type="number" className="mt-1.5" value={form.capacity} min="1"
-                  onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-sm font-medium flex items-center gap-1"><CoinsIcon className="size-3" /> Credit Cost</label>
-                <Input type="number" className="mt-1.5" value={form.base_credit_cost} min="1"
-                  onChange={(e) => setForm({ ...form, base_credit_cost: e.target.value })} />
-              </div>
+            {/* Pricing — inherited from service, with optional override */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Pricing</p>
+              {form.service_id ? (() => {
+                const svc = services.find(s => s.id === form.service_id);
+                return (
+                  <div className="space-y-3">
+                    {/* Service price display */}
+                    <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <CoinsIcon className="size-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">
+                            {form.override_pricing ? form.base_credit_cost : svc?.credit_price || "—"} credits
+                          </p>
+                          {!form.override_pricing && (
+                            <p className="text-[10px] text-muted-foreground">Inherited from {svc?.name || "service"}</p>
+                          )}
+                          {form.override_pricing && svc && (
+                            <p className="text-[10px] text-amber-600">Service default: {svc.credit_price} credits</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">Override</span>
+                        <Switch
+                          checked={form.override_pricing}
+                          onCheckedChange={(checked) => {
+                            const svc = services.find(s => s.id === form.service_id);
+                            setForm({
+                              ...form,
+                              override_pricing: checked,
+                              base_credit_cost: checked ? form.base_credit_cost : String(svc?.credit_price || form.base_credit_cost),
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Override input */}
+                    {form.override_pricing && (
+                      <div>
+                        <label className="text-xs text-muted-foreground">Custom credit cost for this session</label>
+                        <Input type="number" className="mt-1" value={form.base_credit_cost} min="1"
+                          onChange={(e) => setForm({ ...form, base_credit_cost: e.target.value })} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })() : (
+                <p className="text-xs text-muted-foreground">Select a service to see pricing</p>
+              )}
             </div>
 
             {/* Notes */}
             <div>
-              <label className="text-sm font-medium">Notes</label>
+              <label className="text-xs text-muted-foreground">Notes (optional)</label>
               <textarea
-                className="mt-1.5 w-full rounded-lg border border-border bg-background p-3 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                className="mt-1 w-full rounded-lg border border-border bg-background p-3 text-sm min-h-[50px] focus:outline-none focus:ring-2 focus:ring-ring resize-y"
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="Optional notes for this session..."
+                placeholder="Internal notes for this session..."
               />
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              {editingSession && canManage && (
+            <div className="flex items-center justify-between pt-3 border-t border-border">
+              {editingSession && canManage ? (
                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"
                   onClick={() => { handleDelete(editingSession.id); setDialogOpen(false); }}>
                   <Trash2Icon className="size-3.5 mr-1.5" /> Cancel Session
                 </Button>
-              )}
-              <div className="flex gap-2 ml-auto">
+              ) : <div />}
+              <div className="flex gap-2">
                 <Button variant="ghost" onClick={() => setDialogOpen(false)}>Close</Button>
                 <Button onClick={handleSave}
                   disabled={saving || !form.service_id || !form.date || !form.start_time || !form.end_time || !form.capacity}>
@@ -659,4 +749,10 @@ function getWeekStart(date: Date): Date {
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function calcDuration(start: string, end: string): number {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  return (eh * 60 + em) - (sh * 60 + sm);
 }

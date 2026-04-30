@@ -184,7 +184,10 @@ export function TopBar() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="cursor-pointer"
-                onClick={() => router.push("/studio/settings")}
+                onClick={() => {
+                  const portal = pathname.split("/")[1] || "studio";
+                  router.push(`/${portal}/account`);
+                }}
               >
                 <UserIcon className="size-4 mr-2" />
                 My Account
