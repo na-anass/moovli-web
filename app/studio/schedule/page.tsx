@@ -46,8 +46,10 @@ interface Session {
   booked_count: number;
   waitlist_count: number;
   status: string;
-  base_credit_cost?: number;
-  final_credit_cost?: number;
+  // MAD-based pricing (spec A)
+  price_mad?: number;
+  marketplace_price_mad?: number;
+  marketplace_markup_pct?: number;
   instructor_tier?: string;
   is_recurring: boolean;
   notes?: string;
@@ -70,6 +72,11 @@ interface Provider {
 }
 
 type ViewMode = "week" | "day" | "list";
+
+// Spec A interim: services still expose credit_price, but sessions are priced
+// in MAD. Use this constant to convert when defaulting from service pricing.
+// Must match moovli-api's CREDIT_VALUE_MAD env (default 10).
+const CREDIT_VALUE_MAD = 10;
 
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
   available: { bg: "bg-emerald-50 dark:bg-emerald-950/40", border: "border-l-emerald-500", text: "text-emerald-700 dark:text-emerald-300" },
@@ -112,7 +119,7 @@ export default function SchedulePage() {
     start_time: "",
     end_time: "",
     capacity: "",
-    base_credit_cost: "",
+    price_mad: "",
     notes: "",
     is_recurring: false,
     override_pricing: false,
@@ -169,7 +176,7 @@ export default function SchedulePage() {
       start_time: startStr,
       end_time: startStr && services[0] ? addMinutes(startStr, services[0].duration_minutes) : "",
       capacity: services[0] ? String(services[0].capacity) : "12",
-      base_credit_cost: services[0] ? String(services[0].credit_price) : "5",
+      price_mad: services[0] ? String((services[0].credit_price || 0) * CREDIT_VALUE_MAD) : "50",
       notes: "",
       is_recurring: false,
       override_pricing: false,
@@ -181,7 +188,8 @@ export default function SchedulePage() {
     setEditingSession(s);
     const d = new Date(s.start_time);
     const svc = services.find((sv) => sv.id === s.service?.id);
-    const hasOverride = svc ? (s.base_credit_cost || 0) !== svc.credit_price : false;
+    const serviceDefaultMad = svc ? (svc.credit_price || 0) * CREDIT_VALUE_MAD : 0;
+    const hasOverride = svc ? (s.price_mad || 0) !== serviceDefaultMad : false;
     setForm({
       service_id: s.service?.id || "",
       provider_id: s.provider?.id || "",
@@ -189,7 +197,7 @@ export default function SchedulePage() {
       start_time: d.toTimeString().slice(0, 5),
       end_time: new Date(s.end_time).toTimeString().slice(0, 5),
       capacity: String(s.capacity),
-      base_credit_cost: String(s.base_credit_cost || ""),
+      price_mad: String(s.price_mad || ""),
       override_pricing: hasOverride,
       notes: s.notes || "",
       is_recurring: s.is_recurring,
@@ -202,9 +210,9 @@ export default function SchedulePage() {
     setSaving(true);
     try {
       const svc = services.find((s) => s.id === form.service_id);
-      const creditCost = form.override_pricing
-        ? parseInt(form.base_credit_cost) || 5
-        : svc?.credit_price || parseInt(form.base_credit_cost) || 5;
+      const priceMad = form.override_pricing
+        ? parseFloat(form.price_mad) || 0
+        : ((svc?.credit_price || 0) * CREDIT_VALUE_MAD) || parseFloat(form.price_mad) || 0;
 
       const payload = {
         service_id: form.service_id,
@@ -212,7 +220,7 @@ export default function SchedulePage() {
         start_time: `${form.date}T${form.start_time}:00Z`,
         end_time: `${form.date}T${form.end_time}:00Z`,
         capacity: parseInt(form.capacity),
-        base_credit_cost: creditCost,
+        price_mad: priceMad,
         notes: form.notes || null,
       };
       if (editingSession) {
@@ -245,7 +253,7 @@ export default function SchedulePage() {
       ...prev,
       service_id: serviceId,
       capacity: service ? String(service.capacity) : prev.capacity,
-      base_credit_cost: service ? String(service.credit_price) : prev.base_credit_cost,
+      price_mad: service ? String((service.credit_price || 0) * CREDIT_VALUE_MAD) : prev.price_mad,
       end_time: service && prev.start_time ? addMinutes(prev.start_time, service.duration_minutes) : prev.end_time,
     }));
   };
@@ -317,7 +325,7 @@ export default function SchedulePage() {
       ),
     },
     { header: "Spots", cell: (r) => <span>{r.booked_count}/{r.capacity}{r.waitlist_count > 0 ? ` +${r.waitlist_count} wl` : ""}</span> },
-    { header: "Credits", cell: (r) => <span>{r.final_credit_cost || r.base_credit_cost || "—"}</span> },
+    { header: "Price", cell: (r) => <span>{r.price_mad != null ? `${r.price_mad} MAD` : "—"}</span> },
     {
       header: "Status",
       cell: (r) => (
@@ -560,7 +568,7 @@ export default function SchedulePage() {
                       <div className="flex items-center gap-2">
                         <span>{s.name}</span>
                         <span className="text-muted-foreground text-xs">
-                          {s.duration_minutes}min · {s.credit_price} credits · {s.capacity} spots
+                          {s.duration_minutes}min · {(s.credit_price || 0) * CREDIT_VALUE_MAD} MAD · {s.capacity} spots
                         </span>
                       </div>
                     </SelectItem>
@@ -654,13 +662,17 @@ export default function SchedulePage() {
                         <CoinsIcon className="size-4 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">
-                            {form.override_pricing ? form.base_credit_cost : svc?.credit_price || "—"} credits
+                            {form.override_pricing
+                              ? form.price_mad
+                              : svc ? (svc.credit_price || 0) * CREDIT_VALUE_MAD : "—"} MAD
                           </p>
                           {!form.override_pricing && (
                             <p className="text-[10px] text-muted-foreground">Inherited from {svc?.name || "service"}</p>
                           )}
                           {form.override_pricing && svc && (
-                            <p className="text-[10px] text-amber-600">Service default: {svc.credit_price} credits</p>
+                            <p className="text-[10px] text-amber-600">
+                              Service default: {(svc.credit_price || 0) * CREDIT_VALUE_MAD} MAD
+                            </p>
                           )}
                         </div>
                       </div>
@@ -670,10 +682,11 @@ export default function SchedulePage() {
                           checked={form.override_pricing}
                           onCheckedChange={(checked) => {
                             const svc = services.find(s => s.id === form.service_id);
+                            const serviceMad = svc ? (svc.credit_price || 0) * CREDIT_VALUE_MAD : 0;
                             setForm({
                               ...form,
                               override_pricing: checked,
-                              base_credit_cost: checked ? form.base_credit_cost : String(svc?.credit_price || form.base_credit_cost),
+                              price_mad: checked ? form.price_mad : String(serviceMad || form.price_mad),
                             });
                           }}
                         />
@@ -683,9 +696,9 @@ export default function SchedulePage() {
                     {/* Override input */}
                     {form.override_pricing && (
                       <div>
-                        <label className="text-xs text-muted-foreground">Custom credit cost for this session</label>
-                        <Input type="number" className="mt-1" value={form.base_credit_cost} min="1"
-                          onChange={(e) => setForm({ ...form, base_credit_cost: e.target.value })} />
+                        <label className="text-xs text-muted-foreground">Custom price for this session (MAD)</label>
+                        <Input type="number" className="mt-1" value={form.price_mad} min="0" step="0.01"
+                          onChange={(e) => setForm({ ...form, price_mad: e.target.value })} />
                       </div>
                     )}
                   </div>
