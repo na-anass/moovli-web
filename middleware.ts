@@ -3,8 +3,47 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 const PUBLIC_ROUTES = ["/login", "/forgot-password"];
 
+/**
+ * Public routes served without auth — used by the consumer-facing booking site
+ * (Spec C). Includes:
+ *   /booking/<studio-slug>           — direct hosted page
+ *   /c/<custom-link-slug>            — custom calendar link
+ *   /embed/<embed-slug>              — embeddable widget iframe target
+ */
+const PUBLIC_PATH_PREFIXES = ["/booking/", "/c/", "/embed/"];
+
+/**
+ * On `booking.*` subdomain, rewrite the path so it lands in the public routes.
+ * E.g. booking.moovli.app/yoga-sara → /booking/yoga-sara
+ *      booking.moovli.app/c/marina  → /c/marina (already prefixed)
+ */
+const rewriteBookingSubdomain = (request: NextRequest): NextResponse | null => {
+  const host = request.headers.get("host") ?? "";
+  const isBookingSubdomain = host.startsWith("booking.");
+  if (!isBookingSubdomain) return null;
+
+  const { pathname } = request.nextUrl;
+  // If path already starts with a public prefix, leave it alone
+  if (PUBLIC_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
+  // Otherwise treat the whole path as a studio slug and rewrite into /booking/<slug>
+  const url = request.nextUrl.clone();
+  url.pathname = `/booking${pathname === "/" ? "" : pathname}`;
+  return NextResponse.rewrite(url);
+};
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Subdomain rewrite first
+  const rewritten = rewriteBookingSubdomain(request);
+  if (rewritten) return rewritten;
+
+  // Public booking routes skip auth entirely
+  if (PUBLIC_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
 
   // Create supabase client with cookie handling
   let response = NextResponse.next({ request });

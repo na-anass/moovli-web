@@ -135,4 +135,80 @@ export const studioApi = {
     apiClient<{ success: boolean }>(`/api/studio/${entityId}/team/${userId}`, {
       method: "DELETE",
     }),
+
+  // ==========================================================================
+  // CUSTOMERS (CRM) — Spec C
+  // ==========================================================================
+
+  listCustomers: (
+    entityId: string,
+    params?: {
+      search?: string;
+      channelId?: string;
+      acquisitionSource?: string;
+      sortBy?: "last_booking_at" | "lifetime_value_mad" | "total_bookings" | "created_at";
+      sortOrder?: "asc" | "desc";
+      limit?: number;
+      offset?: number;
+    },
+  ) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.set("search", params.search);
+    if (params?.channelId) q.set("channelId", params.channelId);
+    if (params?.acquisitionSource) q.set("acquisitionSource", params.acquisitionSource);
+    if (params?.sortBy) q.set("sortBy", params.sortBy);
+    if (params?.sortOrder) q.set("sortOrder", params.sortOrder);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    return apiClient<{ success: boolean; data: EntityCustomer[]; total: number }>(
+      `/api/studio/${entityId}/customers?${q}`,
+    );
+  },
+
+  getCustomer: (entityId: string, customerId: string) =>
+    apiClient<{ success: boolean; data: EntityCustomer }>(
+      `/api/studio/${entityId}/customers/${customerId}`,
+    ),
+
+  updateCustomer: (
+    entityId: string,
+    customerId: string,
+    update: { notes?: string | null; tags?: string[]; marketing_email_consent?: boolean },
+  ) =>
+    apiClient<{ success: boolean; data: EntityCustomer }>(
+      `/api/studio/${entityId}/customers/${customerId}`,
+      { method: "PATCH", body: JSON.stringify(update) },
+    ),
 };
+
+export type AcquisitionSource =
+  | "marketplace"
+  | "direct_hosted"
+  | "direct_link"
+  | "direct_embed"
+  | "manual"
+  | "unknown";
+
+export interface EntityCustomer {
+  id: string;
+  entity_id: string;
+  user_id: string | null;
+  email: string;
+  name: string;
+  phone: string | null;
+  first_seen_at: string;
+  first_seen_via_channel_id: string | null;
+  acquisition_source: AcquisitionSource;
+  total_bookings: number;
+  confirmed_bookings: number;
+  completed_bookings: number;
+  cancelled_bookings: number;
+  no_shows: number;
+  lifetime_value_mad: number;
+  last_booking_at: string | null;
+  notes: string | null;
+  tags: string[];
+  marketing_email_consent: boolean;
+  created_at: string;
+  updated_at: string;
+}
