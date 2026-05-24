@@ -176,20 +176,14 @@ export default function StudioBookingsPage() {
     },
     {
       header: "Price",
-      cell: (b) =>
-        b.channel?.type === "marketplace" && b.credits_charged != null ? (
-          <div className="text-sm">
-            <div>{b.credits_charged} credits</div>
-            <div className="text-xs text-muted-foreground">
-              {formatPrice(b.price_mad_at_booking)}
-            </div>
-          </div>
-        ) : (
-          <div className="text-sm">
-            <div>{formatPrice(b.price_mad_at_booking)}</div>
+      cell: (b) => (
+        <div className="text-sm">
+          <div>{formatPrice(b.price_mad_at_booking)}</div>
+          {b.channel?.type !== "marketplace" && (
             <div className="text-[10px] text-muted-foreground">at studio</div>
-          </div>
-        ),
+          )}
+        </div>
+      ),
     },
     {
       header: "Status",

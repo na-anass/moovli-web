@@ -37,7 +37,6 @@ import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
 import {
   ClockIcon,
-  CoinsIcon,
   PackageIcon,
   PencilIcon,
   PlusIcon,
@@ -75,7 +74,6 @@ const EMPTY_FORM = {
   description: "",
   short_description: "",
   base_price: "",
-  credit_price: "",
   duration_minutes: "60",
   capacity: "10",
   min_capacity: "",
@@ -192,7 +190,6 @@ export default function ServicesPage() {
       description: s.description || "",
       short_description: s.short_description || "",
       base_price: String(s.base_price),
-      credit_price: String(s.credit_price || ""),
       duration_minutes: String(s.duration_minutes),
       capacity: String(s.capacity),
       min_capacity: String(s.min_capacity || ""),
@@ -213,7 +210,6 @@ export default function ServicesPage() {
         description: form.description || null,
         short_description: form.short_description || null,
         base_price: parseFloat(form.base_price) || 0,
-        credit_price: parseInt(form.credit_price) || null,
         duration_minutes: parseInt(form.duration_minutes) || 60,
         capacity: parseInt(form.capacity) || 10,
         min_capacity: parseInt(form.min_capacity) || null,
@@ -414,17 +410,9 @@ export default function ServicesPage() {
                       <span className="text-sm">{s.capacity}</span>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      <div className="flex flex-col items-end">
-                        <span className="text-sm font-medium">
-                          {Number(s.base_price).toFixed(0)}
-                        </span>
-                        {s.credit_price ? (
-                          <span className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5">
-                            <CoinsIcon className="size-2.5" />
-                            {s.credit_price} cr
-                          </span>
-                        ) : null}
-                      </div>
+                      <span className="text-sm font-medium">
+                        {Number(s.base_price).toFixed(0)}
+                      </span>
                     </TableCell>
                     <TableCell className="text-center">
                       <Switch
@@ -573,7 +561,7 @@ export default function ServicesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-sm font-medium">Price (MAD) *</label>
                 <Input
@@ -585,22 +573,6 @@ export default function ServicesPage() {
                   onChange={(e) => setForm({ ...form, base_price: e.target.value })}
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium flex items-center gap-1">
-                  <CoinsIcon className="size-3" /> Credit price
-                </label>
-                <Input
-                  type="number"
-                  className="mt-1.5"
-                  value={form.credit_price}
-                  min="1"
-                  onChange={(e) => setForm({ ...form, credit_price: e.target.value })}
-                  placeholder="Credits per booking"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium">Min capacity</label>
                 <Input

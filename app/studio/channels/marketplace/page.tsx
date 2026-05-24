@@ -157,7 +157,7 @@ export default function StudioChannelMarketplacePage() {
           </div>
           <p className="text-xs text-muted-foreground">
             {isLive
-              ? "Your published sessions appear in the Moovli app discovery feed and studio listings. Bookings deduct credits from users and are paid out to you on the standard payout schedule."
+              ? "Your published sessions appear in the Moovli app discovery feed and studio listings. Bookings are paid via Moovli and you receive payouts on the standard schedule."
               : "Your sessions are not visible in the Moovli app. Existing marketplace bookings remain valid and will be honored — only future discoverability is paused."}
           </p>
         </section>

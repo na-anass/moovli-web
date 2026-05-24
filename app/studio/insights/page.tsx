@@ -6,14 +6,12 @@ import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
 import {
   CalendarIcon,
-  CoinsIcon,
   XCircleIcon,
   PercentIcon,
 } from "lucide-react";
 
 interface InsightsData {
   totalBookings: number;
-  totalCredits: number;
   cancelledCount: number;
   cancellationRate: number;
   dailyBreakdown?: { date: string; bookings: number }[];
@@ -55,18 +53,12 @@ export default function InsightsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Insights</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatsCard
           title="Total Bookings"
           value={insights?.totalBookings ?? 0}
           icon={<CalendarIcon className="size-5" />}
           description="Last 30 days"
-        />
-        <StatsCard
-          title="Total Credits"
-          value={insights?.totalCredits ?? 0}
-          icon={<CoinsIcon className="size-5" />}
-          description="Credits earned"
         />
         <StatsCard
           title="Cancelled"
