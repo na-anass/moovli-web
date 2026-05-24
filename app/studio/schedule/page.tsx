@@ -134,6 +134,13 @@ export default function SchedulePage() {
     release_enabled: false,
     release_value: "6",
     release_unit: "hours" as "minutes" | "hours" | "days",
+    // Recurrence (like Google Calendar)
+    repeat_mode: "none" as "none" | "daily" | "weekly",
+    repeat_interval: "1",
+    repeat_weekdays: [] as Array<"mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun">,
+    repeat_end_mode: "until" as "until" | "count",
+    repeat_until: "",
+    repeat_count: "10",
   });
 
   const entityId = roles?.ownedEntities?.[0]?.entityId;
@@ -199,6 +206,12 @@ export default function SchedulePage() {
       release_enabled: false,
       release_value: "6",
       release_unit: "hours",
+      repeat_mode: "none",
+      repeat_interval: "1",
+      repeat_weekdays: [],
+      repeat_end_mode: "until",
+      repeat_until: "",
+      repeat_count: "10",
     });
     setDialogOpen(true);
   };
@@ -228,6 +241,12 @@ export default function SchedulePage() {
       release_enabled: false,
       release_value: "6",
       release_unit: "hours",
+      repeat_mode: "none",
+      repeat_interval: "1",
+      repeat_weekdays: [],
+      repeat_end_mode: "until",
+      repeat_until: "",
+      repeat_count: "10",
     });
     setDialogOpen(true);
   };
@@ -267,6 +286,24 @@ export default function SchedulePage() {
           ? (parseInt(form.release_value) || 0) * UNIT_TO_MINUTES[form.release_unit]
           : undefined;
 
+      // Build recurrence rule (only when repeat_mode !== "none")
+      let recurrence: Record<string, unknown> | undefined;
+      if (form.repeat_mode !== "none") {
+        const rule: Record<string, unknown> = {
+          frequency: form.repeat_mode,
+          interval: Math.max(1, parseInt(form.repeat_interval) || 1),
+        };
+        if (form.repeat_mode === "weekly" && form.repeat_weekdays.length > 0) {
+          rule.by_weekday = form.repeat_weekdays;
+        }
+        if (form.repeat_end_mode === "until" && form.repeat_until) {
+          rule.until = form.repeat_until;
+        } else if (form.repeat_end_mode === "count") {
+          rule.count = Math.max(1, parseInt(form.repeat_count) || 1);
+        }
+        recurrence = rule;
+      }
+
       const payload = {
         service_id: form.service_id,
         provider_id: form.provider_id || null,
@@ -280,6 +317,7 @@ export default function SchedulePage() {
         ...(releaseMinutesBefore != null
           ? { release_minutes_before: releaseMinutesBefore }
           : {}),
+        ...(recurrence ? { recurrence } : {}),
       };
       if (editingSession) {
         await studioApi.updateSession(entityId, editingSession.id, payload);
@@ -686,6 +724,156 @@ export default function SchedulePage() {
                 )}
               </div>
             </div>
+
+            {/* Repeats — like Google Calendar */}
+            {!editingSession && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                  Repeats
+                </p>
+                <Select
+                  value={form.repeat_mode}
+                  onValueChange={(v) =>
+                    setForm({ ...form, repeat_mode: v as "none" | "daily" | "weekly" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Doesn't repeat</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {form.repeat_mode !== "none" && (
+                  <div className="mt-3 space-y-3 rounded-lg border p-3 bg-muted/30">
+                    {/* Interval */}
+                    <div className="flex items-center gap-2 text-xs">
+                      <span>Every</span>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="52"
+                        value={form.repeat_interval}
+                        onChange={(e) => setForm({ ...form, repeat_interval: e.target.value })}
+                        className="h-7 w-16 text-right"
+                      />
+                      <span>
+                        {form.repeat_mode === "daily"
+                          ? parseInt(form.repeat_interval) === 1 ? "day" : "days"
+                          : parseInt(form.repeat_interval) === 1 ? "week" : "weeks"}
+                      </span>
+                    </div>
+
+                    {/* Weekday selector (weekly only) */}
+                    {form.repeat_mode === "weekly" && (
+                      <div className="space-y-1.5">
+                        <div className="text-xs text-muted-foreground">On these days</div>
+                        <div className="flex gap-1">
+                          {([
+                            { id: "mon", label: "M" },
+                            { id: "tue", label: "T" },
+                            { id: "wed", label: "W" },
+                            { id: "thu", label: "T" },
+                            { id: "fri", label: "F" },
+                            { id: "sat", label: "S" },
+                            { id: "sun", label: "S" },
+                          ] as const).map((d) => {
+                            const on = form.repeat_weekdays.includes(d.id);
+                            return (
+                              <button
+                                key={d.id}
+                                type="button"
+                                onClick={() =>
+                                  setForm({
+                                    ...form,
+                                    repeat_weekdays: on
+                                      ? form.repeat_weekdays.filter((w) => w !== d.id)
+                                      : [...form.repeat_weekdays, d.id],
+                                  })
+                                }
+                                className={`size-8 rounded-full text-xs font-medium border transition ${
+                                  on
+                                    ? "bg-foreground text-background border-foreground"
+                                    : "border-input hover:bg-accent"
+                                }`}
+                              >
+                                {d.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          Leave empty to use the start date's weekday only.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* End condition */}
+                    <div className="space-y-1.5">
+                      <div className="text-xs text-muted-foreground">Ends</div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="repeat_end_mode"
+                            checked={form.repeat_end_mode === "until"}
+                            onChange={() => setForm({ ...form, repeat_end_mode: "until" })}
+                          />
+                          On
+                        </label>
+                        <Input
+                          type="date"
+                          value={form.repeat_until}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              repeat_until: e.target.value,
+                              repeat_end_mode: "until",
+                            })
+                          }
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="repeat_end_mode"
+                            checked={form.repeat_end_mode === "count"}
+                            onChange={() => setForm({ ...form, repeat_end_mode: "count" })}
+                          />
+                          After
+                        </label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="365"
+                          value={form.repeat_count}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              repeat_count: e.target.value,
+                              repeat_end_mode: "count",
+                            })
+                          }
+                          className="h-7 w-16 text-right"
+                        />
+                        <span>occurrences</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {editingSession === null && form.repeat_mode !== "none" && (
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    All occurrences will be created at once with the same channel publication and capacity.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Capacity */}
             <div>

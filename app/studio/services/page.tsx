@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { studioApi } from "@/lib/api/studio";
+import { catalogApi, type Category } from "@/lib/api/catalog";
 import { useAuth } from "@/lib/auth/provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   PlusIcon,
   PencilIcon,
@@ -41,6 +49,7 @@ interface Service {
   is_featured: boolean;
   display_order: number | null;
   image_url: string | null;
+  category_id: string | null;
 }
 
 const EMPTY_FORM = {
@@ -55,11 +64,13 @@ const EMPTY_FORM = {
   booking_buffer_minutes: "15",
   cancellation_hours: "24",
   is_featured: false,
+  category_id: "",
 };
 
 export default function ServicesPage() {
   const { roles } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -81,6 +92,14 @@ export default function ServicesPage() {
 
   useEffect(() => { fetchServices(); }, [entityId]);
 
+  // Load categories once — used by the dropdown in the form
+  useEffect(() => {
+    catalogApi
+      .listCategories({ limit: 100 })
+      .then((res) => setCategories(res.data ?? []))
+      .catch(console.error);
+  }, []);
+
   const openCreate = () => {
     setEditingService(null);
     setForm(EMPTY_FORM);
@@ -101,6 +120,7 @@ export default function ServicesPage() {
       booking_buffer_minutes: String(s.booking_buffer_minutes ?? 15),
       cancellation_hours: String(s.cancellation_hours ?? 24),
       is_featured: s.is_featured,
+      category_id: s.category_id || "",
     });
     setDialogOpen(true);
   };
@@ -121,6 +141,7 @@ export default function ServicesPage() {
         booking_buffer_minutes: parseInt(form.booking_buffer_minutes) || 15,
         cancellation_hours: parseInt(form.cancellation_hours) || 24,
         is_featured: form.is_featured,
+        category_id: form.category_id || null,
       };
 
       if (editingService) {
@@ -288,6 +309,29 @@ export default function ServicesPage() {
               <Input className="mt-1.5" value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g. Megaformer Pilates" />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Category</label>
+              <Select
+                value={form.category_id || "none"}
+                onValueChange={(v) => setForm({ ...form, category_id: v === "none" ? "" : v })}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Pick a category…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Uncategorized</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.icon ? `${c.icon} ` : ""}{c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Helps consumers discover your service by type (yoga, HIIT, spa…).
+              </p>
             </div>
 
             <div>
