@@ -32,6 +32,11 @@ export default async function StudioPublicPage({ params }: PageProps) {
 
   if (!entity) notFound();
 
+  // Studio's per-entity opt-out for direct_hosted — defaults to enabled.
+  const channelPrefs =
+    (entity.settings as { channels?: Record<string, boolean> } | null)?.channels ?? {};
+  if (channelPrefs.direct_hosted_enabled === false) notFound();
+
   // Branding from entity.settings.brand.primary_color (set via studio dashboard / DB)
   const brandColor =
     (entity.settings as { brand?: { primary_color?: string } } | null)?.brand?.primary_color ?? null;

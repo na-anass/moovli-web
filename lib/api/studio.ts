@@ -56,18 +56,42 @@ export const studioApi = {
       method: "DELETE",
     }),
 
-  getBookings: (entityId: string, params?: { page?: number; limit?: number; status?: string }) => {
+  getBookings: (
+    entityId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      channel_type?: string;
+      channel_id?: string;
+    },
+  ) => {
     const query = new URLSearchParams();
     if (params?.page) query.set("page", String(params.page));
     if (params?.limit) query.set("limit", String(params.limit));
     if (params?.status) query.set("status", params.status);
-    return apiClient<PaginatedResponse<any>>(`/api/studio/${entityId}/bookings?${query}`);
+    if (params?.channel_type) query.set("channel_type", params.channel_type);
+    if (params?.channel_id) query.set("channel_id", params.channel_id);
+    return apiClient<PaginatedResponse<StudioBookingRow>>(`/api/studio/${entityId}/bookings?${query}`);
   },
 
   checkinBooking: (entityId: string, bookingId: string) =>
     apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/bookings/${bookingId}/checkin`, {
       method: "POST",
     }),
+
+  // Spec C — direct-channel confirmation flow
+  confirmBooking: (entityId: string, bookingId: string) =>
+    apiClient<{ success: boolean; data: StudioBookingRow }>(
+      `/api/studio/${entityId}/bookings/${bookingId}/confirm`,
+      { method: "POST" },
+    ),
+
+  declineBooking: (entityId: string, bookingId: string, reason?: string) =>
+    apiClient<{ success: boolean; data: StudioBookingRow }>(
+      `/api/studio/${entityId}/bookings/${bookingId}/decline`,
+      { method: "POST", body: JSON.stringify({ reason }) },
+    ),
 
   updatePricing: (entityId: string, serviceId: string, pricing: { credit_price?: number }) =>
     apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/services/${serviceId}/pricing`, {
@@ -194,13 +218,88 @@ export const studioApi = {
       `/api/studio/${entityId}/channel-prefs`,
       { method: "PATCH", body: JSON.stringify(prefs) },
     ),
+
+  // Spec C — branding
+  getBranding: (entityId: string) =>
+    apiClient<{ success: boolean; data: { primary_color: string | null } }>(
+      `/api/studio/${entityId}/branding`,
+    ),
+
+  updateBranding: (entityId: string, primary_color: string | null) =>
+    apiClient<{ success: boolean; data: { primary_color: string | null } }>(
+      `/api/studio/${entityId}/branding`,
+      { method: "PATCH", body: JSON.stringify({ primary_color }) },
+    ),
+
+  // Spec D groundwork — payout method
+  getPayoutMethod: (entityId: string) =>
+    apiClient<{ success: boolean; data: EntityPayoutMethod | null }>(
+      `/api/studio/${entityId}/payout-method`,
+    ),
+
+  updatePayoutMethod: (entityId: string, body: PayoutMethodInput) =>
+    apiClient<{ success: boolean; data: EntityPayoutMethod }>(
+      `/api/studio/${entityId}/payout-method`,
+      { method: "PUT", body: JSON.stringify(body) },
+    ),
 };
+
+export interface EntityPayoutMethod {
+  id: string;
+  entity_id: string;
+  method_type: "bank_transfer";
+  account_holder: string;
+  iban: string | null;
+  bank_name: string | null;
+  swift_bic: string | null;
+  provider_recipient_id: string | null;
+  is_verified: boolean;
+  verified_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PayoutMethodInput {
+  account_holder: string;
+  iban?: string;
+  bank_name?: string;
+  swift_bic?: string;
+}
 
 export interface ChannelPrefs {
   marketplace_enabled: boolean;
   direct_hosted_enabled: boolean;
   direct_link_enabled: boolean;
   direct_embed_enabled: boolean;
+}
+
+export interface StudioBookingRow {
+  id: string;
+  entity_id: string;
+  service_id: string;
+  session_id: string;
+  channel_id: string | null;
+  user_id: string | null;
+  status: string;
+  payment_type: string;
+  booking_date: string | null;
+  price_mad_at_booking: number | null;
+  markup_pct_at_booking: number | null;
+  credits_charged: number | null;
+  guest_email: string | null;
+  guest_name: string | null;
+  guest_phone: string | null;
+  notes: string | null;
+  cancellation_reason: string | null;
+  created_at: string;
+  service: { id: string; name: string } | null;
+  session: {
+    start_time: string;
+    end_time: string;
+    provider: { name: string } | null;
+  } | null;
+  channel: { id: string; type: AcquisitionSource; label: string; slug: string } | null;
+  user: { id: string; name: string | null; email: string } | null;
 }
 
 export type AcquisitionSource =
