@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BaseLayout } from "@/components/layout/base-layout";
 import { StatsCard } from "@/components/shared/stats-card";
 import { studioApi, type StudioDashboardMetrics } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
@@ -62,15 +63,14 @@ export default function StudioDashboardPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+      <BaseLayout maxWidth="full" title="Dashboard">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />
           ))}
         </div>
         <div className="h-64 rounded-xl border border-border bg-card animate-pulse" />
-      </div>
+      </BaseLayout>
     );
   }
 
@@ -84,11 +84,11 @@ export default function StudioDashboardPage() {
       : 0;
 
   return (
-    <div className="space-y-6">
-      {/* Header with quick actions */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <div className="flex gap-2">
+    <BaseLayout
+      maxWidth="full"
+      title="Dashboard"
+      action={
+        <>
           <Link href="/studio/schedule">
             <Button variant="outline" size="sm">
               <PlusIcon className="size-4 mr-1.5" />
@@ -101,9 +101,9 @@ export default function StudioDashboardPage() {
               Add Instructor
             </Button>
           </Link>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
@@ -228,6 +228,6 @@ export default function StudioDashboardPage() {
           </div>
         </Link>
       </div>
-    </div>
+    </BaseLayout>
   );
 }

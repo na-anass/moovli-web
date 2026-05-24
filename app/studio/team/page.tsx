@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BaseLayout } from "@/components/layout/base-layout";
 import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
 import { Badge } from "@/components/ui/badge";
@@ -143,27 +144,25 @@ export default function TeamPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6 max-w-4xl">
-        <h1 className="text-2xl font-bold">Team</h1>
+      <BaseLayout maxWidth="lg" title="Team">
         <div className="h-48 rounded-xl border border-border bg-card animate-pulse" />
-      </div>
+      </BaseLayout>
     );
   }
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="space-y-6 max-w-4xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Team</h1>
-            <p className="text-sm text-muted-foreground mt-1">{members.length} member{members.length !== 1 ? "s" : ""}</p>
-          </div>
+      <BaseLayout
+        maxWidth="lg"
+        title="Team"
+        subtitle={`${members.length} member${members.length !== 1 ? "s" : ""}`}
+        action={
           <Button onClick={() => setDialogOpen(true)}>
             <UserPlusIcon className="size-4 mr-2" />
             Invite Member
           </Button>
-        </div>
-
+        }
+      >
         {/* Team table */}
         <div className="rounded-xl border border-border bg-card">
           <Table>
@@ -397,7 +396,7 @@ export default function TeamPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+      </BaseLayout>
     </TooltipProvider>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { BaseLayout } from "@/components/layout/base-layout";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -248,14 +249,11 @@ export default function StudioBookingsPage() {
   ).length;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Bookings</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage incoming reservations and check in arrivals.
-        </p>
-      </div>
-
+    <BaseLayout
+      maxWidth="xl"
+      title="Bookings"
+      subtitle="Manage incoming reservations and check in arrivals."
+    >
       {/* Tab chips */}
       <div className="flex flex-wrap gap-2">
         {([
@@ -288,6 +286,6 @@ export default function StudioBookingsPage() {
         onPageChange={setPage}
         isLoading={loading}
       />
-    </div>
+    </BaseLayout>
   );
 }

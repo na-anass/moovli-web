@@ -1,5 +1,6 @@
 "use client";
 
+import { BaseLayout } from "@/components/layout/base-layout";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { studioApi, type AcquisitionSource, type EntityCustomer } from "@/lib/api/studio";
@@ -116,14 +117,11 @@ export default function StudioCustomersPage() {
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Customers</h1>
-        <p className="text-sm text-muted-foreground">
-          Everyone who has booked a session with you. {total} total.
-        </p>
-      </div>
-
+    <BaseLayout
+      maxWidth="xl"
+      title="Customers"
+      subtitle={`Everyone who has booked a session with you. ${total} total.`}
+    >
       {/* Source filter chips */}
       <div className="flex flex-wrap gap-2">
         <button
@@ -159,6 +157,6 @@ export default function StudioCustomersPage() {
         }}
         isLoading={loading}
       />
-    </div>
+    </BaseLayout>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { BaseLayout } from "@/components/layout/base-layout";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -196,11 +197,14 @@ export default function SchedulePage() {
   // FORM ACTIONS
   // ============================================================================
 
-  const openCreate = (date?: Date, hour?: number) => {
+  const openCreate = (date?: Date, hour?: number, minute: number = 0) => {
     setEditingSession(null);
     const d = date || new Date();
     const dateStr = d.toISOString().split("T")[0];
-    const startStr = hour != null ? `${String(hour).padStart(2, "0")}:00` : "";
+    const startStr =
+      hour != null
+        ? `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+        : "";
     setForm({
       service_id: services[0]?.id || "",
       provider_id: "",
@@ -516,14 +520,31 @@ export default function SchedulePage() {
 
     return (
       <div className={`relative flex-1 min-w-0 ${!isOnly ? "border-r border-border last:border-r-0" : ""}`}>
-        {/* Hour grid lines */}
+        {/* Hour cells — full-height clickable regions à la Google Calendar.
+            Top half = X:00 click target, bottom half = X:30. */}
         {HOURS.map((h) => (
           <div
             key={h}
             className="absolute w-full border-t border-border/50"
-            style={{ top: (h - 6) * HOUR_HEIGHT }}
-            onClick={() => canManage && openCreate(day, h)}
-          />
+            style={{ top: (h - 6) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
+          >
+            {canManage && (
+              <>
+                <button
+                  type="button"
+                  aria-label={`Create session at ${String(h).padStart(2, "0")}:00`}
+                  className="absolute inset-x-0 top-0 h-1/2 cursor-pointer hover:bg-accent/40 focus:bg-accent/40 focus:outline-none transition-colors"
+                  onClick={() => openCreate(day, h)}
+                />
+                <button
+                  type="button"
+                  aria-label={`Create session at ${String(h).padStart(2, "0")}:30`}
+                  className="absolute inset-x-0 bottom-0 h-1/2 border-t border-dashed border-border/30 cursor-pointer hover:bg-accent/40 focus:bg-accent/40 focus:outline-none transition-colors"
+                  onClick={() => openCreate(day, h, 30)}
+                />
+              </>
+            )}
+          </div>
         ))}
 
         {/* Current time line */}
@@ -556,14 +577,13 @@ export default function SchedulePage() {
   // ============================================================================
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Schedule</h1>
-          <p className="text-sm text-muted-foreground">{total} sessions</p>
-        </div>
-        <div className="flex items-center gap-2">
+    <BaseLayout
+      maxWidth="full"
+      gap="tight"
+      title="Schedule"
+      subtitle={`${total} sessions`}
+      action={
+        <>
           <div className="flex border border-border rounded-lg overflow-hidden">
             {(["day", "week", "list"] as ViewMode[]).map((v) => (
               <Button
@@ -586,9 +606,9 @@ export default function SchedulePage() {
               New Session
             </Button>
           )}
-        </div>
-      </div>
-
+        </>
+      }
+    >
       {/* Calendar navigation */}
       {view !== "list" && (
         <div className="flex items-center gap-3">
@@ -1197,7 +1217,7 @@ export default function SchedulePage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </BaseLayout>
   );
 }
 

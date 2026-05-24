@@ -1,5 +1,6 @@
 "use client";
 
+import { BaseLayout } from "@/components/layout/base-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,15 +77,11 @@ export default function PayoutsSettingsPage() {
   }
 
   return (
-    <div className="p-8 max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Payouts</h1>
-        <p className="text-sm text-muted-foreground">
-          The bank account Moovli sends your marketplace earnings to.
-          Direct booking payments are collected at your studio — they don't go through Moovli.
-        </p>
-      </div>
-
+    <BaseLayout
+      maxWidth="md"
+      title="Payouts"
+      subtitle="The bank account Moovli sends your marketplace earnings to. Direct booking payments are collected at your studio — they don't go through Moovli."
+    >
       {loading ? (
         <div className="text-sm text-muted-foreground">Loading…</div>
       ) : (
@@ -220,6 +217,6 @@ export default function PayoutsSettingsPage() {
           </div>
         </>
       )}
-    </div>
+    </BaseLayout>
   );
 }

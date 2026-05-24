@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BaseLayout } from "@/components/layout/base-layout";
 import { StatsCard } from "@/components/shared/stats-card";
 import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
@@ -35,14 +36,13 @@ export default function InsightsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Insights</h1>
+      <BaseLayout maxWidth="full" title="Insights">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />
           ))}
         </div>
-      </div>
+      </BaseLayout>
     );
   }
 
@@ -50,9 +50,7 @@ export default function InsightsPage() {
   const maxBookings = Math.max(...daily.map((d) => d.bookings), 1);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Insights</h1>
-
+    <BaseLayout maxWidth="full" title="Insights">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatsCard
           title="Total Bookings"
@@ -97,6 +95,6 @@ export default function InsightsPage() {
           </div>
         )}
       </div>
-    </div>
+    </BaseLayout>
   );
 }

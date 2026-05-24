@@ -1,5 +1,6 @@
 "use client";
 
+import { BaseLayout } from "@/components/layout/base-layout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -150,13 +151,11 @@ export default function StudioBillingPage() {
   const noCardOnTrial = isTrialing && !subscription?.stripe_subscription_id;
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Billing</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage your studio's subscription, payment method, and invoices.
-        </p>
-      </div>
+    <BaseLayout
+      maxWidth="lg"
+      title="Billing"
+      subtitle="Manage your studio's subscription, payment method, and invoices."
+    >
 
       {/* Trial-ending banner */}
       {noCardOnTrial && trialDaysLeft != null && trialDaysLeft <= 14 && (
@@ -374,6 +373,6 @@ export default function StudioBillingPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </BaseLayout>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BaseLayout } from "@/components/layout/base-layout";
 import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
 import { Badge } from "@/components/ui/badge";
@@ -83,25 +84,23 @@ export default function InstructorsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Instructors</h1>
+      <BaseLayout maxWidth="xl" title="Instructors">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-48 rounded-xl border border-border bg-card animate-pulse" />
           ))}
         </div>
-      </div>
+      </BaseLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Instructors</h1>
-          <p className="text-sm text-muted-foreground mt-1">{providers.length} instructor{providers.length !== 1 ? "s" : ""}</p>
-        </div>
-        {canManage && (
+    <BaseLayout
+      maxWidth="xl"
+      title="Instructors"
+      subtitle={`${providers.length} instructor${providers.length !== 1 ? "s" : ""}`}
+      action={
+        canManage ? (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -160,9 +159,9 @@ export default function InstructorsPage() {
               </div>
             </DialogContent>
           </Dialog>
-        )}
-      </div>
-
+        ) : undefined
+      }
+    >
       {providers.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
           <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
@@ -237,6 +236,6 @@ export default function InstructorsPage() {
           ))}
         </div>
       )}
-    </div>
+    </BaseLayout>
   );
 }
