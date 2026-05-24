@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 
-export type StudioPageWidth = "sm" | "md" | "lg" | "xl" | "full";
-export type StudioPageAccent =
+export type BaseLayoutWidth = "sm" | "md" | "lg" | "xl" | "full";
+export type BaseLayoutAccent =
   | "primary"
   | "violet"
   | "emerald"
@@ -13,7 +13,7 @@ export type StudioPageAccent =
   | "rose"
   | "slate";
 
-const WIDTHS: Record<StudioPageWidth, string> = {
+const WIDTHS: Record<BaseLayoutWidth, string> = {
   sm: "max-w-2xl",
   md: "max-w-3xl",
   lg: "max-w-5xl",
@@ -21,7 +21,7 @@ const WIDTHS: Record<StudioPageWidth, string> = {
   full: "max-w-none",
 };
 
-const ACCENTS: Record<StudioPageAccent, string> = {
+const ACCENTS: Record<BaseLayoutAccent, string> = {
   primary: "bg-primary/10 text-primary",
   violet: "bg-violet-100 text-violet-700",
   emerald: "bg-emerald-100 text-emerald-700",
@@ -30,33 +30,35 @@ const ACCENTS: Record<StudioPageAccent, string> = {
   slate: "bg-slate-100 text-slate-700",
 };
 
-interface StudioPageProps {
+interface BaseLayoutProps {
   title: string;
   subtitle?: string;
   /** Optional accent icon shown to the left of the title. */
   icon?: React.ElementType;
   /** Accent color for the icon tile. Defaults to primary. */
-  iconAccent?: StudioPageAccent;
+  iconAccent?: BaseLayoutAccent;
   /** Optional back-link rendered above the title. */
   back?: { href: string; label: string };
   /** Right-aligned slot next to the title (toggles, status badges, single CTA). */
   action?: React.ReactNode;
-  /** Sets max-width of the centered content column. Defaults to "md" (3xl). */
-  maxWidth?: StudioPageWidth;
+  /** Caps the content width. Defaults to "md" (3xl). Use "full" to fill the main area. */
+  maxWidth?: BaseLayoutWidth;
   /** Override vertical gap between children. Defaults to space-y-6. */
   gap?: "tight" | "default" | "loose";
   /** Hide the default header block entirely (caller renders its own). */
   hideHeader?: boolean;
+  /** Center the column horizontally. Off by default — content starts at the left. */
+  centered?: boolean;
   children: React.ReactNode;
 }
 
-const GAPS: Record<NonNullable<StudioPageProps["gap"]>, string> = {
+const GAPS: Record<NonNullable<BaseLayoutProps["gap"]>, string> = {
   tight: "space-y-4",
   default: "space-y-6",
   loose: "space-y-8",
 };
 
-export function StudioPage({
+export function BaseLayout({
   title,
   subtitle,
   icon: Icon,
@@ -66,10 +68,18 @@ export function StudioPage({
   maxWidth = "md",
   gap = "default",
   hideHeader = false,
+  centered = false,
   children,
-}: StudioPageProps) {
+}: BaseLayoutProps) {
   return (
-    <div className={cn("p-8 mx-auto", WIDTHS[maxWidth], GAPS[gap])}>
+    <div
+      className={cn(
+        "p-8",
+        WIDTHS[maxWidth],
+        GAPS[gap],
+        centered && "mx-auto",
+      )}
+    >
       {!hideHeader && (
         <div>
           {back && (

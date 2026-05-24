@@ -1,6 +1,6 @@
 "use client";
 
-import { StudioPage } from "@/components/layout/studio-page";
+import { BaseLayout } from "@/components/layout/base-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -158,8 +158,7 @@ export default function StudioChannelDirectPage() {
   const isLive = planAllowsDirect && directOn && !!channel;
 
   return (
-    <StudioPage
-      back={{ href: "/studio/channels", label: "Channels" }}
+    <BaseLayout
       icon={GlobeIcon}
       iconAccent="emerald"
       title="Direct booking page"
@@ -346,6 +345,6 @@ export default function StudioChannelDirectPage() {
         <p>• Custom domain (e.g. book.yourstudio.com)</p>
         <p>• Embeddable widget code (drop your calendar into any site)</p>
       </section>
-    </StudioPage>
+    </BaseLayout>
   );
 }

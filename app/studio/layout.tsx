@@ -16,7 +16,6 @@ import {
   LayoutDashboardIcon,
   PackageIcon,
   SettingsIcon,
-  Share2Icon,
   ShoppingBagIcon,
   UserCircle2Icon,
   Users2Icon,
@@ -131,23 +130,17 @@ export default function StudioLayout({
       },
       { label: "Instructors", icon: UsersIcon, href: "/studio/instructors" },
       {
-        label: "Channels",
-        icon: Share2Icon,
-        href: "/studio/channels",
-        children: [
-          {
-            label: "Marketplace",
-            href: "/studio/channels/marketplace",
-            status: channelStatuses.marketplace,
-            icon: ShoppingBagIcon,
-          },
-          {
-            label: "Direct",
-            href: "/studio/channels/direct",
-            status: channelStatuses.direct,
-            icon: GlobeIcon,
-          },
-        ],
+        section: "Channels",
+        label: "Marketplace",
+        icon: ShoppingBagIcon,
+        href: "/studio/channels/marketplace",
+        status: channelStatuses.marketplace,
+      },
+      {
+        label: "Direct",
+        icon: GlobeIcon,
+        href: "/studio/channels/direct",
+        status: channelStatuses.direct,
       },
     ];
 

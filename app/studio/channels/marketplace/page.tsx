@@ -1,6 +1,6 @@
 "use client";
 
-import { StudioPage } from "@/components/layout/studio-page";
+import { BaseLayout } from "@/components/layout/base-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -81,8 +81,7 @@ export default function StudioChannelMarketplacePage() {
   const baseMarkup = Math.round(Number(plan?.base_markup_pct ?? 0));
 
   return (
-    <StudioPage
-      back={{ href: "/studio/channels", label: "Channels" }}
+    <BaseLayout
       icon={ShoppingBagIcon}
       iconAccent="violet"
       title="Marketplace"
@@ -234,6 +233,6 @@ export default function StudioChannelMarketplacePage() {
         <p>• Quality metrics dashboard (rating, response time, completion rate)</p>
         <p>• Special offers + limited-time promotions</p>
       </section>
-    </StudioPage>
+    </BaseLayout>
   );
 }
