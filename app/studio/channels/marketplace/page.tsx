@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioPage } from "@/components/layout/studio-page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -7,7 +8,6 @@ import { entityPlansApi, type EntityPlan } from "@/lib/api/entityPlans";
 import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
   CoinsIcon,
   LockIcon,
@@ -81,51 +81,35 @@ export default function StudioChannelMarketplacePage() {
   const baseMarkup = Math.round(Number(plan?.base_markup_pct ?? 0));
 
   return (
-    <div className="p-8 max-w-3xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <Link
-          href="/studio/channels"
-          className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground mb-2"
-        >
-          <ArrowLeftIcon className="size-3 mr-1" />
-          Channels
-        </Link>
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="flex items-start gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-violet-100 text-violet-700">
-              <ShoppingBagIcon className="size-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold">Marketplace</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Your sessions discoverable in the Moovli mobile app.
-              </p>
-            </div>
-          </div>
-          {planAllows && canManage && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                {isLive ? "Active" : "Off"}
-              </span>
-              <Switch
-                checked={marketplaceOn}
-                disabled={toggling}
-                onCheckedChange={toggleMarketplace}
-                aria-label="Toggle marketplace listing"
-              />
-            </div>
-          )}
-          {!planAllows && (
-            <Badge
-              variant="outline"
-              className="border-amber-200 bg-amber-50 text-amber-700"
-            >
-              <LockIcon className="size-2.5 mr-1" /> Plan upgrade required
-            </Badge>
-          )}
-        </div>
-      </div>
+    <StudioPage
+      back={{ href: "/studio/channels", label: "Channels" }}
+      icon={ShoppingBagIcon}
+      iconAccent="violet"
+      title="Marketplace"
+      subtitle="Your sessions discoverable in the Moovli mobile app."
+      action={
+        planAllows && canManage ? (
+          <>
+            <span className="text-xs text-muted-foreground">
+              {isLive ? "Active" : "Off"}
+            </span>
+            <Switch
+              checked={marketplaceOn}
+              disabled={toggling}
+              onCheckedChange={toggleMarketplace}
+              aria-label="Toggle marketplace listing"
+            />
+          </>
+        ) : !planAllows ? (
+          <Badge
+            variant="outline"
+            className="border-amber-200 bg-amber-50 text-amber-700"
+          >
+            <LockIcon className="size-2.5 mr-1" /> Plan upgrade required
+          </Badge>
+        ) : null
+      }
+    >
 
       {/* Plan gate */}
       {!planAllows && (
@@ -250,6 +234,6 @@ export default function StudioChannelMarketplacePage() {
         <p>• Quality metrics dashboard (rating, response time, completion rate)</p>
         <p>• Special offers + limited-time promotions</p>
       </section>
-    </div>
+    </StudioPage>
   );
 }

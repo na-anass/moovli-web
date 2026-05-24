@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioPage } from "@/components/layout/studio-page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,6 @@ import { entityPlansApi } from "@/lib/api/entityPlans";
 import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
 import {
-  ArrowLeftIcon,
   CheckIcon,
   CopyIcon,
   ExternalLinkIcon,
@@ -17,7 +17,6 @@ import {
   LockIcon,
   PaletteIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 const DEFAULT_COLOR = "#f26c2c";
@@ -159,49 +158,32 @@ export default function StudioChannelDirectPage() {
   const isLive = planAllowsDirect && directOn && !!channel;
 
   return (
-    <div className="p-8 max-w-3xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <Link
-          href="/studio/channels"
-          className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground mb-2"
-        >
-          <ArrowLeftIcon className="size-3 mr-1" />
-          Channels
-        </Link>
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="flex items-start gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-              <GlobeIcon className="size-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold">Direct booking page</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Customize your studio&apos;s public hosted page.
-              </p>
-            </div>
-          </div>
-          {planAllowsDirect && canManage && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                {isLive ? "Active" : "Off"}
-              </span>
-              <Switch
-                checked={directOn}
-                disabled={togglingPref}
-                onCheckedChange={toggleDirect}
-                aria-label="Toggle direct booking page"
-              />
-            </div>
-          )}
-          {!planAllowsDirect && (
-            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-              <LockIcon className="size-2.5 mr-1" /> Plan required
-            </Badge>
-          )}
-        </div>
-      </div>
-
+    <StudioPage
+      back={{ href: "/studio/channels", label: "Channels" }}
+      icon={GlobeIcon}
+      iconAccent="emerald"
+      title="Direct booking page"
+      subtitle="Customize your studio's public hosted page."
+      action={
+        planAllowsDirect && canManage ? (
+          <>
+            <span className="text-xs text-muted-foreground">
+              {isLive ? "Active" : "Off"}
+            </span>
+            <Switch
+              checked={directOn}
+              disabled={togglingPref}
+              onCheckedChange={toggleDirect}
+              aria-label="Toggle direct booking page"
+            />
+          </>
+        ) : !planAllowsDirect ? (
+          <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+            <LockIcon className="size-2.5 mr-1" /> Plan required
+          </Badge>
+        ) : null
+      }
+    >
       {/* Page URL section */}
       <section className="rounded-xl border bg-card p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
@@ -364,6 +346,6 @@ export default function StudioChannelDirectPage() {
         <p>• Custom domain (e.g. book.yourstudio.com)</p>
         <p>• Embeddable widget code (drop your calendar into any site)</p>
       </section>
-    </div>
+    </StudioPage>
   );
 }

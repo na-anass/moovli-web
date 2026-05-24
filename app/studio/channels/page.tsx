@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioPage } from "@/components/layout/studio-page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -118,15 +119,12 @@ export default function StudioChannelsPage() {
   }
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Channels</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Choose where bookers can discover and book your sessions. Each channel can be
-          customized on its own page.
-        </p>
-      </div>
-
+    <StudioPage
+      maxWidth="lg"
+      gap="loose"
+      title="Channels"
+      subtitle="Choose where bookers can discover and book your sessions. Each channel can be customized on its own page."
+    >
       <div className="grid gap-5 md:grid-cols-2">
         {/* MARKETPLACE CARD */}
         <ChannelCard
@@ -286,7 +284,7 @@ export default function StudioChannelsPage() {
           </ul>
         </CardContent>
       </Card>
-    </div>
+    </StudioPage>
   );
 }
 

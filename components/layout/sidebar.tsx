@@ -117,7 +117,7 @@ export function Sidebar({
           variant="ghost"
           className={cn(
             "w-full justify-start mb-0.5 rounded-lg",
-            collapsed ? "px-0 justify-center h-9" : isChild ? "h-8 px-3 pl-9" : "h-9 px-3",
+            collapsed ? "px-0 justify-center h-9" : isChild ? "h-8 px-3 pl-10" : "h-9 px-3",
             active
               ? isChild
                 ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-medium"
@@ -128,20 +128,12 @@ export function Sidebar({
           )}
           onClick={onClose}
         >
-          {Icon && !isChild && (
+          {Icon && (
             <Icon
               className={cn(
-                "h-4 w-4",
-                !collapsed && "mr-3",
+                isChild ? "h-3.5 w-3.5" : "h-4 w-4",
+                !collapsed && (isChild ? "mr-2.5" : "mr-3"),
                 active && "text-primary",
-              )}
-            />
-          )}
-          {isChild && !collapsed && (
-            <span
-              className={cn(
-                "mr-2 inline-block h-1.5 w-1.5 rounded-full",
-                active ? "bg-primary" : "bg-muted-foreground/30",
               )}
             />
           )}
