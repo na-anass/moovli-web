@@ -11,11 +11,14 @@ import {
   BookOpenIcon,
   CoinsIcon,
   UsersIcon,
+  UserCircle2Icon,
   PackageIcon,
   BarChart3Icon,
   SettingsIcon,
   Users2Icon,
   UserIcon,
+  Share2Icon,
+  CreditCardIcon,
 } from "lucide-react";
 import {
   Select,
@@ -54,20 +57,27 @@ export default function StudioLayout({
   }, [roles, entities, selectedEntityId]);
 
   const navItems = useMemo((): NavItem[] => {
+    // Daily operations — what studios touch every day
     const items: NavItem[] = [
       { label: "Dashboard", icon: LayoutDashboardIcon, href: "/studio/dashboard" },
-      { label: "Services", icon: PackageIcon, href: "/studio/services" },
       { label: "Schedule", icon: CalendarIcon, href: "/studio/schedule" },
       { label: "Bookings", icon: BookOpenIcon, href: "/studio/bookings" },
-      { label: "Instructors", icon: UsersIcon, href: "/studio/instructors" },
+      { label: "Channels", icon: Share2Icon, href: "/studio/channels" },
+      { label: "Customers", icon: UserCircle2Icon, href: "/studio/customers" },
     ];
 
+    // Catalog — set up once, edited occasionally
+    items.push(
+      { label: "Services", icon: PackageIcon, href: "/studio/services" },
+      { label: "Instructors", icon: UsersIcon, href: "/studio/instructors" },
+    );
+
+    // Manager+ analytics
     if (currentRole === "manager" || currentRole === "owner") {
-      items.push(
-        { label: "Insights", icon: BarChart3Icon, href: "/studio/insights" },
-      );
+      items.push({ label: "Insights", icon: BarChart3Icon, href: "/studio/insights" });
     }
 
+    // Owner-only
     if (currentRole === "owner") {
       items.push({ label: "Team", icon: Users2Icon, href: "/studio/team" });
     }
@@ -75,9 +85,14 @@ export default function StudioLayout({
     return items;
   }, [currentRole]);
 
-  const bottomItems: NavItem[] = [
-    { label: "Settings", icon: SettingsIcon, href: "/studio/settings" },
-  ];
+  const bottomItems: NavItem[] = useMemo(() => {
+    const items: NavItem[] = [];
+    if (currentRole === "owner" || currentRole === "manager") {
+      items.push({ label: "Billing", icon: CreditCardIcon, href: "/studio/billing" });
+    }
+    items.push({ label: "Settings", icon: SettingsIcon, href: "/studio/settings" });
+    return items;
+  }, [currentRole]);
 
   if (loading) {
     return (

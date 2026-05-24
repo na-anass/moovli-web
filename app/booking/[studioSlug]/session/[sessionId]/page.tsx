@@ -61,9 +61,12 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
   const { data: entity } = await supabase
     .from("entities")
-    .select("name, address_line1, city")
+    .select("name, address_line1, city, settings")
     .eq("id", session.entity_id)
     .maybeSingle();
+
+  const brandColor =
+    (entity?.settings as { brand?: { primary_color?: string } } | null)?.brand?.primary_color ?? null;
 
   const spotsLeft = session.capacity - session.booked_count;
   const isFull = spotsLeft <= 0;
@@ -158,7 +161,12 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
         <div className="border-t pt-4 flex items-baseline justify-between">
           <span className="text-sm text-muted-foreground">Price</span>
-          <span className="text-2xl font-bold">{Number(session.price_mad).toFixed(0)} MAD</span>
+          <span
+            className="text-2xl font-bold"
+            style={brandColor ? { color: brandColor } : undefined}
+          >
+            {Number(session.price_mad).toFixed(0)} MAD
+          </span>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">Pay at the studio</p>
       </div>

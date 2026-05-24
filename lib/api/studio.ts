@@ -179,7 +179,29 @@ export const studioApi = {
       `/api/studio/${entityId}/customers/${customerId}`,
       { method: "PATCH", body: JSON.stringify(update) },
     ),
+
+  // ==========================================================================
+  // CHANNEL PREFERENCES (per-entity opt-out for channel types)
+  // ==========================================================================
+
+  getChannelPrefs: (entityId: string) =>
+    apiClient<{ success: boolean; data: ChannelPrefs }>(
+      `/api/studio/${entityId}/channel-prefs`,
+    ),
+
+  updateChannelPrefs: (entityId: string, prefs: Partial<ChannelPrefs>) =>
+    apiClient<{ success: boolean; data: ChannelPrefs }>(
+      `/api/studio/${entityId}/channel-prefs`,
+      { method: "PATCH", body: JSON.stringify(prefs) },
+    ),
 };
+
+export interface ChannelPrefs {
+  marketplace_enabled: boolean;
+  direct_hosted_enabled: boolean;
+  direct_link_enabled: boolean;
+  direct_embed_enabled: boolean;
+}
 
 export type AcquisitionSource =
   | "marketplace"

@@ -123,6 +123,13 @@ export default function SchedulePage() {
     notes: "",
     is_recurring: false,
     override_pricing: false,
+    publish_marketplace: true,
+    publish_direct: true,
+    // Channel allocation: 'shared' = any channel can book any spot (current default).
+    // 'split' = each channel has its own quota out of the total capacity.
+    allocation_mode: "shared" as "shared" | "split",
+    allocation_marketplace: "",
+    allocation_direct: "",
   });
 
   const entityId = roles?.ownedEntities?.[0]?.entityId;
@@ -180,6 +187,11 @@ export default function SchedulePage() {
       notes: "",
       is_recurring: false,
       override_pricing: false,
+      publish_marketplace: true,
+      publish_direct: true,
+      allocation_mode: "shared",
+      allocation_marketplace: "",
+      allocation_direct: "",
     });
     setDialogOpen(true);
   };
@@ -201,6 +213,11 @@ export default function SchedulePage() {
       override_pricing: hasOverride,
       notes: s.notes || "",
       is_recurring: s.is_recurring,
+      publish_marketplace: true,
+      publish_direct: true,
+      allocation_mode: "shared",
+      allocation_marketplace: "",
+      allocation_direct: "",
     });
     setDialogOpen(true);
   };
@@ -214,6 +231,25 @@ export default function SchedulePage() {
         ? parseFloat(form.price_mad) || 0
         : ((svc?.credit_price || 0) * CREDIT_VALUE_MAD) || parseFloat(form.price_mad) || 0;
 
+      const channelTypes: string[] = [];
+      if (form.publish_marketplace) channelTypes.push("marketplace");
+      if (form.publish_direct) channelTypes.push("direct_hosted");
+
+      // Only send channel_allocations when in split mode AND the channel is selected
+      const channelAllocations: Record<string, number> | undefined =
+        form.allocation_mode === "split"
+          ? Object.fromEntries(
+              [
+                form.publish_marketplace && form.allocation_marketplace
+                  ? ["marketplace", parseInt(form.allocation_marketplace)]
+                  : null,
+                form.publish_direct && form.allocation_direct
+                  ? ["direct_hosted", parseInt(form.allocation_direct)]
+                  : null,
+              ].filter(Boolean) as Array<[string, number]>,
+            )
+          : undefined;
+
       const payload = {
         service_id: form.service_id,
         provider_id: form.provider_id || null,
@@ -222,6 +258,8 @@ export default function SchedulePage() {
         capacity: parseInt(form.capacity),
         price_mad: priceMad,
         notes: form.notes || null,
+        publish_to_channel_types: channelTypes,
+        ...(channelAllocations ? { channel_allocations: channelAllocations } : {}),
       };
       if (editingSession) {
         await studioApi.updateSession(entityId, editingSession.id, payload);
@@ -707,6 +745,148 @@ export default function SchedulePage() {
                 <p className="text-xs text-muted-foreground">Select a service to see pricing</p>
               )}
             </div>
+
+            {/* Publish to channels */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Publish to
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">Marketplace</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      Visible in the Moovli mobile app — paid via Moovli
+                    </div>
+                  </div>
+                  <Switch
+                    checked={form.publish_marketplace}
+                    onCheckedChange={(checked) =>
+                      setForm({ ...form, publish_marketplace: checked })
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">Direct booking page</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      Visible on your studio's public booking page — paid at studio
+                    </div>
+                  </div>
+                  <Switch
+                    checked={form.publish_direct}
+                    onCheckedChange={(checked) =>
+                      setForm({ ...form, publish_direct: checked })
+                    }
+                  />
+                </div>
+              </div>
+              {!form.publish_marketplace && !form.publish_direct && (
+                <p className="text-[11px] text-amber-600 mt-2">
+                  ⚠ At least one channel should be selected, otherwise the session won't be visible to anyone.
+                </p>
+              )}
+            </div>
+
+            {/* Capacity allocation across channels */}
+            {(form.publish_marketplace || form.publish_direct) && parseInt(form.capacity) > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                  Capacity allocation
+                </p>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent/40">
+                    <input
+                      type="radio"
+                      name="allocation_mode"
+                      checked={form.allocation_mode === "shared"}
+                      onChange={() => setForm({ ...form, allocation_mode: "shared" })}
+                      className="size-4"
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">Shared inventory</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Any channel can book any of the {form.capacity} spots
+                      </div>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent/40">
+                    <input
+                      type="radio"
+                      name="allocation_mode"
+                      checked={form.allocation_mode === "split"}
+                      onChange={() => setForm({ ...form, allocation_mode: "split" })}
+                      className="size-4 mt-1"
+                    />
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <div className="text-sm font-medium">Split per channel</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Reserve a fixed number of spots per channel
+                        </div>
+                      </div>
+                      {form.allocation_mode === "split" && (() => {
+                        const totalCapacity = parseInt(form.capacity) || 0;
+                        const mp = form.publish_marketplace ? (parseInt(form.allocation_marketplace) || 0) : 0;
+                        const dr = form.publish_direct ? (parseInt(form.allocation_direct) || 0) : 0;
+                        const sum = mp + dr;
+                        const remainder = totalCapacity - sum;
+                        return (
+                          <div className="space-y-2 pt-1">
+                            {form.publish_marketplace && (
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs">Marketplace</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={totalCapacity}
+                                  value={form.allocation_marketplace}
+                                  onChange={(e) => setForm({ ...form, allocation_marketplace: e.target.value })}
+                                  onClick={(e) => e.preventDefault()}
+                                  className="h-7 w-20 text-right"
+                                  placeholder="0"
+                                />
+                              </div>
+                            )}
+                            {form.publish_direct && (
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs">Direct booking page</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={totalCapacity}
+                                  value={form.allocation_direct}
+                                  onChange={(e) => setForm({ ...form, allocation_direct: e.target.value })}
+                                  onClick={(e) => e.preventDefault()}
+                                  className="h-7 w-20 text-right"
+                                  placeholder="0"
+                                />
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between gap-3 pt-1 border-t text-[11px]">
+                              <span className="text-muted-foreground">Sum / Capacity</span>
+                              <span
+                                className={
+                                  sum === totalCapacity
+                                    ? "text-emerald-600 font-medium"
+                                    : sum > totalCapacity
+                                      ? "text-destructive font-medium"
+                                      : "text-amber-600 font-medium"
+                                }
+                              >
+                                {sum} / {totalCapacity}
+                                {remainder > 0 && ` · ${remainder} unassigned`}
+                                {remainder < 0 && ` · ${-remainder} over`}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Notes */}
             <div>
