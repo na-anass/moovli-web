@@ -1,0 +1,369 @@
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { channelsApi, type Channel } from "@/lib/api/channels";
+import { entityPlansApi } from "@/lib/api/entityPlans";
+import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
+import { useAuth } from "@/lib/auth/provider";
+import {
+  ArrowLeftIcon,
+  CheckIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  GlobeIcon,
+  LockIcon,
+  PaletteIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+
+const DEFAULT_COLOR = "#f26c2c";
+
+const PRESETS = [
+  { label: "Moovli orange", value: "#f26c2c" },
+  { label: "Magenta", value: "#d946ef" },
+  { label: "Teal", value: "#14b8a6" },
+  { label: "Indigo", value: "#6366f1" },
+  { label: "Rose", value: "#f43f5e" },
+  { label: "Emerald", value: "#10b981" },
+  { label: "Amber", value: "#f59e0b" },
+  { label: "Slate", value: "#64748b" },
+];
+
+const PUBLIC_BOOKING_BASE =
+  process.env.NEXT_PUBLIC_BOOKING_BASE_URL || "https://booking.moovli.app";
+const IS_SUBDOMAIN_BASE = /\/\/booking\./.test(PUBLIC_BOOKING_BASE);
+
+const directHostedUrl = (slug: string): string =>
+  IS_SUBDOMAIN_BASE
+    ? `${PUBLIC_BOOKING_BASE}/${slug}`
+    : `${PUBLIC_BOOKING_BASE}/booking/${slug}`;
+
+export default function StudioChannelDirectPage() {
+  const { roles } = useAuth();
+  const entityId = roles?.ownedEntities?.[0]?.entityId;
+  const role = roles?.ownedEntities?.[0]?.role;
+  const canManage = role === "owner" || role === "manager" || roles?.isAdmin;
+
+  const [channel, setChannel] = useState<Channel | null>(null);
+  const [prefs, setPrefs] = useState<ChannelPrefs | null>(null);
+  const [planAllowsDirect, setPlanAllowsDirect] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
+
+  // Branding state
+  const [color, setColor] = useState<string>(DEFAULT_COLOR);
+  const [originalColor, setOriginalColor] = useState<string>(DEFAULT_COLOR);
+  const [savingBrand, setSavingBrand] = useState(false);
+  const [brandSaved, setBrandSaved] = useState(false);
+  const [togglingPref, setTogglingPref] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    if (!entityId) return;
+    setLoading(true);
+    try {
+      const [chRes, brandRes, prefRes, subRes] = await Promise.all([
+        channelsApi.listForEntity(entityId),
+        studioApi.getBranding(entityId),
+        studioApi.getChannelPrefs(entityId),
+        entityPlansApi.getSubscription(entityId),
+      ]);
+      setChannel(chRes.data.find((c) => c.type === "direct_hosted") ?? null);
+      const c = brandRes.data.primary_color ?? DEFAULT_COLOR;
+      setColor(c);
+      setOriginalColor(c);
+      setPrefs(prefRes.data);
+      setPlanAllowsDirect(
+        !!subRes.data.plan?.allowed_channel_types.includes("direct_hosted"),
+      );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [entityId]);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const handleSaveBrand = async () => {
+    if (!entityId) return;
+    setSavingBrand(true);
+    try {
+      await studioApi.updateBranding(entityId, color);
+      setOriginalColor(color);
+      setBrandSaved(true);
+      setTimeout(() => setBrandSaved(false), 2000);
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setSavingBrand(false);
+    }
+  };
+
+  const handleResetBrand = async () => {
+    if (!entityId) return;
+    setSavingBrand(true);
+    try {
+      await studioApi.updateBranding(entityId, null);
+      setColor(DEFAULT_COLOR);
+      setOriginalColor(DEFAULT_COLOR);
+      setBrandSaved(true);
+      setTimeout(() => setBrandSaved(false), 2000);
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setSavingBrand(false);
+    }
+  };
+
+  const toggleDirect = async (next: boolean) => {
+    if (!entityId || !prefs) return;
+    setTogglingPref(true);
+    const previous = prefs;
+    setPrefs({ ...prefs, direct_hosted_enabled: next });
+    try {
+      const res = await studioApi.updateChannelPrefs(entityId, {
+        direct_hosted_enabled: next,
+      });
+      setPrefs(res.data);
+    } catch (e) {
+      console.error(e);
+      setPrefs(previous);
+    } finally {
+      setTogglingPref(false);
+    }
+  };
+
+  const copyUrl = () => {
+    if (!channel) return;
+    navigator.clipboard.writeText(directHostedUrl(channel.slug));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  if (!entityId) {
+    return <div className="p-8 text-muted-foreground">No studio access found.</div>;
+  }
+
+  if (loading) {
+    return <div className="p-8 text-muted-foreground">Loading…</div>;
+  }
+
+  const isDirty = color !== originalColor;
+  const directOn = !!prefs?.direct_hosted_enabled;
+  const isLive = planAllowsDirect && directOn && !!channel;
+
+  return (
+    <div className="p-8 max-w-3xl mx-auto space-y-6">
+      {/* Header */}
+      <div>
+        <Link
+          href="/studio/channels"
+          className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground mb-2"
+        >
+          <ArrowLeftIcon className="size-3 mr-1" />
+          Channels
+        </Link>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+              <GlobeIcon className="size-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold">Direct booking page</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Customize your studio&apos;s public hosted page.
+              </p>
+            </div>
+          </div>
+          {planAllowsDirect && canManage && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {isLive ? "Active" : "Off"}
+              </span>
+              <Switch
+                checked={directOn}
+                disabled={togglingPref}
+                onCheckedChange={toggleDirect}
+                aria-label="Toggle direct booking page"
+              />
+            </div>
+          )}
+          {!planAllowsDirect && (
+            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+              <LockIcon className="size-2.5 mr-1" /> Plan required
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Page URL section */}
+      <section className="rounded-xl border bg-card p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold">Your page</h2>
+          {isLive ? (
+            <Badge
+              variant="outline"
+              className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]"
+            >
+              <span className="size-1.5 rounded-full bg-emerald-500 mr-1" />
+              Live
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px]">
+              Off
+            </Badge>
+          )}
+        </div>
+
+        {channel ? (
+          <>
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={directHostedUrl(channel.slug)}
+                className="font-mono text-xs"
+              />
+              <Button variant="outline" size="sm" onClick={copyUrl}>
+                {copied ? (
+                  <CheckIcon className="size-3.5 text-emerald-600" />
+                ) : (
+                  <CopyIcon className="size-3.5" />
+                )}
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <a href={directHostedUrl(channel.slug)} target="_blank" rel="noreferrer">
+                  <ExternalLinkIcon className="size-3.5 mr-1.5" />
+                  Preview
+                </a>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isLive
+                ? "Your page is visible to anyone with this link. Bookings show up in your Bookings inbox as pending — confirm to lock in the seat."
+                : directOn
+                  ? "Your page is configured but the channel is currently off."
+                  : "Turn on the channel above to make this page live."}
+            </p>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Default page hasn&apos;t been provisioned yet. Contact support.
+          </p>
+        )}
+      </section>
+
+      {/* Branding section */}
+      <section className="rounded-xl border bg-card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <PaletteIcon className="size-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Branding</h2>
+        </div>
+        <p className="text-xs text-muted-foreground -mt-2">
+          Your brand color is used for the Book button, session highlights, and key accents on
+          your public page.
+        </p>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            disabled={!canManage}
+            className="size-12 rounded border cursor-pointer disabled:cursor-not-allowed"
+          />
+          <Input
+            value={color}
+            onChange={(e) => setColor(e.target.value.toLowerCase())}
+            disabled={!canManage}
+            placeholder="#f26c2c"
+            className="w-32 h-12 font-mono text-sm"
+          />
+          <span className="text-xs text-muted-foreground">
+            Click the swatch to pick, or type a hex code.
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {PRESETS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => canManage && setColor(p.value)}
+              disabled={!canManage}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-full border text-xs hover:bg-accent disabled:opacity-50"
+            >
+              <span
+                className="size-3 rounded-full ring-1 ring-border"
+                style={{ backgroundColor: p.value }}
+              />
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Preview */}
+        <div className="border-t pt-4 mt-1">
+          <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-3">
+            Preview
+          </h3>
+          <div
+            className="rounded-lg border p-4 space-y-3"
+            style={{ borderLeftColor: color, borderLeftWidth: 3 }}
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <div>
+                <div className="font-semibold">18:00 · Yoga Flow</div>
+                <div className="text-xs text-muted-foreground">60 min · with Sara</div>
+              </div>
+              <div className="text-right">
+                <div className="font-semibold" style={{ color }}>
+                  100 MAD
+                </div>
+                <div className="text-[10px] text-muted-foreground">at studio</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="inline-flex items-center px-4 py-2 rounded-md text-sm font-semibold text-white"
+              style={{ backgroundColor: color }}
+            >
+              Book
+            </button>
+          </div>
+        </div>
+
+        {canManage && (
+          <div className="flex items-center justify-between pt-3 border-t">
+            <Button variant="ghost" size="sm" onClick={handleResetBrand} disabled={savingBrand}>
+              Reset to default
+            </Button>
+            <div className="flex items-center gap-3">
+              {brandSaved && (
+                <span className="inline-flex items-center text-xs text-emerald-600">
+                  <CheckIcon className="size-3 mr-1" /> Saved
+                </span>
+              )}
+              <Button onClick={handleSaveBrand} disabled={!isDirty || savingBrand}>
+                {savingBrand ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Coming soon */}
+      <section className="rounded-xl border border-dashed p-5 text-xs text-muted-foreground space-y-1">
+        <p className="font-medium text-foreground text-sm">Coming soon</p>
+        <p>• Logo upload + cover image dedicated to the booking page</p>
+        <p>• Welcome message + cancellation policy text</p>
+        <p>• Custom domain (e.g. book.yourstudio.com)</p>
+        <p>• Embeddable widget code (drop your calendar into any site)</p>
+      </section>
+    </div>
+  );
+}

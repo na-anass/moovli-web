@@ -4,12 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ArrowLeftRightIcon,
   ChevronLeftIcon,
+  LockIcon,
   MenuIcon,
   XIcon,
-  ArrowLeftRightIcon,
-  SettingsIcon,
-  UserIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,11 +23,20 @@ import { useAuth } from "@/lib/auth/provider";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
+export type NavItemStatus = "on" | "off" | "locked";
+
 export interface NavItem {
   label: string;
-  icon: React.ElementType;
+  /** Optional — children are shown as nested links when sidebar is expanded. */
+  icon?: React.ElementType;
   href: string;
   badge?: number;
+  /** Section heading displayed above this item (rendered once per unique value). */
+  section?: string;
+  /** Nested children — only rendered when the sidebar is expanded. */
+  children?: NavItem[];
+  /** Adds a small status indicator after the label (dot for on/off, lock for locked). */
+  status?: NavItemStatus;
 }
 
 interface SidebarProps {
@@ -39,6 +47,12 @@ interface SidebarProps {
   subtitle?: string;
   className?: string;
 }
+
+const STATUS_STYLES: Record<NavItemStatus, { dot: string; tooltip: string }> = {
+  on: { dot: "bg-emerald-500", tooltip: "Active" },
+  off: { dot: "bg-muted-foreground/40", tooltip: "Off" },
+  locked: { dot: "", tooltip: "Plan upgrade required" },
+};
 
 export function Sidebar({
   navItems,
@@ -58,31 +72,86 @@ export function Sidebar({
     ((roles?.ownedEntities?.length ?? 0) > 0 ? 1 : 0) +
     ((roles?.instructorEntities?.length ?? 0) > 0 ? 1 : 0);
 
-  const isActive = (href: string) => pathname.startsWith(href);
+  // Exact match OR descendant — but never let a parent steal the highlight from a child.
+  const isActive = (item: NavItem): boolean => {
+    if (pathname === item.href) return true;
+    if (!pathname.startsWith(item.href.endsWith("/") ? item.href : `${item.href}/`)) {
+      return false;
+    }
+    // If any sibling/child has a more specific match, defer.
+    const childMatch = item.children?.some((c) => pathname.startsWith(c.href));
+    return !childMatch;
+  };
 
-  const renderNavItem = (item: NavItem, collapsed: boolean, onClose?: () => void) => {
+  // A parent is "open" (expanded child list visible) whenever any child is active OR
+  // the parent itself is the current route. Otherwise children are still rendered (we don't
+  // collapse), but the parent stays muted.
+  const renderStatus = (status?: NavItemStatus) => {
+    if (!status) return null;
+    if (status === "locked") {
+      return <LockIcon className="size-3 text-muted-foreground/70 ml-auto" />;
+    }
+    return (
+      <span
+        className={cn("ml-auto size-1.5 rounded-full", STATUS_STYLES[status].dot)}
+        aria-label={STATUS_STYLES[status].tooltip}
+      />
+    );
+  };
+
+  const renderLeaf = (
+    item: NavItem,
+    {
+      collapsed,
+      depth = 0,
+      onClose,
+    }: { collapsed: boolean; depth?: number; onClose?: () => void },
+  ) => {
     const Icon = item.icon;
-    const active = isActive(item.href);
+    const active = isActive(item);
+    const isChild = depth > 0;
 
     const button = (
-      <Link href={item.href} key={item.label}>
+      <Link href={item.href} key={item.label} aria-current={active ? "page" : undefined}>
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start mb-1 rounded-lg",
-            collapsed ? "px-0 justify-center" : "px-3",
+            "w-full justify-start mb-0.5 rounded-lg",
+            collapsed ? "px-0 justify-center h-9" : isChild ? "h-8 px-3 pl-9" : "h-9 px-3",
             active
-              ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
-              : "text-muted-foreground hover:text-foreground"
+              ? isChild
+                ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-medium"
+                : "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+              : isChild
+                ? "text-muted-foreground/80 hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
           )}
           onClick={onClose}
         >
-          <Icon className={cn("h-4 w-4", !collapsed && "mr-3", active && "text-primary")} />
-          {!collapsed && <span className="text-sm">{item.label}</span>}
-          {!collapsed && item.badge && (
+          {Icon && !isChild && (
+            <Icon
+              className={cn(
+                "h-4 w-4",
+                !collapsed && "mr-3",
+                active && "text-primary",
+              )}
+            />
+          )}
+          {isChild && !collapsed && (
+            <span
+              className={cn(
+                "mr-2 inline-block h-1.5 w-1.5 rounded-full",
+                active ? "bg-primary" : "bg-muted-foreground/30",
+              )}
+            />
+          )}
+          {!collapsed && <span className={cn("text-sm", isChild && "text-[13px]")}>{item.label}</span>}
+          {!collapsed && item.badge ? (
             <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-primary-foreground text-xs">
               {item.badge}
             </span>
+          ) : (
+            !collapsed && renderStatus(item.status)
           )}
         </Button>
       </Link>
@@ -97,6 +166,41 @@ export function Sidebar({
       );
     }
     return button;
+  };
+
+  /** Renders a flat list with section headings inserted on section boundaries. */
+  const renderList = (items: NavItem[], collapsed: boolean, onClose?: () => void) => {
+    const nodes: React.ReactNode[] = [];
+    let prevSection: string | undefined;
+    items.forEach((item, index) => {
+      if (!collapsed && item.section && item.section !== prevSection) {
+        nodes.push(
+          <div
+            key={`section-${item.section}-${index}`}
+            className={cn(
+              "px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60",
+              index === 0 ? "pt-1 pb-1.5" : "pt-4 pb-1.5",
+            )}
+          >
+            {item.section}
+          </div>,
+        );
+      }
+      if (collapsed && item.section && item.section !== prevSection && index > 0) {
+        nodes.push(<div key={`divider-${index}`} className="my-2 h-px bg-border/60" />);
+      }
+      prevSection = item.section ?? prevSection;
+
+      nodes.push(renderLeaf(item, { collapsed, onClose }));
+
+      // Render nested children only when expanded — they're noise in collapsed mode.
+      if (!collapsed && item.children && item.children.length > 0) {
+        item.children.forEach((child) => {
+          nodes.push(renderLeaf(child, { collapsed: false, depth: 1, onClose }));
+        });
+      }
+    });
+    return nodes;
   };
 
   return (
@@ -143,11 +247,11 @@ export function Sidebar({
                     )}
                   </div>
                   <nav className="flex-1 p-2 overflow-y-auto">
-                    {navItems.map((item) => renderNavItem(item, false, () => setIsMobileMenuOpen(false)))}
+                    {renderList(navItems, false, () => setIsMobileMenuOpen(false))}
                     {bottomItems.length > 0 && (
                       <>
                         <Separator className="my-2" />
-                        {bottomItems.map((item) => renderNavItem(item, false, () => setIsMobileMenuOpen(false)))}
+                        {renderList(bottomItems, false, () => setIsMobileMenuOpen(false))}
                       </>
                     )}
                   </nav>
@@ -177,7 +281,7 @@ export function Sidebar({
           className={cn(
             "hidden md:flex flex-col sticky top-0 h-screen border-r border-border bg-background transition-all duration-300",
             isCollapsed ? "w-16" : "w-56",
-            className
+            className,
           )}
         >
           {/* Header */}
@@ -213,12 +317,12 @@ export function Sidebar({
 
           {/* Main navigation */}
           <nav className="flex-1 p-2 overflow-y-auto">
-            {navItems.map((item) => renderNavItem(item, isCollapsed))}
+            {renderList(navItems, isCollapsed)}
           </nav>
 
           {/* Bottom section — Settings, Profile, Switch Role */}
           <div className="p-2 border-t border-border shrink-0">
-            {bottomItems.map((item) => renderNavItem(item, isCollapsed))}
+            {renderList(bottomItems, isCollapsed)}
             {roleCount > 1 && (
               <>
                 {isCollapsed ? (

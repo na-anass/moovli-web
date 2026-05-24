@@ -1,24 +1,26 @@
 "use client";
 
-import { Sidebar, type NavItem } from "@/components/layout/sidebar";
+import { Sidebar, type NavItem, type NavItemStatus } from "@/components/layout/sidebar";
 import { TopBar, EditModeProvider } from "@/components/layout/topbar";
 import { useAuth } from "@/lib/auth/provider";
+import { entityPlansApi } from "@/lib/api/entityPlans";
+import { studioApi } from "@/lib/api/studio";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
-  LayoutDashboardIcon,
-  CalendarIcon,
-  BookOpenIcon,
-  CoinsIcon,
-  UsersIcon,
-  UserCircle2Icon,
-  PackageIcon,
   BarChart3Icon,
-  SettingsIcon,
-  Users2Icon,
-  UserIcon,
-  Share2Icon,
+  BookOpenIcon,
+  CalendarIcon,
   CreditCardIcon,
+  GlobeIcon,
+  LayoutDashboardIcon,
+  PackageIcon,
+  SettingsIcon,
+  Share2Icon,
+  ShoppingBagIcon,
+  UserCircle2Icon,
+  Users2Icon,
+  UsersIcon,
 } from "lucide-react";
 import {
   Select,
@@ -28,6 +30,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type ChannelKey = "marketplace" | "direct_hosted";
+
+interface ChannelStatuses {
+  marketplace: NavItemStatus;
+  direct: NavItemStatus;
+}
+
 export default function StudioLayout({
   children,
 }: {
@@ -36,6 +45,10 @@ export default function StudioLayout({
   const { roles, loading } = useAuth();
   const router = useRouter();
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [channelStatuses, setChannelStatuses] = useState<ChannelStatuses>({
+    marketplace: "off",
+    direct: "off",
+  });
 
   const entities = roles?.ownedEntities ?? [];
 
@@ -56,34 +69,106 @@ export default function StudioLayout({
     return membership?.role ?? ("staff" as const);
   }, [roles, entities, selectedEntityId]);
 
+  // Resolve channel status for sidebar dots/locks.
+  useEffect(() => {
+    if (!selectedEntityId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [subRes, prefRes] = await Promise.all([
+          entityPlansApi.getSubscription(selectedEntityId),
+          studioApi.getChannelPrefs(selectedEntityId),
+        ]);
+        if (cancelled) return;
+        const allowed = subRes.data.plan?.allowed_channel_types ?? [];
+        const allows = (k: ChannelKey) => allowed.includes(k);
+        const next: ChannelStatuses = {
+          marketplace: !allows("marketplace")
+            ? "locked"
+            : prefRes.data.marketplace_enabled
+              ? "on"
+              : "off",
+          direct: !allows("direct_hosted")
+            ? "locked"
+            : prefRes.data.direct_hosted_enabled
+              ? "on"
+              : "off",
+        };
+        setChannelStatuses(next);
+      } catch (e) {
+        // Non-fatal — sidebar simply shows no dots.
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedEntityId]);
+
   const navItems = useMemo((): NavItem[] => {
-    // Daily operations — what studios touch every day
     const items: NavItem[] = [
-      { label: "Dashboard", icon: LayoutDashboardIcon, href: "/studio/dashboard" },
-      { label: "Schedule", icon: CalendarIcon, href: "/studio/schedule" },
+      {
+        section: "Overview",
+        label: "Dashboard",
+        icon: LayoutDashboardIcon,
+        href: "/studio/dashboard",
+      },
+      {
+        section: "Daily ops",
+        label: "Schedule",
+        icon: CalendarIcon,
+        href: "/studio/schedule",
+      },
       { label: "Bookings", icon: BookOpenIcon, href: "/studio/bookings" },
-      { label: "Channels", icon: Share2Icon, href: "/studio/channels" },
       { label: "Customers", icon: UserCircle2Icon, href: "/studio/customers" },
+      {
+        section: "Catalog",
+        label: "Services",
+        icon: PackageIcon,
+        href: "/studio/services",
+      },
+      { label: "Instructors", icon: UsersIcon, href: "/studio/instructors" },
+      {
+        label: "Channels",
+        icon: Share2Icon,
+        href: "/studio/channels",
+        children: [
+          {
+            label: "Marketplace",
+            href: "/studio/channels/marketplace",
+            status: channelStatuses.marketplace,
+            icon: ShoppingBagIcon,
+          },
+          {
+            label: "Direct",
+            href: "/studio/channels/direct",
+            status: channelStatuses.direct,
+            icon: GlobeIcon,
+          },
+        ],
+      },
     ];
 
-    // Catalog — set up once, edited occasionally
-    items.push(
-      { label: "Services", icon: PackageIcon, href: "/studio/services" },
-      { label: "Instructors", icon: UsersIcon, href: "/studio/instructors" },
-    );
-
-    // Manager+ analytics
     if (currentRole === "manager" || currentRole === "owner") {
-      items.push({ label: "Insights", icon: BarChart3Icon, href: "/studio/insights" });
+      items.push({
+        section: "Insights",
+        label: "Analytics",
+        icon: BarChart3Icon,
+        href: "/studio/insights",
+      });
     }
 
-    // Owner-only
     if (currentRole === "owner") {
-      items.push({ label: "Team", icon: Users2Icon, href: "/studio/team" });
+      items.push({
+        section: "Team",
+        label: "Members",
+        icon: Users2Icon,
+        href: "/studio/team",
+      });
     }
 
     return items;
-  }, [currentRole]);
+  }, [currentRole, channelStatuses]);
 
   const bottomItems: NavItem[] = useMemo(() => {
     const items: NavItem[] = [];
