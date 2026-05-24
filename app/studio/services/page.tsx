@@ -1,19 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { studioApi } from "@/lib/api/studio";
-import { catalogApi, type Category } from "@/lib/api/catalog";
-import { useAuth } from "@/lib/auth/provider";
+import { BaseLayout } from "@/components/layout/base-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -21,15 +17,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
-  PlusIcon,
-  PencilIcon,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { catalogApi, type Category } from "@/lib/api/catalog";
+import { studioApi } from "@/lib/api/studio";
+import { useAuth } from "@/lib/auth/provider";
+import {
   ClockIcon,
-  UsersIcon,
   CoinsIcon,
-  StarIcon,
   PackageIcon,
+  PencilIcon,
+  PlusIcon,
+  SearchIcon,
+  StarIcon,
+  Trash2Icon,
+  UsersIcon,
+  XIcon,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 interface Service {
   id: string;
@@ -58,8 +76,8 @@ const EMPTY_FORM = {
   short_description: "",
   base_price: "",
   credit_price: "",
-  duration_minutes: "",
-  capacity: "",
+  duration_minutes: "60",
+  capacity: "10",
   min_capacity: "",
   booking_buffer_minutes: "15",
   cancellation_hours: "24",
@@ -67,32 +85,57 @@ const EMPTY_FORM = {
   category_id: "",
 };
 
+type StatusFilter = "all" | "active" | "inactive";
+type FeaturedFilter = "all" | "featured" | "regular";
+
 export default function ServicesPage() {
   const { roles } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
+  // Delete state
+  const [deletingService, setDeletingService] = useState<Service | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Filter state
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [featuredFilter, setFeaturedFilter] = useState<FeaturedFilter>("all");
+
   const entityId = roles?.ownedEntities?.[0]?.entityId;
   const currentRole = roles?.ownedEntities?.[0]?.role;
-  const canManage = currentRole === "manager" || currentRole === "owner" || roles?.isAdmin;
+  const canManage =
+    currentRole === "manager" || currentRole === "owner" || roles?.isAdmin;
+
+  const categoryById = useMemo(() => {
+    const map = new Map<string, Category>();
+    categories.forEach((c) => map.set(c.id, c));
+    return map;
+  }, [categories]);
 
   const fetchServices = () => {
     if (!entityId) return;
     studioApi
-      .getServices(entityId, true) // all=true to include inactive
+      .getServices(entityId, true)
       .then((res) => setServices(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchServices(); }, [entityId]);
+  useEffect(() => {
+    fetchServices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entityId]);
 
-  // Load categories once — used by the dropdown in the form
   useEffect(() => {
     catalogApi
       .listCategories({ limit: 100 })
@@ -100,6 +143,42 @@ export default function ServicesPage() {
       .catch(console.error);
   }, []);
 
+  // ── Filtering ────────────────────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return services.filter((s) => {
+      if (q) {
+        const haystack = `${s.name} ${s.short_description ?? ""} ${s.description ?? ""}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      if (categoryFilter !== "all") {
+        if (categoryFilter === "uncategorized" && s.category_id) return false;
+        if (categoryFilter !== "uncategorized" && s.category_id !== categoryFilter)
+          return false;
+      }
+      if (statusFilter === "active" && !s.is_active) return false;
+      if (statusFilter === "inactive" && s.is_active) return false;
+      if (featuredFilter === "featured" && !s.is_featured) return false;
+      if (featuredFilter === "regular" && s.is_featured) return false;
+      return true;
+    });
+  }, [services, search, categoryFilter, statusFilter, featuredFilter]);
+
+  const activeCount = services.filter((s) => s.is_active).length;
+  const hasAnyFilter =
+    !!search ||
+    categoryFilter !== "all" ||
+    statusFilter !== "all" ||
+    featuredFilter !== "all";
+
+  const clearFilters = () => {
+    setSearch("");
+    setCategoryFilter("all");
+    setStatusFilter("all");
+    setFeaturedFilter("all");
+  };
+
+  // ── Dialog handlers ──────────────────────────────────────────────────────
   const openCreate = () => {
     setEditingService(null);
     setForm(EMPTY_FORM);
@@ -160,162 +239,269 @@ export default function ServicesPage() {
 
   const handleToggleActive = async (s: Service) => {
     if (!entityId || !canManage) return;
+    // optimistic
+    setServices((prev) =>
+      prev.map((x) => (x.id === s.id ? { ...x, is_active: !s.is_active } : x)),
+    );
     try {
       await studioApi.updateService(entityId, s.id, { is_active: !s.is_active });
-      fetchServices();
     } catch (e) {
       console.error(e);
+      fetchServices(); // refetch on failure
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Services</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-48 rounded-xl border border-border bg-card animate-pulse" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const handleConfirmDelete = async () => {
+    if (!entityId || !deletingService) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await studioApi.deleteService(entityId, deletingService.id);
+      setDeletingService(null);
+      fetchServices();
+    } catch (e) {
+      setDeleteError((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
-  const activeCount = services.filter((s) => s.is_active).length;
+  // ── Render ───────────────────────────────────────────────────────────────
+  const subtitle = `${activeCount} active · ${services.length - activeCount} inactive`;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Services</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {activeCount} active · {services.length - activeCount} inactive
-          </p>
-        </div>
-        {canManage && (
+    <BaseLayout
+      maxWidth="xl"
+      title="Services"
+      subtitle={subtitle}
+      action={
+        canManage ? (
           <Button onClick={openCreate}>
             <PlusIcon className="size-4 mr-2" />
-            New Service
+            New service
+          </Button>
+        ) : undefined
+      }
+    >
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search services…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="h-9 w-[170px]">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            <SelectItem value="uncategorized">Uncategorized</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.icon ? `${c.icon} ` : ""}
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+          <SelectTrigger className="h-9 w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={featuredFilter}
+          onValueChange={(v) => setFeaturedFilter(v as FeaturedFilter)}
+        >
+          <SelectTrigger className="h-9 w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All services</SelectItem>
+            <SelectItem value="featured">Featured</SelectItem>
+            <SelectItem value="regular">Not featured</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {hasAnyFilter && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <XIcon className="size-3.5 mr-1" /> Clear
           </Button>
         )}
+
+        <div className="ml-auto text-xs text-muted-foreground">
+          Showing {filtered.length} of {services.length}
+        </div>
       </div>
 
-      {services.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-          <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <PackageIcon className="size-6 text-primary" />
-          </div>
-          <h3 className="font-semibold">No services yet</h3>
-          <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-            Create your first service to start scheduling sessions.
-          </p>
-          {canManage && (
-            <Button className="mt-4" onClick={openCreate}>
-              <PlusIcon className="size-4 mr-2" />
-              Create Service
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {services.map((s) => (
-            <div
-              key={s.id}
-              className={`rounded-xl border bg-card transition-all ${
-                s.is_active
-                  ? "border-border hover:shadow-sm"
-                  : "border-border/50 opacity-60"
-              }`}
-            >
-              <div className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold truncate">{s.name}</h3>
-                      {s.is_featured && (
-                        <StarIcon className="size-3.5 fill-amber-400 text-amber-400 shrink-0" />
+      {/* Table */}
+      <div className="rounded-lg border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead className="text-right">Duration</TableHead>
+              <TableHead className="text-right">Capacity</TableHead>
+              <TableHead className="text-right">Price (MAD)</TableHead>
+              <TableHead className="text-center">Active</TableHead>
+              <TableHead className="w-[100px] text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                  Loading services…
+                </TableCell>
+              </TableRow>
+            ) : filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-12">
+                  <EmptyState
+                    hasServices={services.length > 0}
+                    canManage={!!canManage}
+                    onCreate={openCreate}
+                    onClear={clearFilters}
+                  />
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((s) => {
+                const cat = s.category_id ? categoryById.get(s.category_id) : null;
+                return (
+                  <TableRow key={s.id} className={!s.is_active ? "opacity-60" : ""}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="truncate">{s.name}</span>
+                        {s.is_featured && (
+                          <StarIcon className="size-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                        )}
+                      </div>
+                      {s.short_description && (
+                        <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-md">
+                          {s.short_description}
+                        </div>
                       )}
-                    </div>
-                    {s.short_description && (
-                      <p className="text-sm text-muted-foreground mt-0.5 truncate">{s.short_description}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 ml-3 shrink-0">
-                    {!s.is_active && <Badge variant="outline" className="text-xs">Inactive</Badge>}
-                    {canManage && (
-                      <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(s)}>
-                        <PencilIcon className="size-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Stats row */}
-                <div className="flex items-center gap-4 mt-4 flex-wrap">
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <ClockIcon className="size-3.5 text-muted-foreground" />
-                    <span>{s.duration_minutes} min</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <UsersIcon className="size-3.5 text-muted-foreground" />
-                    <span>{s.capacity} spots</span>
-                  </div>
-                  {s.credit_price && (
-                    <div className="flex items-center gap-1.5 text-sm">
-                      <CoinsIcon className="size-3.5 text-muted-foreground" />
-                      <span>{s.credit_price} credits</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <span className="text-muted-foreground">{s.base_price} {s.currency || "MAD"}</span>
-                  </div>
-                </div>
-
-                {/* Description */}
-                {s.description && (
-                  <p className="text-xs text-muted-foreground mt-3 line-clamp-2">{s.description}</p>
-                )}
-              </div>
-
-              {/* Footer with toggle */}
-              {canManage && (
-                <div className="flex items-center justify-between px-5 py-3 border-t border-border">
-                  <span className="text-xs text-muted-foreground">
-                    Buffer: {s.booking_buffer_minutes ?? 15}min · Cancel: {s.cancellation_hours ?? 24}h
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{s.is_active ? "Active" : "Inactive"}</span>
-                    <Switch
-                      checked={s.is_active}
-                      onCheckedChange={() => handleToggleActive(s)}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+                    </TableCell>
+                    <TableCell>
+                      {cat ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          {cat.icon ? `${cat.icon} ` : ""}
+                          {cat.name}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <span className="text-sm">{s.duration_minutes} min</span>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <span className="text-sm">{s.capacity}</span>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm font-medium">
+                          {Number(s.base_price).toFixed(0)}
+                        </span>
+                        {s.credit_price ? (
+                          <span className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5">
+                            <CoinsIcon className="size-2.5" />
+                            {s.credit_price} cr
+                          </span>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={s.is_active}
+                        disabled={!canManage}
+                        onCheckedChange={() => handleToggleActive(s)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        {canManage && (
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8"
+                                  onClick={() => openEdit(s)}
+                                >
+                                  <PencilIcon className="size-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8 text-muted-foreground hover:text-destructive"
+                                  onClick={() => {
+                                    setDeletingService(s);
+                                    setDeleteError(null);
+                                  }}
+                                >
+                                  <Trash2Icon className="size-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingService ? "Edit Service" : "New Service"}</DialogTitle>
+            <DialogTitle>{editingService ? "Edit service" : "New service"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto pr-1">
             <div>
               <label className="text-sm font-medium">Name *</label>
-              <Input className="mt-1.5" value={form.name}
+              <Input
+                className="mt-1.5"
+                value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Megaformer Pilates" />
+                placeholder="e.g. Megaformer Pilates"
+              />
             </div>
 
             <div>
               <label className="text-sm font-medium">Category</label>
               <Select
                 value={form.category_id || "none"}
-                onValueChange={(v) => setForm({ ...form, category_id: v === "none" ? "" : v })}
+                onValueChange={(v) =>
+                  setForm({ ...form, category_id: v === "none" ? "" : v })
+                }
               >
                 <SelectTrigger className="mt-1.5">
                   <SelectValue placeholder="Pick a category…" />
@@ -324,7 +510,8 @@ export default function ServicesPage() {
                   <SelectItem value="none">Uncategorized</SelectItem>
                   {categories.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.icon ? `${c.icon} ` : ""}{c.name}
+                      {c.icon ? `${c.icon} ` : ""}
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -335,10 +522,16 @@ export default function ServicesPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium">Short Description</label>
-              <Input className="mt-1.5" value={form.short_description}
-                onChange={(e) => setForm({ ...form, short_description: e.target.value })}
-                placeholder="One-line summary" maxLength={500} />
+              <label className="text-sm font-medium">Short description</label>
+              <Input
+                className="mt-1.5"
+                value={form.short_description}
+                onChange={(e) =>
+                  setForm({ ...form, short_description: e.target.value })
+                }
+                placeholder="One-line summary"
+                maxLength={500}
+              />
             </div>
 
             <div>
@@ -347,7 +540,7 @@ export default function ServicesPage() {
                 className="mt-1.5 w-full rounded-lg border border-border bg-background p-3 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring resize-y"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Detailed description..."
+                placeholder="Detailed description…"
               />
             </div>
 
@@ -356,53 +549,95 @@ export default function ServicesPage() {
                 <label className="text-sm font-medium flex items-center gap-1">
                   <ClockIcon className="size-3" /> Duration (min) *
                 </label>
-                <Input type="number" className="mt-1.5" value={form.duration_minutes} min="5"
-                  onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
+                <Input
+                  type="number"
+                  className="mt-1.5"
+                  value={form.duration_minutes}
+                  min="5"
+                  onChange={(e) =>
+                    setForm({ ...form, duration_minutes: e.target.value })
+                  }
+                />
               </div>
               <div>
                 <label className="text-sm font-medium flex items-center gap-1">
                   <UsersIcon className="size-3" /> Capacity *
                 </label>
-                <Input type="number" className="mt-1.5" value={form.capacity} min="1"
-                  onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
+                <Input
+                  type="number"
+                  className="mt-1.5"
+                  value={form.capacity}
+                  min="1"
+                  onChange={(e) => setForm({ ...form, capacity: e.target.value })}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium">Price (MAD) *</label>
-                <Input type="number" className="mt-1.5" value={form.base_price} min="0" step="0.01"
-                  onChange={(e) => setForm({ ...form, base_price: e.target.value })} />
+                <Input
+                  type="number"
+                  className="mt-1.5"
+                  value={form.base_price}
+                  min="0"
+                  step="0.01"
+                  onChange={(e) => setForm({ ...form, base_price: e.target.value })}
+                />
               </div>
               <div>
                 <label className="text-sm font-medium flex items-center gap-1">
-                  <CoinsIcon className="size-3" /> Credit Price
+                  <CoinsIcon className="size-3" /> Credit price
                 </label>
-                <Input type="number" className="mt-1.5" value={form.credit_price} min="1"
+                <Input
+                  type="number"
+                  className="mt-1.5"
+                  value={form.credit_price}
+                  min="1"
                   onChange={(e) => setForm({ ...form, credit_price: e.target.value })}
-                  placeholder="Credits per booking" />
+                  placeholder="Credits per booking"
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium">Min Capacity</label>
-                <Input type="number" className="mt-1.5" value={form.min_capacity} min="0"
+                <label className="text-sm font-medium">Min capacity</label>
+                <Input
+                  type="number"
+                  className="mt-1.5"
+                  value={form.min_capacity}
+                  min="0"
                   onChange={(e) => setForm({ ...form, min_capacity: e.target.value })}
-                  placeholder="Optional" />
+                  placeholder="Optional"
+                />
               </div>
               <div>
-                <label className="text-sm font-medium">Booking Buffer (min)</label>
-                <Input type="number" className="mt-1.5" value={form.booking_buffer_minutes} min="0"
-                  onChange={(e) => setForm({ ...form, booking_buffer_minutes: e.target.value })} />
+                <label className="text-sm font-medium">Booking buffer (min)</label>
+                <Input
+                  type="number"
+                  className="mt-1.5"
+                  value={form.booking_buffer_minutes}
+                  min="0"
+                  onChange={(e) =>
+                    setForm({ ...form, booking_buffer_minutes: e.target.value })
+                  }
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium">Cancellation Window (hours)</label>
-                <Input type="number" className="mt-1.5" value={form.cancellation_hours} min="0"
-                  onChange={(e) => setForm({ ...form, cancellation_hours: e.target.value })} />
+                <label className="text-sm font-medium">Cancellation window (hours)</label>
+                <Input
+                  type="number"
+                  className="mt-1.5"
+                  value={form.cancellation_hours}
+                  min="0"
+                  onChange={(e) =>
+                    setForm({ ...form, cancellation_hours: e.target.value })
+                  }
+                />
               </div>
               <div className="flex items-end pb-1">
                 <div className="flex items-center gap-2">
@@ -418,15 +653,123 @@ export default function ServicesPage() {
             </div>
 
             <div className="flex justify-end gap-2 pt-3 border-t border-border">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}
-                disabled={saving || !form.name || !form.duration_minutes || !form.capacity || !form.base_price}>
-                {saving ? "Saving..." : editingService ? "Update Service" : "Create Service"}
+              <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={
+                  saving ||
+                  !form.name ||
+                  !form.duration_minutes ||
+                  !form.capacity ||
+                  !form.base_price
+                }
+              >
+                {saving
+                  ? "Saving…"
+                  : editingService
+                    ? "Update service"
+                    : "Create service"}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <Dialog
+        open={!!deletingService}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingService(null);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete service?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-1">
+            <p className="text-sm">
+              Permanently delete{" "}
+              <span className="font-semibold">{deletingService?.name}</span>? This
+              cannot be undone.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              If the service has any sessions, the delete will be blocked — deactivate
+              it instead, which hides it from new schedules without breaking existing
+              bookings.
+            </p>
+            {deleteError && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                {deleteError}
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDeletingService(null);
+                  setDeleteError(null);
+                }}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting…" : "Delete service"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </BaseLayout>
+  );
+}
+
+// ── Empty state ────────────────────────────────────────────────────────────
+function EmptyState({
+  hasServices,
+  canManage,
+  onCreate,
+  onClear,
+}: {
+  hasServices: boolean;
+  canManage: boolean;
+  onCreate: () => void;
+  onClear: () => void;
+}) {
+  if (!hasServices) {
+    return (
+      <div className="text-center">
+        <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+          <PackageIcon className="size-5 text-primary" />
+        </div>
+        <h3 className="font-semibold text-sm">No services yet</h3>
+        <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+          Create your first service to start scheduling sessions.
+        </p>
+        {canManage && (
+          <Button size="sm" className="mt-3" onClick={onCreate}>
+            <PlusIcon className="size-3.5 mr-1.5" />
+            Create service
+          </Button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="text-center text-sm text-muted-foreground">
+      No services match your filters.
+      <Button variant="link" size="sm" onClick={onClear} className="ml-2">
+        Clear filters
+      </Button>
     </div>
   );
 }

@@ -114,6 +114,11 @@ export const studioApi = {
       body: JSON.stringify(data),
     }),
 
+  deleteService: (entityId: string, serviceId: string) =>
+    apiClient<{ success: boolean }>(`/api/studio/${entityId}/services/${serviceId}`, {
+      method: "DELETE",
+    }),
+
   getProfile: (entityId: string) =>
     apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/profile`),
 
