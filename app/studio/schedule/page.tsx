@@ -130,6 +130,10 @@ export default function SchedulePage() {
     allocation_mode: "shared" as "shared" | "split",
     allocation_marketplace: "",
     allocation_direct: "",
+    // Phase 2: time-based release of allocations back to shared pool
+    release_enabled: false,
+    release_value: "6",
+    release_unit: "hours" as "minutes" | "hours" | "days",
   });
 
   const entityId = roles?.ownedEntities?.[0]?.entityId;
@@ -192,6 +196,9 @@ export default function SchedulePage() {
       allocation_mode: "shared",
       allocation_marketplace: "",
       allocation_direct: "",
+      release_enabled: false,
+      release_value: "6",
+      release_unit: "hours",
     });
     setDialogOpen(true);
   };
@@ -218,6 +225,9 @@ export default function SchedulePage() {
       allocation_mode: "shared",
       allocation_marketplace: "",
       allocation_direct: "",
+      release_enabled: false,
+      release_value: "6",
+      release_unit: "hours",
     });
     setDialogOpen(true);
   };
@@ -250,6 +260,13 @@ export default function SchedulePage() {
             )
           : undefined;
 
+      // Convert release_value + unit → minutes for API
+      const UNIT_TO_MINUTES = { minutes: 1, hours: 60, days: 1440 } as const;
+      const releaseMinutesBefore =
+        form.allocation_mode === "split" && form.release_enabled
+          ? (parseInt(form.release_value) || 0) * UNIT_TO_MINUTES[form.release_unit]
+          : undefined;
+
       const payload = {
         service_id: form.service_id,
         provider_id: form.provider_id || null,
@@ -260,6 +277,9 @@ export default function SchedulePage() {
         notes: form.notes || null,
         publish_to_channel_types: channelTypes,
         ...(channelAllocations ? { channel_allocations: channelAllocations } : {}),
+        ...(releaseMinutesBefore != null
+          ? { release_minutes_before: releaseMinutesBefore }
+          : {}),
       };
       if (editingSession) {
         await studioApi.updateSession(entityId, editingSession.id, payload);
@@ -878,6 +898,63 @@ export default function SchedulePage() {
                                 {remainder > 0 && ` · ${remainder} unassigned`}
                                 {remainder < 0 && ` · ${-remainder} over`}
                               </span>
+                            </div>
+
+                            {/* Phase 2 — time-based release */}
+                            <div className="pt-2 border-t space-y-2">
+                              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={form.release_enabled}
+                                  onChange={(e) =>
+                                    setForm({ ...form, release_enabled: e.target.checked })
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="size-3.5"
+                                />
+                                <span>Release unused spots to other channels</span>
+                              </label>
+                              {form.release_enabled && (
+                                <div className="flex items-center gap-2 pl-5 text-xs">
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={form.release_value}
+                                    onChange={(e) =>
+                                      setForm({ ...form, release_value: e.target.value })
+                                    }
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-7 w-16 text-right"
+                                  />
+                                  <select
+                                    value={form.release_unit}
+                                    onChange={(e) =>
+                                      setForm({
+                                        ...form,
+                                        release_unit: e.target.value as
+                                          | "minutes"
+                                          | "hours"
+                                          | "days",
+                                      })
+                                    }
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-7 rounded border border-input bg-background px-2 text-xs"
+                                  >
+                                    <option value="minutes">minutes</option>
+                                    <option value="hours">hours</option>
+                                    <option value="days">days</option>
+                                  </select>
+                                  <span className="text-muted-foreground">
+                                    before session starts
+                                  </span>
+                                </div>
+                              )}
+                              {form.release_enabled && (
+                                <p className="text-[10px] text-muted-foreground pl-5">
+                                  At that point, unused spots from any channel
+                                  become bookable by the other.
+                                </p>
+                              )}
                             </div>
                           </div>
                         );
