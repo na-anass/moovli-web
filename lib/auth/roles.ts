@@ -2,6 +2,8 @@ export interface EntityMembership {
   entityId: string;
   entityName: string;
   role: "owner" | "manager" | "staff";
+  /** ISO timestamp when the studio finished the onboarding wizard; null = not yet onboarded. */
+  onboardedAt: string | null;
 }
 
 export interface InstructorMembership {
@@ -54,6 +56,7 @@ export async function getUserRoles(
         entityId: row.entityId || row.entity_id,
         entityName: row.entity?.name || "Studio",
         role: row.role,
+        onboardedAt: row.entity?.onboarded_at ?? null,
       })
     );
 

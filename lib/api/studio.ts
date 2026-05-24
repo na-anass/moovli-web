@@ -242,6 +242,13 @@ export const studioApi = {
       `/api/studio/${entityId}/payout-method`,
       { method: "PUT", body: JSON.stringify(body) },
     ),
+
+  // Tier 2 — mark onboarding wizard complete (stamps entities.onboarded_at)
+  completeOnboarding: (entityId: string) =>
+    apiClient<{ success: boolean; data: { id: string; onboarded_at: string } }>(
+      `/api/studio/${entityId}/onboarding/complete`,
+      { method: "POST" },
+    ),
 };
 
 export interface EntityPayoutMethod {

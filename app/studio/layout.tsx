@@ -5,7 +5,7 @@ import { TopBar, EditModeProvider } from "@/components/layout/topbar";
 import { useAuth } from "@/lib/auth/provider";
 import { entityPlansApi } from "@/lib/api/entityPlans";
 import { studioApi } from "@/lib/api/studio";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3Icon,
@@ -44,6 +44,8 @@ export default function StudioLayout({
 }) {
   const { roles, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const isOnboarding = pathname?.startsWith("/studio/onboarding") ?? false;
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [channelStatuses, setChannelStatuses] = useState<ChannelStatuses>({
     marketplace: "off",
@@ -185,6 +187,11 @@ export default function StudioLayout({
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
+  }
+
+  // Onboarding wizard renders its own full-page chrome — skip the studio sidebar/topbar.
+  if (isOnboarding) {
+    return <EditModeProvider>{children}</EditModeProvider>;
   }
 
   const currentEntity = entities.find((e) => e.entityId === selectedEntityId);
