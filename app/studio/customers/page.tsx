@@ -11,12 +11,20 @@ import { useCallback, useEffect, useState } from "react";
 
 const SOURCE_LABEL: Record<AcquisitionSource, { label: string; variant: "default" | "secondary" | "outline" }> = {
   marketplace: { label: "Marketplace", variant: "default" },
-  direct_hosted: { label: "Booking page", variant: "secondary" },
-  direct_link: { label: "Custom link", variant: "secondary" },
-  direct_embed: { label: "Widget", variant: "secondary" },
+  direct_hosted: { label: "Direct", variant: "secondary" },
+  // direct_link + direct_embed exist in the schema but their UI is hidden until
+  // we ship custom-link / embeddable-widget channels. Bookings on those types
+  // still get labeled — they just fall through to "Direct" via the dropdown
+  // collapse in HIDDEN_SOURCES below.
+  direct_link: { label: "Direct", variant: "secondary" },
+  direct_embed: { label: "Direct", variant: "secondary" },
   manual: { label: "Manual", variant: "outline" },
   unknown: { label: "—", variant: "outline" },
 };
+
+// Filter chips only surface these — keeps the customer-source filter focused
+// on the two channels studios actually configure today.
+const VISIBLE_FILTER_SOURCES: AcquisitionSource[] = ["marketplace", "direct_hosted"];
 
 const formatDate = (iso: string | null) => {
   if (!iso) return "—";
@@ -132,17 +140,15 @@ export default function StudioCustomersPage() {
         >
           All
         </button>
-        {(Object.keys(SOURCE_LABEL) as AcquisitionSource[])
-          .filter((s) => s !== "unknown" && s !== "manual")
-          .map((src) => (
-            <button
-              key={src}
-              onClick={() => setSourceFilter(sourceFilter === src ? "" : src)}
-              className={`px-3 py-1 rounded-full text-xs border ${sourceFilter === src ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
-            >
-              {SOURCE_LABEL[src].label}
-            </button>
-          ))}
+        {VISIBLE_FILTER_SOURCES.map((src) => (
+          <button
+            key={src}
+            onClick={() => setSourceFilter(sourceFilter === src ? "" : src)}
+            className={`px-3 py-1 rounded-full text-xs border ${sourceFilter === src ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
+          >
+            {SOURCE_LABEL[src].label}
+          </button>
+        ))}
       </div>
 
       <DataTable
