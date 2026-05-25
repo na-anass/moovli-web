@@ -14,6 +14,7 @@ import {
   CreditCardIcon,
   GlobeIcon,
   LayoutDashboardIcon,
+  LifeBuoyIcon,
   PackageIcon,
   SettingsIcon,
   ShoppingBagIcon,
@@ -170,6 +171,7 @@ export default function StudioLayout({
     if (currentRole === "owner" || currentRole === "manager") {
       items.push({ label: "Billing", icon: CreditCardIcon, href: "/studio/billing" });
     }
+    items.push({ label: "Docs", icon: LifeBuoyIcon, href: "/studio/docs" });
     items.push({ label: "Settings", icon: SettingsIcon, href: "/studio/settings" });
     return items;
   }, [currentRole]);
