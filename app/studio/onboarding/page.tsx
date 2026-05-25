@@ -35,6 +35,7 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatMoneyWhole } from "@/lib/money";
 
 // ============================================================================
 // Step config
@@ -74,6 +75,7 @@ export default function StudioOnboardingPage() {
   const entityId = roles?.ownedEntities?.[0]?.entityId;
   const entityName = roles?.ownedEntities?.[0]?.entityName;
   const onboardedAt = roles?.ownedEntities?.[0]?.onboardedAt;
+  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
 
   // If already onboarded, bounce to dashboard.
   useEffect(() => {
@@ -367,6 +369,7 @@ export default function StudioOnboardingPage() {
           <BrandStep
             color={color}
             setColor={setColor}
+            currency={currency}
             saving={savingBrand}
             onContinue={saveBrand}
             onBack={goBack}
@@ -379,6 +382,7 @@ export default function StudioOnboardingPage() {
             form={serviceForm}
             setForm={setServiceForm}
             categories={categories}
+            currency={currency}
             saving={savingService}
             onContinue={saveService}
             onBack={goBack}
@@ -390,6 +394,7 @@ export default function StudioOnboardingPage() {
           <PlanStep
             plans={plans}
             currentPlanSlug={currentPlanSlug}
+            currency={currency}
             saving={planSaving}
             onChoose={choosePlan}
             onBack={goBack}
@@ -402,6 +407,7 @@ export default function StudioOnboardingPage() {
             form={sessionForm}
             setForm={setSessionForm}
             color={color}
+            currency={currency}
             hasService={!!serviceId}
             saving={savingSession}
             onContinue={saveSession}
@@ -551,6 +557,7 @@ function WelcomeStep({
 function BrandStep({
   color,
   setColor,
+  currency,
   saving,
   onContinue,
   onBack,
@@ -558,6 +565,7 @@ function BrandStep({
 }: {
   color: string;
   setColor: (c: string) => void;
+  currency: string;
   saving: boolean;
   onContinue: () => void;
   onBack: () => void;
@@ -616,7 +624,7 @@ function BrandStep({
           </div>
           <div className="text-right">
             <div className="font-semibold" style={{ color }}>
-              100 MAD
+              {formatMoneyWhole(100, currency)}
             </div>
           </div>
         </div>
@@ -637,6 +645,7 @@ function ServiceStep({
   form,
   setForm,
   categories,
+  currency,
   saving,
   onContinue,
   onBack,
@@ -652,6 +661,7 @@ function ServiceStep({
   };
   setForm: (next: typeof form) => void;
   categories: Category[];
+  currency: string;
   saving: boolean;
   onContinue: () => void;
   onBack: () => void;
@@ -719,7 +729,7 @@ function ServiceStep({
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Price (MAD)</label>
+          <label className="text-xs font-medium text-muted-foreground">Price ({currency})</label>
           <Input
             className="mt-1.5"
             type="number"
@@ -750,6 +760,7 @@ function ServiceStep({
 function PlanStep({
   plans,
   currentPlanSlug,
+  currency,
   saving,
   onChoose,
   onBack,
@@ -757,6 +768,7 @@ function PlanStep({
 }: {
   plans: EntityPlan[];
   currentPlanSlug: string | null;
+  currency: string;
   saving: "standard" | "marketplace" | null;
   onChoose: (slug: "standard" | "marketplace") => void;
   onBack: () => void;
@@ -792,6 +804,7 @@ function PlanStep({
         {standard && (
           <PlanCard
             plan={standard}
+            currency={currency}
             isCurrent={currentPlanSlug === "standard"}
             isSaving={saving === "standard"}
             highlight={false}
@@ -808,6 +821,7 @@ function PlanStep({
         {marketplace && (
           <PlanCard
             plan={marketplace}
+            currency={currency}
             isCurrent={currentPlanSlug === "marketplace"}
             isSaving={saving === "marketplace"}
             highlight
@@ -838,6 +852,7 @@ function PlanStep({
 
 function PlanCard({
   plan,
+  currency,
   isCurrent,
   isSaving,
   highlight,
@@ -846,6 +861,7 @@ function PlanCard({
   onChoose,
 }: {
   plan: EntityPlan;
+  currency: string;
   isCurrent: boolean;
   isSaving: boolean;
   highlight: boolean;
@@ -868,7 +884,7 @@ function PlanCard({
       )}
       <h3 className="font-semibold">{plan.name}</h3>
       <div className="mt-1 flex items-baseline gap-1.5">
-        <span className="text-2xl font-bold">{plan.price_mad} MAD</span>
+        <span className="text-2xl font-bold">{formatMoneyWhole(plan.price_mad, currency)}</span>
         <span className="text-xs text-muted-foreground">/month</span>
       </div>
       <p className="text-[11px] text-muted-foreground mt-1">14-day free trial</p>
@@ -905,6 +921,7 @@ function SessionStep({
   form,
   setForm,
   color,
+  currency,
   hasService,
   saving,
   onContinue,
@@ -921,6 +938,7 @@ function SessionStep({
   };
   setForm: (next: typeof form) => void;
   color: string;
+  currency: string;
   hasService: boolean;
   saving: boolean;
   onContinue: () => void;
@@ -986,7 +1004,7 @@ function SessionStep({
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Price (MAD)</label>
+          <label className="text-xs font-medium text-muted-foreground">Price ({currency})</label>
           <Input
             className="mt-1.5"
             type="number"
@@ -1029,7 +1047,7 @@ function SessionStep({
       <div className="rounded-lg border p-3" style={{ borderLeftColor: color, borderLeftWidth: 3 }}>
         <div className="text-xs text-muted-foreground">Preview</div>
         <div className="mt-1 text-sm font-semibold">
-          {form.date} · {form.time} — {form.price_mad} MAD · {form.capacity} spots
+          {form.date} · {form.time} — {formatMoneyWhole(form.price_mad, currency)} · {form.capacity} spots
         </div>
       </div>
     </StepShell>

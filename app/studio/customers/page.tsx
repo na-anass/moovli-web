@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { formatMoneyWhole } from "@/lib/money";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { studioApi, type AcquisitionSource, type EntityCustomer } from "@/lib/api/studio";
@@ -24,6 +25,7 @@ const formatDate = (iso: string | null) => {
 
 export default function StudioCustomersPage() {
   const { roles } = useAuth();
+  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
   const entityId = roles?.ownedEntities?.[0]?.entityId;
 
   const [customers, setCustomers] = useState<EntityCustomer[]>([]);
@@ -96,7 +98,7 @@ export default function StudioCustomersPage() {
     },
     {
       header: "Lifetime value",
-      cell: (c) => <span className="font-medium">{Number(c.lifetime_value_mad).toFixed(0)} MAD</span>,
+      cell: (c) => <span className="font-medium">{formatMoneyWhole(c.lifetime_value_mad, currency)}</span>,
     },
     {
       header: "Last booking",

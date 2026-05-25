@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { formatMoneyWhole } from "@/lib/money";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,12 +41,11 @@ const formatDateTime = (iso: string | null) => {
   });
 };
 
-const formatPrice = (n: number | null) =>
-  n != null ? `${Number(n).toFixed(0)} MAD` : "—";
-
 export default function StudioBookingsPage() {
   const { roles } = useAuth();
   const entityId = roles?.ownedEntities?.[0]?.entityId;
+  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
+  const formatPrice = (n: number | null) => (n != null ? formatMoneyWhole(n, currency) : "—");
 
   const [tab, setTab] = useState<FilterTab>("all");
   const [bookings, setBookings] = useState<StudioBookingRow[]>([]);

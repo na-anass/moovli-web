@@ -25,7 +25,7 @@ export default async function StudioPublicPage({ params }: PageProps) {
   const { data: entity } = await supabase
     .from("entities")
     .select(
-      "id, name, short_description, address_line1, city, logo_url, cover_image_url, platform_rating, google_rating, total_reviews, settings",
+      "id, name, short_description, address_line1, city, logo_url, cover_image_url, platform_rating, google_rating, total_reviews, settings, currency_code",
     )
     .eq("id", channel.entity_id)
     .maybeSingle();
@@ -122,6 +122,7 @@ export default async function StudioPublicPage({ params }: PageProps) {
         entityId={channel.entity_id}
         channelId={channel.id}
         brandColor={brandColor}
+        currency={(entity as { currency_code?: string }).currency_code ?? "MAD"}
       />
     </div>
   );

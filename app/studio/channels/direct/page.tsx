@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ const directHostedUrl = (slug: string): string =>
 
 export default function StudioChannelDirectPage() {
   const { roles } = useAuth();
+  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
   const entityId = roles?.ownedEntities?.[0]?.entityId;
   const role = roles?.ownedEntities?.[0]?.role;
   const canManage = role === "owner" || role === "manager" || roles?.isAdmin;
@@ -303,7 +305,7 @@ export default function StudioChannelDirectPage() {
               </div>
               <div className="text-right">
                 <div className="font-semibold" style={{ color }}>
-                  100 MAD
+                  {formatMoneyWhole(100, currency)}
                 </div>
                 <div className="text-[10px] text-muted-foreground">at studio</div>
               </div>

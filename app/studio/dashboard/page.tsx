@@ -6,6 +6,7 @@ import { BaseLayout } from "@/components/layout/base-layout";
 import { StatsCard } from "@/components/shared/stats-card";
 import { studioApi, type StudioDashboardMetrics } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
+import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -31,6 +32,7 @@ export default function StudioDashboardPage() {
 
   const entityId = roles?.ownedEntities?.[0]?.entityId;
   const onboardedAt = roles?.ownedEntities?.[0]?.onboardedAt;
+  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
 
   // First-run gate: brand-new studios (onboarded_at IS NULL) get pushed to the wizard.
   useEffect(() => {
@@ -117,7 +119,7 @@ export default function StudioDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Marketplace revenue"
-          value={`${metrics?.revenueMadThisWeek ?? 0} MAD`}
+          value={formatMoneyWhole(metrics?.revenueMadThisWeek ?? 0, currency)}
           icon={<WalletIcon className="size-5" />}
           description="Last 7 days"
         />

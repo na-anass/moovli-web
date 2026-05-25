@@ -4,6 +4,8 @@ export interface EntityMembership {
   role: "owner" | "manager" | "staff";
   /** ISO timestamp when the studio finished the onboarding wizard; null = not yet onboarded. */
   onboardedAt: string | null;
+  /** ISO 4217 currency code for the studio's display currency (default "MAD"). */
+  currencyCode: string;
 }
 
 export interface InstructorMembership {
@@ -57,6 +59,7 @@ export async function getUserRoles(
         entityName: row.entity?.name || "Studio",
         role: row.role,
         onboardedAt: row.entity?.onboarded_at ?? null,
+        currencyCode: row.entity?.currency_code ?? "MAD",
       })
     );
 

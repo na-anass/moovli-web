@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -19,6 +20,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export default function StudioChannelMarketplacePage() {
   const { roles } = useAuth();
+  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
   const entityId = roles?.ownedEntities?.[0]?.entityId;
   const role = roles?.ownedEntities?.[0]?.role;
   const canManage = role === "owner" || role === "manager" || roles?.isAdmin;
@@ -177,7 +179,7 @@ export default function StudioChannelMarketplacePage() {
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                   Your session price
                 </div>
-                <div className="text-xl font-semibold mt-0.5">100 MAD</div>
+                <div className="text-xl font-semibold mt-0.5">{formatMoneyWhole(100, currency)}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
                   You always receive this amount
                 </div>
@@ -200,10 +202,10 @@ export default function StudioChannelMarketplacePage() {
                   Booker pays
                 </div>
                 <div className="text-xl font-semibold mt-0.5 text-primary">
-                  {Math.round(100 * (1 + baseMarkup / 100))} MAD
+                  {formatMoneyWhole(Math.round(100 * (1 + baseMarkup / 100)), currency)}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Example for a 100 MAD session
+                  Example for a {formatMoneyWhole(100, currency)} session
                 </div>
               </div>
             </div>

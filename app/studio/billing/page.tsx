@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { formatMoneyWhole } from "@/lib/money";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ const STATUS_BADGE: Record<EntitySubscription["status"], { variant: "default" | 
 
 export default function StudioBillingPage() {
   const { roles } = useAuth();
+  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
   const entityId = roles?.ownedEntities?.[0]?.entityId;
   const role = roles?.ownedEntities?.[0]?.role;
   const canManage = role === "owner" || role === "manager" || roles?.isAdmin;
@@ -203,7 +205,7 @@ export default function StudioBillingPage() {
               <CardTitle>Current plan</CardTitle>
               <CardDescription>
                 {activePlan
-                  ? `${activePlan.name} — ${activePlan.price_mad} MAD / ${activePlan.billing_interval}`
+                  ? `${activePlan.name} — ${formatMoneyWhole(activePlan.price_mad, currency)} / ${activePlan.billing_interval}`
                   : "No active plan"}
               </CardDescription>
             </div>
@@ -280,7 +282,8 @@ export default function StudioBillingPage() {
                       )}
                     </div>
                     <p className="text-2xl font-bold mb-1">
-                      {plan.price_mad} <span className="text-sm font-normal text-muted-foreground">MAD/mo</span>
+                      {formatMoneyWhole(plan.price_mad, currency)}{" "}
+                      <span className="text-sm font-normal text-muted-foreground">/mo</span>
                     </p>
                     <p className="text-xs text-muted-foreground mb-4">{plan.description}</p>
                     <ul className="space-y-1 text-xs mb-4">

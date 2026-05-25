@@ -8,6 +8,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { formatMoneyWhole } from "@/lib/money";
 import { ArrowUpRightIcon, CalendarIcon, ClockIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { GuestBookingForm } from "./session/[sessionId]/guest-booking-form";
@@ -31,6 +32,7 @@ interface Props {
   entityId: string;
   channelId: string;
   brandColor?: string | null;
+  currency: string;
 }
 
 const formatDate = (iso: string) =>
@@ -52,6 +54,7 @@ export function BookingSheet({
   entityId,
   channelId,
   brandColor,
+  currency,
 }: Props) {
   const isMobile = useIsMobile();
 
@@ -107,7 +110,7 @@ export function BookingSheet({
                     className="text-2xl font-bold leading-none"
                     style={brandColor ? { color: brandColor } : undefined}
                   >
-                    {Number(session.price_mad).toFixed(0)} MAD
+                    {formatMoneyWhole(session.price_mad, currency)}
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-1">Pay at studio</div>
                 </div>
@@ -120,6 +123,7 @@ export function BookingSheet({
                 channelId={channelId}
                 studioSlug={studioSlug}
                 priceMad={Number(session.price_mad)}
+                currency={currency}
               />
 
               <Link

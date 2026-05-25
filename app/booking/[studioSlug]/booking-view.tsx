@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,6 +41,7 @@ interface Props {
   entityId: string;
   channelId: string;
   brandColor?: string | null;
+  currency: string;
 }
 
 type ViewMode = "calendar" | "list";
@@ -70,7 +72,7 @@ const sameDay = (a: Date, b: Date) =>
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
 
-export function BookingView({ sessions, studioSlug, entityId, channelId, brandColor }: Props) {
+export function BookingView({ sessions, studioSlug, entityId, channelId, brandColor, currency }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -270,13 +272,14 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
           weekDays={weekDays}
           sessionsByDay={sessionsByDay}
           accent={accent}
+          currency={currency}
           onBook={openBooking}
           onPrev={goPrevWeek}
           onNext={goNextWeek}
           onToday={goThisWeek}
         />
       ) : (
-        <ListView sessions={filtered} accent={accent} onBook={openBooking} />
+        <ListView sessions={filtered} accent={accent} currency={currency} onBook={openBooking} />
       )}
 
       <BookingSheet
@@ -287,6 +290,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
         entityId={entityId}
         channelId={channelId}
         brandColor={brandColor}
+        currency={currency}
       />
     </div>
   );
@@ -300,6 +304,7 @@ function CalendarView({
   weekDays,
   sessionsByDay,
   accent,
+  currency,
   onBook,
   onPrev,
   onNext,
@@ -308,6 +313,7 @@ function CalendarView({
   weekDays: Date[];
   sessionsByDay: Map<string, SessionRow[]>;
   accent: string;
+  currency: string;
   onBook: (sessionId: string) => void;
   onPrev: () => void;
   onNext: () => void;
@@ -447,7 +453,7 @@ function CalendarView({
                     )}
                     {height > 70 && (
                       <div className="absolute bottom-1 right-1 text-[10px] font-medium" style={{ color: accent }}>
-                        {Number(s.price_mad).toFixed(0)} MAD
+                        {formatMoneyWhole(s.price_mad, currency)}
                       </div>
                     )}
                   </button>
@@ -468,10 +474,12 @@ function CalendarView({
 function ListView({
   sessions,
   accent,
+  currency,
   onBook,
 }: {
   sessions: SessionRow[];
   accent: string;
+  currency: string;
   onBook: (sessionId: string) => void;
 }) {
   // Group by date
@@ -540,7 +548,7 @@ function ListView({
                           className="font-semibold text-lg leading-none"
                           style={!isFull ? { color: accent } : undefined}
                         >
-                          {Number(s.price_mad).toFixed(0)} MAD
+                          {formatMoneyWhole(s.price_mad, currency)}
                         </div>
                         <div className="text-[10px] text-muted-foreground mt-0.5">at studio</div>
                       </div>

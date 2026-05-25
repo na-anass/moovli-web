@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatMoneyWhole } from "@/lib/money";
 import { CheckCircleIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -12,6 +13,7 @@ interface Props {
   channelId: string;
   studioSlug: string;
   priceMad: number;
+  currency: string;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -22,6 +24,7 @@ export function GuestBookingForm({
   serviceId,
   channelId,
   priceMad,
+  currency,
 }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -70,7 +73,7 @@ export function GuestBookingForm({
         <h2 className="text-lg font-semibold">Reservation received</h2>
         <p className="text-sm text-muted-foreground">
           The studio will confirm your booking by email shortly.
-          You'll pay <strong className="text-foreground">{priceMad.toFixed(0)} MAD</strong> at the studio.
+          You'll pay <strong className="text-foreground">{formatMoneyWhole(priceMad, currency)}</strong> at the studio.
         </p>
         <p className="text-xs text-muted-foreground">
           Reference: <code className="font-mono">{confirmation.bookingId.slice(0, 8)}</code>
@@ -84,7 +87,7 @@ export function GuestBookingForm({
       <div>
         <h2 className="text-lg font-semibold">Reserve your spot</h2>
         <p className="text-xs text-muted-foreground mt-1">
-          The studio will confirm your reservation by email. Pay {priceMad.toFixed(0)} MAD at the studio.
+          The studio will confirm your reservation by email. Pay {formatMoneyWhole(priceMad, currency)} at the studio.
         </p>
       </div>
 
@@ -143,7 +146,7 @@ export function GuestBookingForm({
       )}
 
       <Button type="submit" disabled={submitting || !name || !email} className="w-full">
-        {submitting ? "Reserving…" : `Reserve · ${priceMad.toFixed(0)} MAD at studio`}
+        {submitting ? "Reserving…" : `Reserve · ${formatMoneyWhole(priceMad, currency)} at studio`}
       </Button>
 
       <p className="text-[10px] text-muted-foreground text-center">

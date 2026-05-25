@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { formatMoneyWhole } from "@/lib/money";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -113,6 +114,7 @@ const HOUR_HEIGHT = 64; // px per hour
 
 export default function SchedulePage() {
   const { roles } = useAuth();
+  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
   const [sessions, setSessions] = useState<Session[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -445,7 +447,7 @@ export default function SchedulePage() {
       ),
     },
     { header: "Spots", cell: (r) => <span>{r.booked_count}/{r.capacity}{r.waitlist_count > 0 ? ` +${r.waitlist_count} wl` : ""}</span> },
-    { header: "Price", cell: (r) => <span>{r.price_mad != null ? `${r.price_mad} MAD` : "—"}</span> },
+    { header: "Price", cell: (r) => <span>{r.price_mad != null ? formatMoneyWhole(r.price_mad, currency) : "—"}</span> },
     {
       header: "Status",
       cell: (r) => (
@@ -769,7 +771,7 @@ export default function SchedulePage() {
                       <div className="flex items-center gap-2">
                         <span>{s.name}</span>
                         <span className="text-muted-foreground text-xs">
-                          {s.duration_minutes}min · {serviceDefaultPriceMad(s)} MAD · {s.capacity} spots
+                          {s.duration_minutes}min · {formatMoneyWhole(serviceDefaultPriceMad(s), currency)} · {s.capacity} spots
                         </span>
                       </div>
                     </SelectItem>
@@ -1014,15 +1016,17 @@ export default function SchedulePage() {
                         <div>
                           <p className="text-sm font-medium">
                             {form.override_pricing
-                              ? form.price_mad
-                              : svc ? serviceDefaultPriceMad(svc) : "—"} MAD
+                              ? formatMoneyWhole(form.price_mad, currency)
+                              : svc
+                                ? formatMoneyWhole(serviceDefaultPriceMad(svc), currency)
+                                : "—"}
                           </p>
                           {!form.override_pricing && (
                             <p className="text-[10px] text-muted-foreground">Inherited from {svc?.name || "service"}</p>
                           )}
                           {form.override_pricing && svc && (
                             <p className="text-[10px] text-amber-600">
-                              Service default: {serviceDefaultPriceMad(svc)} MAD
+                              Service default: {formatMoneyWhole(serviceDefaultPriceMad(svc), currency)}
                             </p>
                           )}
                         </div>
@@ -1047,7 +1051,7 @@ export default function SchedulePage() {
                     {/* Override input */}
                     {form.override_pricing && (
                       <div>
-                        <label className="text-xs text-muted-foreground">Custom price for this session (MAD)</label>
+                        <label className="text-xs text-muted-foreground">Custom price for this session ({currency})</label>
                         <Input type="number" className="mt-1" value={form.price_mad} min="0" step="0.01"
                           onChange={(e) => setForm({ ...form, price_mad: e.target.value })} />
                       </div>

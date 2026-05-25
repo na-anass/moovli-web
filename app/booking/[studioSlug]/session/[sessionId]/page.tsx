@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { formatMoneyWhole } from "@/lib/money";
 import { ArrowLeftIcon, CalendarIcon, ClockIcon, MapPinIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -61,9 +62,12 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
   const { data: entity } = await supabase
     .from("entities")
-    .select("name, address_line1, city, settings")
+    .select("name, address_line1, city, settings, currency_code")
     .eq("id", session.entity_id)
     .maybeSingle();
+
+  const currency =
+    (entity as { currency_code?: string } | null)?.currency_code ?? "MAD";
 
   const brandColor =
     (entity?.settings as { brand?: { primary_color?: string } } | null)?.brand?.primary_color ?? null;
@@ -165,7 +169,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
             className="text-2xl font-bold"
             style={brandColor ? { color: brandColor } : undefined}
           >
-            {Number(session.price_mad).toFixed(0)} MAD
+            {formatMoneyWhole(session.price_mad, currency)}
           </span>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">Pay at the studio</p>
@@ -180,6 +184,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
           channelId={channel.id}
           studioSlug={studioSlug}
           priceMad={Number(session.price_mad)}
+          currency={currency}
         />
       )}
 

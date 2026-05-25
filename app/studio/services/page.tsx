@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,6 +89,7 @@ type FeaturedFilter = "all" | "featured" | "regular";
 
 export default function ServicesPage() {
   const { roles } = useAuth();
+  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -352,7 +354,7 @@ export default function ServicesPage() {
               <TableHead>Category</TableHead>
               <TableHead className="text-right">Duration</TableHead>
               <TableHead className="text-right">Capacity</TableHead>
-              <TableHead className="text-right">Price (MAD)</TableHead>
+              <TableHead className="text-right">Price</TableHead>
               <TableHead className="text-center">Active</TableHead>
               <TableHead className="w-[100px] text-right">Actions</TableHead>
             </TableRow>
@@ -411,7 +413,7 @@ export default function ServicesPage() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       <span className="text-sm font-medium">
-                        {Number(s.base_price).toFixed(0)}
+                        {formatMoneyWhole(s.base_price, currency)}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
@@ -563,7 +565,7 @@ export default function ServicesPage() {
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-sm font-medium">Price (MAD) *</label>
+                <label className="text-sm font-medium">Price ({currency}) *</label>
                 <Input
                   type="number"
                   className="mt-1.5"
