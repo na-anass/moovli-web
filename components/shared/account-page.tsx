@@ -3,22 +3,26 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth/provider";
 import { apiClient } from "@/lib/api/client";
+import { BaseLayout } from "@/components/layout/base-layout";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
-  FormLayout,
   FormSection,
   FormField,
+  useEditModeSync,
 } from "@/components/shared/form-layout";
 import {
-  UserIcon,
-  MailIcon,
-  PhoneIcon,
-  MapPinIcon,
   BellIcon,
-  ShieldIcon,
+  CheckIcon,
   GlobeIcon,
+  MailIcon,
+  MapPinIcon,
+  PencilIcon,
+  PhoneIcon,
+  ShieldIcon,
+  UserIcon,
 } from "lucide-react";
 import {
   Select,
@@ -122,12 +126,21 @@ export function AccountPage() {
     setEditing(false);
   };
 
+  // Sync edit state to top bar (must run on every render path, before any early return).
+  useEditModeSync({
+    editing,
+    saving,
+    title: "My Account",
+    onSave: handleSave,
+    onCancel: handleCancel,
+  });
+
   if (loading) {
     return (
-      <div className="space-y-6 max-w-3xl">
+      <BaseLayout maxWidth="md" title="My Account">
         <div className="h-32 rounded-xl border border-border bg-card animate-pulse" />
         <div className="h-64 rounded-xl border border-border bg-card animate-pulse" />
-      </div>
+      </BaseLayout>
     );
   }
 
@@ -144,17 +157,30 @@ export function AccountPage() {
   };
 
   return (
-    <div className="max-w-3xl">
-      <FormLayout
-        title="My Account"
-        editing={editing}
-        canEdit={true}
-        saving={saving}
-        success={success}
-        onEdit={() => setEditing(true)}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      >
+    <BaseLayout
+      maxWidth="md"
+      title="My Account"
+      action={
+        <>
+          {success && (
+            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 gap-1">
+              <CheckIcon className="size-3" /> Saved
+            </Badge>
+          )}
+          {!editing && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditing(true)}
+              className="gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <PencilIcon className="size-3.5" />
+              Edit
+            </Button>
+          )}
+        </>
+      }
+    >
         <div className="space-y-6">
           {/* Profile header */}
           <div className="rounded-xl border border-border bg-card p-6">
@@ -321,7 +347,6 @@ export function AccountPage() {
             </div>
           </div>
         </div>
-      </FormLayout>
-    </div>
+    </BaseLayout>
   );
 }

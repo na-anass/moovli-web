@@ -3,22 +3,26 @@
 import { useEffect, useState } from "react";
 import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
+import { BaseLayout } from "@/components/layout/base-layout";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import {
-  FormLayout,
   FormSection,
   FormField,
+  useEditModeSync,
 } from "@/components/shared/form-layout";
 import {
   BuildingIcon,
-  MapPinIcon,
-  PhoneIcon,
-  MailIcon,
-  GlobeIcon,
+  CheckIcon,
   ClockIcon,
+  GlobeIcon,
   ImageIcon,
+  MailIcon,
+  MapPinIcon,
+  PencilIcon,
+  PhoneIcon,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -122,30 +126,51 @@ export default function SettingsPage() {
     }));
   };
 
+  // Sync edit state to the top bar (must run on every render path, before any early return).
+  useEditModeSync({
+    editing,
+    saving,
+    title: "Settings",
+    onSave: handleSave,
+    onCancel: handleCancel,
+  });
+
   if (loading) {
     return (
-      <div className="space-y-6 max-w-4xl">
-        <h1 className="text-2xl font-bold">Settings</h1>
+      <BaseLayout maxWidth="lg" title="Settings">
         <div className="h-48 rounded-xl border border-border bg-card animate-pulse" />
         <div className="h-96 rounded-xl border border-border bg-card animate-pulse" />
-      </div>
+      </BaseLayout>
     );
   }
 
   if (!entity) return <p className="text-muted-foreground">Entity not found.</p>;
 
   return (
-    <div className="max-w-4xl">
-      <FormLayout
-        title="Settings"
-        editing={editing}
-        canEdit={!!canEdit}
-        saving={saving}
-        success={success}
-        onEdit={() => setEditing(true)}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      >
+    <BaseLayout
+      maxWidth="lg"
+      title="Settings"
+      action={
+        <>
+          {success && (
+            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 gap-1">
+              <CheckIcon className="size-3" /> Saved
+            </Badge>
+          )}
+          {canEdit && !editing && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditing(true)}
+              className="gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <PencilIcon className="size-3.5" />
+              Edit
+            </Button>
+          )}
+        </>
+      }
+    >
         <div className="space-y-6">
           {/* Cover + Logo Header */}
           <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -318,7 +343,6 @@ export default function SettingsPage() {
             </div>
           </FormSection>
         </div>
-      </FormLayout>
-    </div>
+    </BaseLayout>
   );
 }

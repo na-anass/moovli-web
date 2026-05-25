@@ -6,6 +6,25 @@ export interface StudioDashboardMetrics {
   bookingsLastWeek: number;
   uniqueMembers: number;
   activeSessions: number;
+  /** Sum of marketplace bookings price_mad_at_booking for the last 7 days (confirmed/checked_in/completed). */
+  revenueMadThisWeek: number;
+  /** Direct-channel bookings awaiting studio confirmation. */
+  pendingDirectBookings: number;
+  /** Up to 5 sessions starting in the next 24 hours. */
+  upcomingSessions: DashboardUpcomingSession[];
+  /** Marketplace vs direct booking count over the last 30 days. */
+  channelSplitLast30Days: { marketplace: number; direct: number; other: number };
+}
+
+export interface DashboardUpcomingSession {
+  id: string;
+  start_time: string;
+  end_time: string;
+  capacity: number;
+  booked_count: number;
+  status: string;
+  service: { id: string; name: string } | null;
+  provider: { id: string; name: string } | null;
 }
 
 export interface EntityMembership {

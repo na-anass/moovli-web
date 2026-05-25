@@ -10,31 +10,23 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
-  CalendarIcon,
-  UsersIcon,
-  TrendingUpIcon,
-  ClockIcon,
-  PlusIcon,
+  AlertCircleIcon,
   ArrowRightIcon,
   BookOpenIcon,
+  CalendarIcon,
+  ClockIcon,
+  GlobeIcon,
+  PlusIcon,
+  ShoppingBagIcon,
+  TrendingUpIcon,
+  UsersIcon,
+  WalletIcon,
 } from "lucide-react";
-
-interface Session {
-  id: string;
-  start_time: string;
-  end_time: string;
-  status: string;
-  capacity: number;
-  booked_count: number;
-  service?: { name: string };
-  provider?: { name: string };
-}
 
 export default function StudioDashboardPage() {
   const { roles } = useAuth();
   const router = useRouter();
   const [metrics, setMetrics] = useState<StudioDashboardMetrics | null>(null);
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
   const entityId = roles?.ownedEntities?.[0]?.entityId;
@@ -49,14 +41,9 @@ export default function StudioDashboardPage() {
 
   useEffect(() => {
     if (!entityId) return;
-    Promise.all([
-      studioApi.getDashboard(entityId),
-      studioApi.getSessions(entityId, { page: 1, limit: 5 }),
-    ])
-      .then(([dashRes, sessRes]) => {
-        setMetrics(dashRes.data);
-        setSessions(sessRes.data);
-      })
+    studioApi
+      .getDashboard(entityId)
+      .then((res) => setMetrics(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [entityId]);
@@ -66,7 +53,7 @@ export default function StudioDashboardPage() {
       <BaseLayout maxWidth="full" title="Dashboard">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />
+            <div key={i} className="h-28 rounded-xl border border-border bg-card animate-pulse" />
           ))}
         </div>
         <div className="h-64 rounded-xl border border-border bg-card animate-pulse" />
@@ -79,9 +66,16 @@ export default function StudioDashboardPage() {
       ? Math.round(
           ((metrics.bookingsThisWeek - metrics.bookingsLastWeek) /
             metrics.bookingsLastWeek) *
-            100
+            100,
         )
       : 0;
+
+  const channels = metrics?.channelSplitLast30Days ?? { marketplace: 0, direct: 0, other: 0 };
+  const channelTotal = channels.marketplace + channels.direct;
+  const marketplacePct = channelTotal > 0 ? Math.round((channels.marketplace / channelTotal) * 100) : 0;
+
+  const upcoming = metrics?.upcomingSessions ?? [];
+  const pendingCount = metrics?.pendingDirectBookings ?? 0;
 
   return (
     <BaseLayout
@@ -95,113 +89,210 @@ export default function StudioDashboardPage() {
               New Session
             </Button>
           </Link>
-          <Link href="/studio/instructors">
-            <Button variant="outline" size="sm">
-              <UsersIcon className="size-4 mr-1.5" />
-              Add Instructor
-            </Button>
-          </Link>
         </>
       }
     >
-      {/* Stats */}
+      {/* Action-required banner */}
+      {pendingCount > 0 && (
+        <Link
+          href="/studio/bookings"
+          className="flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 hover:bg-amber-100/60 transition-colors group dark:border-amber-700 dark:bg-amber-950/40"
+        >
+          <div className="flex items-center gap-3">
+            <AlertCircleIcon className="size-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                {pendingCount} pending booking{pendingCount === 1 ? "" : "s"} need{pendingCount === 1 ? "s" : ""} your action
+              </p>
+              <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
+                Direct page reservations awaiting confirm or decline
+              </p>
+            </div>
+          </div>
+          <ArrowRightIcon className="size-4 text-amber-700 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+      )}
+
+      {/* Stats — 4 columns: revenue, bookings, members, active sessions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
-          title="Bookings This Week"
+          title="Marketplace revenue"
+          value={`${metrics?.revenueMadThisWeek ?? 0} MAD`}
+          icon={<WalletIcon className="size-5" />}
+          description="Last 7 days"
+        />
+        <StatsCard
+          title="Bookings this week"
           value={metrics?.bookingsThisWeek ?? 0}
           icon={<CalendarIcon className="size-5" />}
           trend={weekChange !== 0 ? { value: weekChange, isPositive: weekChange > 0 } : undefined}
           description="vs last week"
         />
         <StatsCard
-          title="Last Week"
-          value={metrics?.bookingsLastWeek ?? 0}
-          icon={<TrendingUpIcon className="size-5" />}
-          description="Previous 7 days"
-        />
-        <StatsCard
-          title="Unique Members"
+          title="Unique members"
           value={metrics?.uniqueMembers ?? 0}
           icon={<UsersIcon className="size-5" />}
           description="All time"
         />
         <StatsCard
-          title="Active Sessions"
+          title="Active sessions"
           value={metrics?.activeSessions ?? 0}
           icon={<ClockIcon className="size-5" />}
           description="Available or full"
         />
       </div>
 
-      {/* Upcoming Sessions */}
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <div className="flex items-center gap-2">
-            <CalendarIcon className="size-5 text-primary" />
-            <h2 className="font-semibold">Upcoming Sessions</h2>
-          </div>
-          <Link href="/studio/schedule">
-            <Button variant="ghost" size="sm">
-              View All
-              <ArrowRightIcon className="size-4 ml-1" />
-            </Button>
-          </Link>
-        </div>
-        {sessions.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-muted-foreground">No upcoming sessions.</p>
+      {/* Two-column: Upcoming sessions + Channel mix */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Upcoming (2/3 width) */}
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card">
+          <div className="flex items-center justify-between p-5 border-b border-border">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="size-5 text-primary" />
+              <h2 className="font-semibold">Next 24 hours</h2>
+            </div>
             <Link href="/studio/schedule">
-              <Button variant="outline" size="sm" className="mt-3">
-                <PlusIcon className="size-4 mr-1.5" />
-                Create Session
+              <Button variant="ghost" size="sm">
+                View schedule
+                <ArrowRightIcon className="size-4 ml-1" />
               </Button>
             </Link>
           </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {sessions.map((s) => (
-              <div key={s.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="text-center min-w-[50px]">
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(s.start_time).toLocaleDateString("en-US", { weekday: "short" })}
-                    </p>
-                    <p className="text-lg font-bold">
-                      {new Date(s.start_time).getDate()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-medium">{s.service?.name || "Session"}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(s.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      {" — "}
-                      {new Date(s.end_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      {s.provider?.name && ` · ${s.provider.name}`}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm">
-                    <span className="font-medium">{s.booked_count}</span>
-                    <span className="text-muted-foreground">/{s.capacity}</span>
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className={
-                      s.status === "available"
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                        : s.status === "full"
-                          ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                          : ""
-                    }
+          {upcoming.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-sm text-muted-foreground">No sessions scheduled in the next 24 hours.</p>
+              <Link href="/studio/schedule">
+                <Button variant="outline" size="sm" className="mt-3">
+                  <PlusIcon className="size-4 mr-1.5" />
+                  Create a session
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {upcoming.map((s) => {
+                const start = new Date(s.start_time);
+                const end = new Date(s.end_time);
+                const isToday = start.toDateString() === new Date().toDateString();
+                const fillPct = s.capacity > 0 ? Math.min(100, Math.round((s.booked_count / s.capacity) * 100)) : 0;
+                return (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors"
                   >
-                    {s.status}
-                  </Badge>
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="text-center min-w-12 shrink-0">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {isToday ? "Today" : start.toLocaleDateString("en-US", { weekday: "short" })}
+                        </p>
+                        <p className="text-lg font-bold leading-tight">
+                          {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{s.service?.name ?? "Session"}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {" — "}
+                          {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {s.provider?.name ? ` · ${s.provider.name}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <p className="text-sm tabular-nums">
+                          <span className="font-semibold">{s.booked_count}</span>
+                          <span className="text-muted-foreground">/{s.capacity}</span>
+                        </p>
+                        <div className="mt-0.5 h-1 w-16 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              fillPct >= 100
+                                ? "bg-amber-500"
+                                : fillPct >= 80
+                                  ? "bg-emerald-500"
+                                  : "bg-primary/60"
+                            }`}
+                            style={{ width: `${fillPct}%` }}
+                          />
+                        </div>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          s.status === "available"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700 text-[10px]"
+                            : s.status === "full"
+                              ? "border-amber-300 bg-amber-50 text-amber-700 text-[10px]"
+                              : "text-[10px]"
+                        }
+                      >
+                        {s.status}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Channel mix (1/3 width) */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUpIcon className="size-5 text-primary" />
+            <h2 className="font-semibold">Channel mix</h2>
+            <span className="ml-auto text-[10px] text-muted-foreground">Last 30 days</span>
+          </div>
+
+          {channelTotal === 0 ? (
+            <p className="text-xs text-muted-foreground py-4">No bookings yet in the last 30 days.</p>
+          ) : (
+            <div className="space-y-4">
+              {/* Marketplace */}
+              <div>
+                <div className="flex items-center justify-between text-sm mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <ShoppingBagIcon className="size-3.5 text-violet-600" />
+                    <span>Marketplace</span>
+                  </div>
+                  <span className="tabular-nums text-muted-foreground">
+                    <span className="font-semibold text-foreground">{channels.marketplace}</span>{" "}
+                    · {marketplacePct}%
+                  </span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-violet-500" style={{ width: `${marketplacePct}%` }} />
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+
+              {/* Direct */}
+              <div>
+                <div className="flex items-center justify-between text-sm mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <GlobeIcon className="size-3.5 text-emerald-600" />
+                    <span>Direct page</span>
+                  </div>
+                  <span className="tabular-nums text-muted-foreground">
+                    <span className="font-semibold text-foreground">{channels.direct}</span>{" "}
+                    · {100 - marketplacePct}%
+                  </span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500"
+                    style={{ width: `${100 - marketplacePct}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t text-xs text-muted-foreground">
+                {channelTotal} total booking{channelTotal === 1 ? "" : "s"} in the last 30 days
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Quick Links */}
@@ -209,22 +300,22 @@ export default function StudioDashboardPage() {
         <Link href="/studio/bookings" className="group">
           <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 hover:shadow-sm transition-all">
             <BookOpenIcon className="size-5 text-primary mb-3" />
-            <h3 className="font-semibold group-hover:text-primary transition-colors">Manage Bookings</h3>
-            <p className="text-sm text-muted-foreground mt-1">Check in attendees and manage reservations</p>
+            <h3 className="font-semibold group-hover:text-primary transition-colors">Manage bookings</h3>
+            <p className="text-sm text-muted-foreground mt-1">Check in attendees, confirm pending direct bookings</p>
           </div>
         </Link>
-        <Link href="/studio/instructors" className="group">
-          <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 hover:shadow-sm transition-all">
-            <UsersIcon className="size-5 text-primary mb-3" />
-            <h3 className="font-semibold group-hover:text-primary transition-colors">Instructors</h3>
-            <p className="text-sm text-muted-foreground mt-1">Add and manage your teaching team</p>
-          </div>
-        </Link>
-        <Link href="/studio/settings" className="group">
+        <Link href="/studio/services" className="group">
           <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 hover:shadow-sm transition-all">
             <ClockIcon className="size-5 text-primary mb-3" />
-            <h3 className="font-semibold group-hover:text-primary transition-colors">Studio Settings</h3>
-            <p className="text-sm text-muted-foreground mt-1">Update profile, hours, and contact info</p>
+            <h3 className="font-semibold group-hover:text-primary transition-colors">Services & pricing</h3>
+            <p className="text-sm text-muted-foreground mt-1">Edit duration, capacity, and price defaults</p>
+          </div>
+        </Link>
+        <Link href="/studio/customers" className="group">
+          <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 hover:shadow-sm transition-all">
+            <UsersIcon className="size-5 text-primary mb-3" />
+            <h3 className="font-semibold group-hover:text-primary transition-colors">Customers</h3>
+            <p className="text-sm text-muted-foreground mt-1">See who has booked with you and their history</p>
           </div>
         </Link>
       </div>

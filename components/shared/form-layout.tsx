@@ -1,39 +1,30 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { PencilIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { useEditMode } from "@/components/layout/topbar";
 
-interface FormLayoutProps {
-  title: string;
-  children: React.ReactNode;
-  editing: boolean;
-  canEdit: boolean;
-  saving: boolean;
-  success: boolean;
-  onEdit: () => void;
-  onSave: () => void;
-  onCancel: () => void;
-  subtitle?: string;
-}
-
-export function FormLayout({
-  title,
-  children,
+/**
+ * Pushes form edit state to the top-bar sticky save bar.
+ *
+ * Pages should render their chrome via BaseLayout and use this hook to wire
+ * the top-bar save bar. The header Edit/Save buttons live in BaseLayout's
+ * `action` slot.
+ */
+export function useEditModeSync({
   editing,
-  canEdit,
   saving,
-  success,
-  onEdit,
+  title,
   onSave,
   onCancel,
-  subtitle,
-}: FormLayoutProps) {
+}: {
+  editing: boolean;
+  saving: boolean;
+  title: string;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
   const { setEditMode } = useEditMode();
 
-  // Sync edit state to the top bar
   useEffect(() => {
     if (editing) {
       setEditMode({
@@ -48,52 +39,6 @@ export function FormLayout({
     }
     return () => setEditMode(null);
   }, [editing, saving, title, onSave, onCancel, setEditMode]);
-
-  return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">{title}</h1>
-          {subtitle && (
-            <span className="text-sm text-muted-foreground">{subtitle}</span>
-          )}
-          {success && (
-            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-              Saved
-            </Badge>
-          )}
-        </div>
-        {canEdit && !editing && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onEdit}
-            className="hidden sm:flex gap-1.5 text-muted-foreground hover:text-foreground"
-          >
-            <PencilIcon className="size-3.5" />
-            Edit
-          </Button>
-        )}
-      </div>
-
-      {/* Content */}
-      <div>{children}</div>
-
-      {/* Mobile-only floating edit button */}
-      {!editing && canEdit && (
-        <div className="fixed bottom-6 right-6 sm:hidden z-50">
-          <Button
-            onClick={onEdit}
-            size="lg"
-            className="rounded-full shadow-lg h-14 w-14 p-0"
-          >
-            <PencilIcon className="size-5" />
-          </Button>
-        </div>
-      )}
-    </div>
-  );
 }
 
 /** Reusable section card for grouping form fields */

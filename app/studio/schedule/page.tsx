@@ -33,7 +33,7 @@ import {
   Trash2Icon,
   UsersIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // ============================================================================
 // TYPES
@@ -197,20 +197,26 @@ export default function SchedulePage() {
   // FORM ACTIONS
   // ============================================================================
 
-  const openCreate = (date?: Date, hour?: number, minute: number = 0) => {
+  /**
+   * Open the create dialog. start/end are minutes-since-midnight on the given date.
+   * - `start` undefined → no time prefill (used by the "New Session" header button)
+   * - `end` undefined → end is computed from the chosen service's duration
+   * - both provided → fixed range (used by calendar drag-to-create)
+   */
+  const openCreate = (date?: Date, startMinutes?: number, endMinutes?: number) => {
     setEditingSession(null);
     const d = date || new Date();
     const dateStr = d.toISOString().split("T")[0];
-    const startStr =
-      hour != null
-        ? `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
-        : "";
+    const fmt = (mins: number) =>
+      `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+    const startStr = startMinutes != null ? fmt(startMinutes) : "";
+    const fixedEnd = endMinutes != null ? fmt(endMinutes) : "";
     setForm({
       service_id: services[0]?.id || "",
       provider_id: "",
       date: dateStr,
       start_time: startStr,
-      end_time: startStr && services[0] ? addMinutes(startStr, services[0].duration_minutes) : "",
+      end_time: fixedEnd || (startStr && services[0] ? addMinutes(startStr, services[0].duration_minutes) : ""),
       capacity: services[0] ? String(services[0].capacity) : "12",
       price_mad: services[0] ? String(serviceDefaultPriceMad(services[0])) : "50",
       notes: "",
@@ -518,34 +524,99 @@ export default function SchedulePage() {
     const now = new Date();
     const nowTop = isToday ? (now.getHours() + now.getMinutes() / 60 - 6) * HOUR_HEIGHT : -1;
 
+    // Drag-to-create state. Minutes are minutes-since-midnight, quantized to 30-min steps.
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const [drag, setDrag] = useState<{ startMin: number; currentMin: number } | null>(null);
+    const GRID_START_MIN = HOURS[0] * 60;
+    const STEP_MIN = 30;
+
+    const yToMinutes = (clientY: number): number => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return GRID_START_MIN;
+      const y = Math.max(0, Math.min(clientY - rect.top, HOURS.length * HOUR_HEIGHT));
+      const minutesFromGridStart = (y / HOUR_HEIGHT) * 60;
+      const quantized = Math.floor(minutesFromGridStart / STEP_MIN) * STEP_MIN;
+      return GRID_START_MIN + quantized;
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      if (!canManage || e.button !== 0) return;
+      const m = yToMinutes(e.clientY);
+      setDrag({ startMin: m, currentMin: m });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (!drag) return;
+      const m = yToMinutes(e.clientY);
+      if (m !== drag.currentMin) setDrag({ ...drag, currentMin: m });
+    };
+
+    const handleMouseUp = (e: React.MouseEvent) => {
+      if (!drag) return;
+      const endY = yToMinutes(e.clientY);
+      const startMin = Math.min(drag.startMin, endY);
+      const endMin = Math.max(drag.startMin, endY);
+      setDrag(null);
+      if (startMin === endMin) {
+        // Click without drag — single half-hour slot, end_time computed from service duration.
+        openCreate(day, startMin);
+      } else {
+        // Drag — end_time is the upper bound + 1 step (so dragging from 18:00 to 19:00 produces 18:00–19:30).
+        openCreate(day, startMin, endMin + STEP_MIN);
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (drag) setDrag(null);
+    };
+
+    // Ghost rectangle showing the proposed range while dragging.
+    const ghost = drag
+      ? (() => {
+          const lo = Math.min(drag.startMin, drag.currentMin);
+          const hi = Math.max(drag.startMin, drag.currentMin) + STEP_MIN;
+          const top = ((lo - GRID_START_MIN) / 60) * HOUR_HEIGHT;
+          const height = ((hi - lo) / 60) * HOUR_HEIGHT;
+          const fmt = (mins: number) =>
+            `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+          return { top, height, label: `${fmt(lo)} — ${fmt(hi)}` };
+        })()
+      : null;
+
     return (
-      <div className={`relative flex-1 min-w-0 ${!isOnly ? "border-r border-border last:border-r-0" : ""}`}>
-        {/* Hour cells — full-height clickable regions à la Google Calendar.
-            Top half = X:00 click target, bottom half = X:30. */}
+      <div
+        ref={containerRef}
+        className={`relative flex-1 min-w-0 ${!isOnly ? "border-r border-border last:border-r-0" : ""} ${
+          canManage ? "cursor-cell select-none" : ""
+        }`}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Hour grid lines — purely visual now; click/drag is handled by the container. */}
         {HOURS.map((h) => (
           <div
             key={h}
-            className="absolute w-full border-t border-border/50"
+            className="absolute w-full border-t border-border/50 pointer-events-none"
             style={{ top: (h - 6) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
           >
-            {canManage && (
-              <>
-                <button
-                  type="button"
-                  aria-label={`Create session at ${String(h).padStart(2, "0")}:00`}
-                  className="absolute inset-x-0 top-0 h-1/2 cursor-pointer hover:bg-accent/40 focus:bg-accent/40 focus:outline-none transition-colors"
-                  onClick={() => openCreate(day, h)}
-                />
-                <button
-                  type="button"
-                  aria-label={`Create session at ${String(h).padStart(2, "0")}:30`}
-                  className="absolute inset-x-0 bottom-0 h-1/2 border-t border-dashed border-border/30 cursor-pointer hover:bg-accent/40 focus:bg-accent/40 focus:outline-none transition-colors"
-                  onClick={() => openCreate(day, h, 30)}
-                />
-              </>
-            )}
+            <div
+              className="absolute inset-x-0 top-1/2 border-t border-dashed border-border/30"
+              style={{ marginTop: -1 }}
+            />
           </div>
         ))}
+
+        {/* Drag ghost */}
+        {ghost && (
+          <div
+            className="absolute left-1 right-1 z-[6] rounded-md border-2 border-primary bg-primary/15 pointer-events-none flex items-start justify-center px-2 py-1"
+            style={{ top: ghost.top, height: Math.max(ghost.height - 2, 22) }}
+          >
+            <span className="text-[10px] font-semibold text-primary">{ghost.label}</span>
+          </div>
+        )}
 
         {/* Current time line */}
         {nowTop > 0 && (
