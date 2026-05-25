@@ -12,6 +12,7 @@ import {
   BookOpenIcon,
   BarChart3Icon,
   SettingsIcon,
+  SlidersHorizontalIcon,
 } from "lucide-react";
 
 const navItems: NavItem[] = [
@@ -20,6 +21,7 @@ const navItems: NavItem[] = [
   { label: "Studios", icon: BuildingIcon, href: "/admin/studios" },
   { label: "Bookings", icon: BookOpenIcon, href: "/admin/bookings" },
   { label: "Analytics", icon: BarChart3Icon, href: "/admin/analytics" },
+  { label: "Policies", icon: SlidersHorizontalIcon, href: "/admin/policies" },
 ];
 
 const bottomItems: NavItem[] = [
