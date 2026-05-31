@@ -1,7 +1,6 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
-import { formatMoneyWhole } from "@/lib/money";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { FormSheet } from "@/components/shared/form-sheet";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { entityPlansApi } from "@/lib/api/entityPlans";
 import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
+import { formatMoneyWhole } from "@/lib/money";
+import Link from "next/link";
 import {
   CalendarIcon,
   ChevronLeftIcon,
@@ -153,6 +155,10 @@ export default function SchedulePage() {
     repeat_end_mode: "until" as "until" | "count",
     repeat_until: "",
     repeat_count: "10",
+    // Anchored allocation: which channel the studio explicitly typed a value
+    // for. The other gets `capacity − anchored` automatically. Null = use a
+    // 50/50 default split when split mode is first chosen.
+    allocation_anchor: null as "direct" | "marketplace" | null,
   });
 
   const entityId = roles?.ownedEntities?.[0]?.entityId;
@@ -190,6 +196,45 @@ export default function SchedulePage() {
     }).catch(console.error);
   }, [entityId]);
 
+  // Per-channel availability state — drives the publish-toggle locks below.
+  // direct + marketplace can each be: "live" (plan allows + enabled),
+  // "off" (plan allows but switched off in /studio/channels) or
+  // "locked" (plan doesn't include it).
+  const [channelState, setChannelState] = useState<{
+    direct: "live" | "off" | "locked";
+    marketplace: "live" | "off" | "locked";
+  }>({ direct: "live", marketplace: "live" });
+
+  useEffect(() => {
+    if (!entityId) return;
+    let cancelled = false;
+    Promise.all([
+      entityPlansApi.getSubscription(entityId),
+      studioApi.getChannelPrefs(entityId),
+    ])
+      .then(([subRes, prefRes]) => {
+        if (cancelled) return;
+        const allowed = subRes.data.plan?.allowed_channel_types ?? [];
+        const allows = (k: "direct_hosted" | "marketplace") => allowed.includes(k);
+        setChannelState({
+          direct: !allows("direct_hosted")
+            ? "locked"
+            : prefRes.data.direct_hosted_enabled
+              ? "live"
+              : "off",
+          marketplace: !allows("marketplace")
+            ? "locked"
+            : prefRes.data.marketplace_enabled
+              ? "live"
+              : "off",
+        });
+      })
+      .catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+  }, [entityId]);
+
   // ============================================================================
   // FORM ACTIONS
   // ============================================================================
@@ -219,11 +264,15 @@ export default function SchedulePage() {
       notes: "",
       is_recurring: false,
       override_pricing: false,
-      publish_marketplace: true,
-      publish_direct: true,
+      // Default each channel to ON only if it's actually live at the studio
+      // level. Channels that are off or plan-gated stay unchecked so the
+      // studio can't accidentally try to publish to them.
+      publish_marketplace: channelState.marketplace === "live",
+      publish_direct: channelState.direct === "live",
       allocation_mode: "shared",
       allocation_marketplace: "",
       allocation_direct: "",
+      allocation_anchor: null,
       release_enabled: false,
       release_value: "6",
       release_unit: "hours",
@@ -254,11 +303,12 @@ export default function SchedulePage() {
       override_pricing: hasOverride,
       notes: s.notes || "",
       is_recurring: s.is_recurring,
-      publish_marketplace: true,
-      publish_direct: true,
+      publish_marketplace: channelState.marketplace === "live",
+      publish_direct: channelState.direct === "live",
       allocation_mode: "shared",
       allocation_marketplace: "",
       allocation_direct: "",
+      allocation_anchor: null,
       release_enabled: false,
       release_value: "6",
       release_unit: "hours",
@@ -285,20 +335,42 @@ export default function SchedulePage() {
       if (form.publish_marketplace) channelTypes.push("marketplace");
       if (form.publish_direct) channelTypes.push("direct_hosted");
 
-      // Only send channel_allocations when in split mode AND the channel is selected
-      const channelAllocations: Record<string, number> | undefined =
-        form.allocation_mode === "split"
-          ? Object.fromEntries(
-              [
-                form.publish_marketplace && form.allocation_marketplace
-                  ? ["marketplace", parseInt(form.allocation_marketplace)]
-                  : null,
-                form.publish_direct && form.allocation_direct
-                  ? ["direct_hosted", parseInt(form.allocation_direct)]
-                  : null,
-              ].filter(Boolean) as Array<[string, number]>,
-            )
-          : undefined;
+      // Only send channel_allocations when in split mode. Compute effective
+      // per-channel seats using the same anchored-balance logic as the UI so
+      // an empty input (anchor === null) saves the 50/50 default rather than 0.
+      const channelAllocations: Record<string, number> | undefined = (() => {
+        if (form.allocation_mode !== "split") return undefined;
+        const cap = parseInt(form.capacity) || 0;
+        const both = form.publish_direct && form.publish_marketplace;
+        const anchor = form.allocation_anchor;
+        const anchored =
+          anchor === "direct"
+            ? clampAlloc(form.allocation_direct, cap)
+            : anchor === "marketplace"
+              ? clampAlloc(form.allocation_marketplace, cap)
+              : null;
+
+        let directSeats: number;
+        let marketplaceSeats: number;
+        if (!both) {
+          directSeats = form.publish_direct ? cap : 0;
+          marketplaceSeats = form.publish_marketplace ? cap : 0;
+        } else if (anchor === "direct" && anchored != null) {
+          directSeats = anchored;
+          marketplaceSeats = cap - anchored;
+        } else if (anchor === "marketplace" && anchored != null) {
+          marketplaceSeats = anchored;
+          directSeats = cap - anchored;
+        } else {
+          directSeats = Math.ceil(cap / 2);
+          marketplaceSeats = cap - directSeats;
+        }
+
+        const out: Record<string, number> = {};
+        if (form.publish_direct) out.direct_hosted = directSeats;
+        if (form.publish_marketplace) out.marketplace = marketplaceSeats;
+        return out;
+      })();
 
       // Convert release_value + unit → minutes for API
       const UNIT_TO_MINUTES = { minutes: 1, hours: 60, days: 1440 } as const;
@@ -570,22 +642,21 @@ export default function SchedulePage() {
     // Ghost rectangle showing the proposed range while dragging.
     const ghost = drag
       ? (() => {
-          const lo = Math.min(drag.startMin, drag.currentMin);
-          const hi = Math.max(drag.startMin, drag.currentMin) + STEP_MIN;
-          const top = ((lo - GRID_START_MIN) / 60) * HOUR_HEIGHT;
-          const height = ((hi - lo) / 60) * HOUR_HEIGHT;
-          const fmt = (mins: number) =>
-            `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
-          return { top, height, label: `${fmt(lo)} — ${fmt(hi)}` };
-        })()
+        const lo = Math.min(drag.startMin, drag.currentMin);
+        const hi = Math.max(drag.startMin, drag.currentMin) + STEP_MIN;
+        const top = ((lo - GRID_START_MIN) / 60) * HOUR_HEIGHT;
+        const height = ((hi - lo) / 60) * HOUR_HEIGHT;
+        const fmt = (mins: number) =>
+          `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+        return { top, height, label: `${fmt(lo)} — ${fmt(hi)}` };
+      })()
       : null;
 
     return (
       <div
         ref={containerRef}
-        className={`relative flex-1 min-w-0 ${!isOnly ? "border-r border-border last:border-r-0" : ""} ${
-          canManage ? "cursor-cell select-none" : ""
-        }`}
+        className={`relative flex-1 min-w-0 ${!isOnly ? "border-r border-border last:border-r-0" : ""} ${canManage ? "cursor-cell select-none" : ""
+          }`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -796,518 +867,564 @@ export default function SchedulePage() {
         }
       >
         <div className="space-y-5">
-            {/* What — which service */}
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">What</p>
-              <Select value={form.service_id} onValueChange={handleServiceChange}>
-                <SelectTrigger><SelectValue placeholder="Select a service" /></SelectTrigger>
-                <SelectContent>
-                  {services.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{s.name}</span>
-                        <span className="text-muted-foreground text-xs">
-                          {s.duration_minutes}min · {formatMoneyWhole(serviceDefaultPriceMad(s), currency)} · {s.capacity} spots
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* What — which service */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">What</p>
+            <Select value={form.service_id} onValueChange={handleServiceChange}>
+              <SelectTrigger><SelectValue placeholder="Select a service" /></SelectTrigger>
+              <SelectContent>
+                {services.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{s.name}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {s.duration_minutes}min · {formatMoneyWhole(serviceDefaultPriceMad(s), currency)} · {s.capacity} spots
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Who — instructor */}
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Who teaches</p>
-              <Select value={form.provider_id || "none"} onValueChange={(v) => setForm({ ...form, provider_id: v === "none" ? "" : v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No instructor assigned</SelectItem>
-                  {providers.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}{p.tier ? ` · ${p.tier}` : ""}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Who — instructor */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Who teaches</p>
+            <Select value={form.provider_id || "none"} onValueChange={(v) => setForm({ ...form, provider_id: v === "none" ? "" : v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No instructor assigned</SelectItem>
+                {providers.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}{p.tier ? ` · ${p.tier}` : ""}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* When — date + time */}
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">When</p>
-              <div className="space-y-3">
-                <Input type="date" value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })} />
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground">Start time</label>
-                    <Input type="time" className="mt-1" value={form.start_time}
-                      onChange={(e) => {
-                        const newStart = e.target.value;
-                        const service = services.find((s) => s.id === form.service_id);
-                        setForm({ ...form, start_time: newStart, end_time: service ? addMinutes(newStart, service.duration_minutes) : form.end_time });
-                      }} />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">End time</label>
-                    <Input type="time" className="mt-1" value={form.end_time}
-                      onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
-                  </div>
+          {/* When — date + time */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">When</p>
+            <div className="space-y-3">
+              <Input type="date" value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Start time</label>
+                  <Input type="time" className="mt-1" value={form.start_time}
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      const service = services.find((s) => s.id === form.service_id);
+                      setForm({ ...form, start_time: newStart, end_time: service ? addMinutes(newStart, service.duration_minutes) : form.end_time });
+                    }} />
                 </div>
-                {form.start_time && form.end_time && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <ClockIcon className="size-3" />
-                    Duration: {calcDuration(form.start_time, form.end_time)} min
-                    {form.service_id && (() => {
-                      const svc = services.find(s => s.id === form.service_id);
-                      const dur = calcDuration(form.start_time, form.end_time);
-                      return svc && dur !== svc.duration_minutes
-                        ? <span className="text-amber-600 ml-1">(service default: {svc.duration_minutes} min)</span>
-                        : null;
-                    })()}
-                  </p>
-                )}
+                <div>
+                  <label className="text-xs text-muted-foreground">End time</label>
+                  <Input type="time" className="mt-1" value={form.end_time}
+                    onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
+                </div>
               </div>
-            </div>
-
-            {/* Repeats — like Google Calendar */}
-            {!editingSession && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                  Repeats
+              {form.start_time && form.end_time && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <ClockIcon className="size-3" />
+                  Duration: {calcDuration(form.start_time, form.end_time)} min
+                  {form.service_id && (() => {
+                    const svc = services.find(s => s.id === form.service_id);
+                    const dur = calcDuration(form.start_time, form.end_time);
+                    return svc && dur !== svc.duration_minutes
+                      ? <span className="text-amber-600 ml-1">(service default: {svc.duration_minutes} min)</span>
+                      : null;
+                  })()}
                 </p>
-                <Select
-                  value={form.repeat_mode}
-                  onValueChange={(v) =>
-                    setForm({ ...form, repeat_mode: v as "none" | "daily" | "weekly" })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Doesn't repeat</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                  </SelectContent>
-                </Select>
+              )}
+            </div>
+          </div>
 
-                {form.repeat_mode !== "none" && (
-                  <div className="mt-3 space-y-3 rounded-lg border p-3 bg-muted/30">
-                    {/* Interval */}
+          {/* Repeats — like Google Calendar */}
+          {!editingSession && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Repeats
+              </p>
+              <Select
+                value={form.repeat_mode}
+                onValueChange={(v) =>
+                  setForm({ ...form, repeat_mode: v as "none" | "daily" | "weekly" })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Doesn&apos;t repeat</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {form.repeat_mode !== "none" && (
+                <div className="mt-3 space-y-3 rounded-lg border p-3 bg-muted/30">
+                  {/* Interval */}
+                  <div className="flex items-center gap-2 text-xs">
+                    <span>Every</span>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="52"
+                      value={form.repeat_interval}
+                      onChange={(e) => setForm({ ...form, repeat_interval: e.target.value })}
+                      className="h-7 w-16 text-right"
+                    />
+                    <span>
+                      {form.repeat_mode === "daily"
+                        ? parseInt(form.repeat_interval) === 1 ? "day" : "days"
+                        : parseInt(form.repeat_interval) === 1 ? "week" : "weeks"}
+                    </span>
+                  </div>
+
+                  {/* Weekday selector (weekly only) */}
+                  {form.repeat_mode === "weekly" && (
+                    <div className="space-y-1.5">
+                      <div className="text-xs text-muted-foreground">On these days</div>
+                      <div className="flex gap-1">
+                        {([
+                          { id: "mon", label: "M" },
+                          { id: "tue", label: "T" },
+                          { id: "wed", label: "W" },
+                          { id: "thu", label: "T" },
+                          { id: "fri", label: "F" },
+                          { id: "sat", label: "S" },
+                          { id: "sun", label: "S" },
+                        ] as const).map((d) => {
+                          const on = form.repeat_weekdays.includes(d.id);
+                          return (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onClick={() =>
+                                setForm({
+                                  ...form,
+                                  repeat_weekdays: on
+                                    ? form.repeat_weekdays.filter((w) => w !== d.id)
+                                    : [...form.repeat_weekdays, d.id],
+                                })
+                              }
+                              className={`size-8 rounded-full text-xs font-medium border transition ${on
+                                  ? "bg-foreground text-background border-foreground"
+                                  : "border-input hover:bg-accent"
+                                }`}
+                            >
+                              {d.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Leave empty to use the start date&apos;s weekday only.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* End condition */}
+                  <div className="space-y-1.5">
+                    <div className="text-xs text-muted-foreground">Ends</div>
                     <div className="flex items-center gap-2 text-xs">
-                      <span>Every</span>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="repeat_end_mode"
+                          checked={form.repeat_end_mode === "until"}
+                          onChange={() => setForm({ ...form, repeat_end_mode: "until" })}
+                        />
+                        On
+                      </label>
+                      <Input
+                        type="date"
+                        value={form.repeat_until}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            repeat_until: e.target.value,
+                            repeat_end_mode: "until",
+                          })
+                        }
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="repeat_end_mode"
+                          checked={form.repeat_end_mode === "count"}
+                          onChange={() => setForm({ ...form, repeat_end_mode: "count" })}
+                        />
+                        After
+                      </label>
                       <Input
                         type="number"
                         min="1"
-                        max="52"
-                        value={form.repeat_interval}
-                        onChange={(e) => setForm({ ...form, repeat_interval: e.target.value })}
+                        max="365"
+                        value={form.repeat_count}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            repeat_count: e.target.value,
+                            repeat_end_mode: "count",
+                          })
+                        }
                         className="h-7 w-16 text-right"
                       />
-                      <span>
-                        {form.repeat_mode === "daily"
-                          ? parseInt(form.repeat_interval) === 1 ? "day" : "days"
-                          : parseInt(form.repeat_interval) === 1 ? "week" : "weeks"}
-                      </span>
+                      <span>occurrences</span>
                     </div>
+                  </div>
+                </div>
+              )}
 
-                    {/* Weekday selector (weekly only) */}
-                    {form.repeat_mode === "weekly" && (
-                      <div className="space-y-1.5">
-                        <div className="text-xs text-muted-foreground">On these days</div>
-                        <div className="flex gap-1">
-                          {([
-                            { id: "mon", label: "M" },
-                            { id: "tue", label: "T" },
-                            { id: "wed", label: "W" },
-                            { id: "thu", label: "T" },
-                            { id: "fri", label: "F" },
-                            { id: "sat", label: "S" },
-                            { id: "sun", label: "S" },
-                          ] as const).map((d) => {
-                            const on = form.repeat_weekdays.includes(d.id);
-                            return (
-                              <button
-                                key={d.id}
-                                type="button"
-                                onClick={() =>
-                                  setForm({
-                                    ...form,
-                                    repeat_weekdays: on
-                                      ? form.repeat_weekdays.filter((w) => w !== d.id)
-                                      : [...form.repeat_weekdays, d.id],
-                                  })
-                                }
-                                className={`size-8 rounded-full text-xs font-medium border transition ${
-                                  on
-                                    ? "bg-foreground text-background border-foreground"
-                                    : "border-input hover:bg-accent"
-                                }`}
-                              >
-                                {d.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          Leave empty to use the start date's weekday only.
+              {editingSession === null && form.repeat_mode !== "none" && (
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  All occurrences will be created at once with the same channel publication and capacity.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Capacity */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Capacity</p>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <Input type="number" value={form.capacity} min="1"
+                  onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
+              </div>
+              <span className="text-xs text-muted-foreground shrink-0">
+                <UsersIcon className="size-3 inline mr-1" />spots
+              </span>
+            </div>
+            {form.service_id && (() => {
+              const svc = services.find(s => s.id === form.service_id);
+              return svc && parseInt(form.capacity) !== svc.capacity
+                ? <p className="text-[10px] text-amber-600 mt-1">Service default: {svc.capacity} spots</p>
+                : null;
+            })()}
+          </div>
+
+          {/* Pricing — inherited from service, with optional override */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Pricing</p>
+            {form.service_id ? (() => {
+              const svc = services.find(s => s.id === form.service_id);
+              return (
+                <div className="space-y-3">
+                  {/* Service price display */}
+                  <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <CoinsIcon className="size-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">
+                          {form.override_pricing
+                            ? formatMoneyWhole(form.price_mad, currency)
+                            : svc
+                              ? formatMoneyWhole(serviceDefaultPriceMad(svc), currency)
+                              : "—"}
                         </p>
-                      </div>
-                    )}
-
-                    {/* End condition */}
-                    <div className="space-y-1.5">
-                      <div className="text-xs text-muted-foreground">Ends</div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="repeat_end_mode"
-                            checked={form.repeat_end_mode === "until"}
-                            onChange={() => setForm({ ...form, repeat_end_mode: "until" })}
-                          />
-                          On
-                        </label>
-                        <Input
-                          type="date"
-                          value={form.repeat_until}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              repeat_until: e.target.value,
-                              repeat_end_mode: "until",
-                            })
-                          }
-                          className="h-7 text-xs"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="repeat_end_mode"
-                            checked={form.repeat_end_mode === "count"}
-                            onChange={() => setForm({ ...form, repeat_end_mode: "count" })}
-                          />
-                          After
-                        </label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="365"
-                          value={form.repeat_count}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              repeat_count: e.target.value,
-                              repeat_end_mode: "count",
-                            })
-                          }
-                          className="h-7 w-16 text-right"
-                        />
-                        <span>occurrences</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {editingSession === null && form.repeat_mode !== "none" && (
-                  <p className="text-[10px] text-muted-foreground mt-2">
-                    All occurrences will be created at once with the same channel publication and capacity.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Capacity */}
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Capacity</p>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <Input type="number" value={form.capacity} min="1"
-                    onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  <UsersIcon className="size-3 inline mr-1" />spots
-                </span>
-              </div>
-              {form.service_id && (() => {
-                const svc = services.find(s => s.id === form.service_id);
-                return svc && parseInt(form.capacity) !== svc.capacity
-                  ? <p className="text-[10px] text-amber-600 mt-1">Service default: {svc.capacity} spots</p>
-                  : null;
-              })()}
-            </div>
-
-            {/* Pricing — inherited from service, with optional override */}
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Pricing</p>
-              {form.service_id ? (() => {
-                const svc = services.find(s => s.id === form.service_id);
-                return (
-                  <div className="space-y-3">
-                    {/* Service price display */}
-                    <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <CoinsIcon className="size-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">
-                            {form.override_pricing
-                              ? formatMoneyWhole(form.price_mad, currency)
-                              : svc
-                                ? formatMoneyWhole(serviceDefaultPriceMad(svc), currency)
-                                : "—"}
+                        {!form.override_pricing && (
+                          <p className="text-[10px] text-muted-foreground">Inherited from {svc?.name || "service"}</p>
+                        )}
+                        {form.override_pricing && svc && (
+                          <p className="text-[10px] text-amber-600">
+                            Service default: {formatMoneyWhole(serviceDefaultPriceMad(svc), currency)}
                           </p>
-                          {!form.override_pricing && (
-                            <p className="text-[10px] text-muted-foreground">Inherited from {svc?.name || "service"}</p>
-                          )}
-                          {form.override_pricing && svc && (
-                            <p className="text-[10px] text-amber-600">
-                              Service default: {formatMoneyWhole(serviceDefaultPriceMad(svc), currency)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground">Override</span>
-                        <Switch
-                          checked={form.override_pricing}
-                          onCheckedChange={(checked) => {
-                            const svc = services.find(s => s.id === form.service_id);
-                            const serviceMad = serviceDefaultPriceMad(svc);
-                            setForm({
-                              ...form,
-                              override_pricing: checked,
-                              price_mad: checked ? form.price_mad : String(serviceMad || form.price_mad),
-                            });
-                          }}
-                        />
+                        )}
                       </div>
                     </div>
-
-                    {/* Override input */}
-                    {form.override_pricing && (
-                      <div>
-                        <label className="text-xs text-muted-foreground">Custom price for this session ({currency})</label>
-                        <Input type="number" className="mt-1" value={form.price_mad} min="0" step="0.01"
-                          onChange={(e) => setForm({ ...form, price_mad: e.target.value })} />
-                      </div>
-                    )}
-                  </div>
-                );
-              })() : (
-                <p className="text-xs text-muted-foreground">Select a service to see pricing</p>
-              )}
-            </div>
-
-            {/* Publish to channels */}
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                Publish to
-              </p>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">Marketplace</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      Visible in the Moovli mobile app — paid via Moovli
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">Override</span>
+                      <Switch
+                        checked={form.override_pricing}
+                        onCheckedChange={(checked) => {
+                          const svc = services.find(s => s.id === form.service_id);
+                          const serviceMad = serviceDefaultPriceMad(svc);
+                          setForm({
+                            ...form,
+                            override_pricing: checked,
+                            price_mad: checked ? form.price_mad : String(serviceMad || form.price_mad),
+                          });
+                        }}
+                      />
                     </div>
                   </div>
-                  <Switch
-                    checked={form.publish_marketplace}
-                    onCheckedChange={(checked) =>
-                      setForm({ ...form, publish_marketplace: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">Direct booking page</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      Visible on your studio's public booking page — paid at studio
-                    </div>
-                  </div>
-                  <Switch
-                    checked={form.publish_direct}
-                    onCheckedChange={(checked) =>
-                      setForm({ ...form, publish_direct: checked })
-                    }
-                  />
-                </div>
-              </div>
-              {!form.publish_marketplace && !form.publish_direct && (
-                <p className="text-[11px] text-amber-600 mt-2">
-                  ⚠ At least one channel should be selected, otherwise the session won't be visible to anyone.
-                </p>
-              )}
-            </div>
 
-            {/* Capacity allocation across channels */}
-            {(form.publish_marketplace || form.publish_direct) && parseInt(form.capacity) > 0 && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                  Capacity allocation
-                </p>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent/40">
-                    <input
-                      type="radio"
-                      name="allocation_mode"
-                      checked={form.allocation_mode === "shared"}
-                      onChange={() => setForm({ ...form, allocation_mode: "shared" })}
-                      className="size-4"
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">Shared inventory</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        Any channel can book any of the {form.capacity} spots
-                      </div>
+                  {/* Override input */}
+                  {form.override_pricing && (
+                    <div>
+                      <label className="text-xs text-muted-foreground">Custom price for this session ({currency})</label>
+                      <Input type="number" className="mt-1" value={form.price_mad} min="0" step="0.01"
+                        onChange={(e) => setForm({ ...form, price_mad: e.target.value })} />
                     </div>
-                  </label>
-                  <label className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent/40">
-                    <input
-                      type="radio"
-                      name="allocation_mode"
-                      checked={form.allocation_mode === "split"}
-                      onChange={() => setForm({ ...form, allocation_mode: "split" })}
-                      className="size-4 mt-1"
-                    />
-                    <div className="flex-1 space-y-2">
-                      <div>
-                        <div className="text-sm font-medium">Split per channel</div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Reserve a fixed number of spots per channel
-                        </div>
-                      </div>
-                      {form.allocation_mode === "split" && (() => {
-                        const totalCapacity = parseInt(form.capacity) || 0;
-                        const mp = form.publish_marketplace ? (parseInt(form.allocation_marketplace) || 0) : 0;
-                        const dr = form.publish_direct ? (parseInt(form.allocation_direct) || 0) : 0;
-                        const sum = mp + dr;
-                        const remainder = totalCapacity - sum;
-                        return (
-                          <div className="space-y-2 pt-1">
-                            {form.publish_marketplace && (
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs">Marketplace</span>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max={totalCapacity}
-                                  value={form.allocation_marketplace}
-                                  onChange={(e) => setForm({ ...form, allocation_marketplace: e.target.value })}
-                                  onClick={(e) => e.preventDefault()}
-                                  className="h-7 w-20 text-right"
-                                  placeholder="0"
-                                />
-                              </div>
-                            )}
-                            {form.publish_direct && (
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs">Direct booking page</span>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max={totalCapacity}
-                                  value={form.allocation_direct}
-                                  onChange={(e) => setForm({ ...form, allocation_direct: e.target.value })}
-                                  onClick={(e) => e.preventDefault()}
-                                  className="h-7 w-20 text-right"
-                                  placeholder="0"
-                                />
-                              </div>
-                            )}
-                            <div className="flex items-center justify-between gap-3 pt-1 border-t text-[11px]">
-                              <span className="text-muted-foreground">Sum / Capacity</span>
-                              <span
-                                className={
-                                  sum === totalCapacity
-                                    ? "text-emerald-600 font-medium"
-                                    : sum > totalCapacity
-                                      ? "text-destructive font-medium"
-                                      : "text-amber-600 font-medium"
-                                }
-                              >
-                                {sum} / {totalCapacity}
-                                {remainder > 0 && ` · ${remainder} unassigned`}
-                                {remainder < 0 && ` · ${-remainder} over`}
-                              </span>
-                            </div>
-
-                            {/* Phase 2 — time-based release */}
-                            <div className="pt-2 border-t space-y-2">
-                              <label className="flex items-center gap-2 text-xs cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={form.release_enabled}
-                                  onChange={(e) =>
-                                    setForm({ ...form, release_enabled: e.target.checked })
-                                  }
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="size-3.5"
-                                />
-                                <span>Release unused spots to other channels</span>
-                              </label>
-                              {form.release_enabled && (
-                                <div className="flex items-center gap-2 pl-5 text-xs">
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    value={form.release_value}
-                                    onChange={(e) =>
-                                      setForm({ ...form, release_value: e.target.value })
-                                    }
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="h-7 w-16 text-right"
-                                  />
-                                  <select
-                                    value={form.release_unit}
-                                    onChange={(e) =>
-                                      setForm({
-                                        ...form,
-                                        release_unit: e.target.value as
-                                          | "minutes"
-                                          | "hours"
-                                          | "days",
-                                      })
-                                    }
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="h-7 rounded border border-input bg-background px-2 text-xs"
-                                  >
-                                    <option value="minutes">minutes</option>
-                                    <option value="hours">hours</option>
-                                    <option value="days">days</option>
-                                  </select>
-                                  <span className="text-muted-foreground">
-                                    before session starts
-                                  </span>
-                                </div>
-                              )}
-                              {form.release_enabled && (
-                                <p className="text-[10px] text-muted-foreground pl-5">
-                                  At that point, unused spots from any channel
-                                  become bookable by the other.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </label>
+                  )}
                 </div>
-              </div>
+              );
+            })() : (
+              <p className="text-xs text-muted-foreground">Select a service to see pricing</p>
             )}
+          </div>
 
-            {/* Notes */}
-            <div>
-              <label className="text-xs text-muted-foreground">Notes (optional)</label>
-              <textarea
-                className="mt-1 w-full rounded-lg border border-border bg-background p-3 text-sm min-h-[50px] focus:outline-none focus:ring-2 focus:ring-ring resize-y"
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="Internal notes for this session..."
+          {/* Publish to channels — Direct first, then Marketplace.
+              Each row reflects the channel's studio-level state: live, off, or
+              plan-gated. Off/locked rows are visually disabled and the toggle
+              is forced OFF — prevents the studio from publishing to a channel
+              they can't actually surface. */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              Publish to
+            </p>
+            <div className="space-y-2">
+              <PublishChannelRow
+                label="Direct booking page"
+                description="Visible on your studio's public booking page — paid at studio"
+                state={channelState.direct}
+                checked={form.publish_direct && channelState.direct === "live"}
+                onCheckedChange={(checked) =>
+                  setForm({ ...form, publish_direct: checked })
+                }
+                manageHref="/studio/channels/direct"
+                upgradeHref="/studio/billing"
+              />
+              <PublishChannelRow
+                label="Marketplace"
+                description="Visible in the Moovli mobile app — paid via Moovli"
+                state={channelState.marketplace}
+                checked={form.publish_marketplace && channelState.marketplace === "live"}
+                onCheckedChange={(checked) =>
+                  setForm({ ...form, publish_marketplace: checked })
+                }
+                manageHref="/studio/channels/marketplace"
+                upgradeHref="/studio/billing"
               />
             </div>
+            {!form.publish_marketplace && !form.publish_direct && (
+              <p className="text-[11px] text-amber-600 mt-2">
+                ⚠ At least one channel should be selected, otherwise the session won&apos;t be visible to anyone.
+              </p>
+            )}
+          </div>
+
+          {/* Capacity allocation across channels */}
+          {(form.publish_marketplace || form.publish_direct) && parseInt(form.capacity) > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Capacity allocation
+              </p>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent/40">
+                  <input
+                    type="radio"
+                    name="allocation_mode"
+                    checked={form.allocation_mode === "shared"}
+                    onChange={() => setForm({ ...form, allocation_mode: "shared" })}
+                    className="size-4"
+                  />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">Shared inventory</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      Any channel can book any of the {form.capacity} spots
+                    </div>
+                  </div>
+                </label>
+                <label className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent/40">
+                  <input
+                    type="radio"
+                    name="allocation_mode"
+                    checked={form.allocation_mode === "split"}
+                    onChange={() => setForm({ ...form, allocation_mode: "split" })}
+                    className="size-4 mt-1"
+                  />
+                  <div className="flex-1 space-y-2">
+                    <div>
+                      <div className="text-sm font-medium">Split per channel</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Reserve a fixed number of spots per channel
+                      </div>
+                    </div>
+                    {form.allocation_mode === "split" && (() => {
+                      // Anchored auto-balance: one channel is the "you set"
+                      // value, the other absorbs the remainder. Sum is
+                      // capacity by construction — never goes over or under.
+                      const totalCapacity = parseInt(form.capacity) || 0;
+                      const bothPublished = form.publish_direct && form.publish_marketplace;
+
+                      // Default split when no anchor yet — half-and-half,
+                      // direct gets the rounded-up half (it's the primary).
+                      const defaultDirect = Math.ceil(totalCapacity / 2);
+                      const defaultMarketplace = totalCapacity - defaultDirect;
+
+                      const anchor = form.allocation_anchor;
+                      const anchorValue =
+                        anchor === "direct"
+                          ? clampAlloc(form.allocation_direct, totalCapacity)
+                          : anchor === "marketplace"
+                            ? clampAlloc(form.allocation_marketplace, totalCapacity)
+                            : null;
+
+                      // Resolve effective per-channel allocations.
+                      let directAlloc: number;
+                      let marketplaceAlloc: number;
+                      if (!bothPublished) {
+                        // Only one channel published → it takes the full capacity.
+                        directAlloc = form.publish_direct ? totalCapacity : 0;
+                        marketplaceAlloc = form.publish_marketplace ? totalCapacity : 0;
+                      } else if (anchor === "direct" && anchorValue != null) {
+                        directAlloc = anchorValue;
+                        marketplaceAlloc = totalCapacity - anchorValue;
+                      } else if (anchor === "marketplace" && anchorValue != null) {
+                        marketplaceAlloc = anchorValue;
+                        directAlloc = totalCapacity - anchorValue;
+                      } else {
+                        directAlloc = defaultDirect;
+                        marketplaceAlloc = defaultMarketplace;
+                      }
+
+                      const onAnchorChange = (
+                        channel: "direct" | "marketplace",
+                        raw: string,
+                      ) => {
+                        const v = clampAlloc(raw, totalCapacity);
+                        setForm({
+                          ...form,
+                          allocation_anchor: channel,
+                          allocation_direct:
+                            channel === "direct"
+                              ? String(v ?? "")
+                              : String(totalCapacity - (v ?? 0)),
+                          allocation_marketplace:
+                            channel === "marketplace"
+                              ? String(v ?? "")
+                              : String(totalCapacity - (v ?? 0)),
+                        });
+                      };
+
+                      const resetAnchor = () =>
+                        setForm({
+                          ...form,
+                          allocation_anchor: null,
+                          allocation_direct: "",
+                          allocation_marketplace: "",
+                        });
+
+                      return (
+                        <div className="space-y-2 pt-1">
+                          {form.publish_direct && (
+                            <AllocationRow
+                              label="Direct booking page"
+                              value={directAlloc}
+                              max={totalCapacity}
+                              isAnchor={anchor === "direct"}
+                              autoFilled={bothPublished && anchor !== "direct"}
+                              editable={bothPublished}
+                              onChange={(raw) => onAnchorChange("direct", raw)}
+                            />
+                          )}
+                          {form.publish_marketplace && (
+                            <AllocationRow
+                              label="Marketplace"
+                              value={marketplaceAlloc}
+                              max={totalCapacity}
+                              isAnchor={anchor === "marketplace"}
+                              autoFilled={bothPublished && anchor !== "marketplace"}
+                              editable={bothPublished}
+                              onChange={(raw) => onAnchorChange("marketplace", raw)}
+                            />
+                          )}
+                          <div className="flex items-center justify-between gap-3 pt-1 border-t text-[11px]">
+                            <span className="text-muted-foreground">
+                              Allocated · {totalCapacity} total
+                            </span>
+                            {bothPublished && anchor && (
+                              <button
+                                type="button"
+                                onClick={resetAnchor}
+                                className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                              >
+                                Reset to 50/50
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Phase 2 — time-based release */}
+                          <div className="pt-2 border-t space-y-2">
+                            <label className="flex items-center gap-2 text-xs cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={form.release_enabled}
+                                onChange={(e) =>
+                                  setForm({ ...form, release_enabled: e.target.checked })
+                                }
+                                onClick={(e) => e.stopPropagation()}
+                                className="size-3.5"
+                              />
+                              <span>Release unused spots to other channels</span>
+                            </label>
+                            {form.release_enabled && (
+                              <div className="flex items-center gap-2 pl-5 text-xs">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={form.release_value}
+                                  onChange={(e) =>
+                                    setForm({ ...form, release_value: e.target.value })
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-7 w-16 text-right"
+                                />
+                                <select
+                                  value={form.release_unit}
+                                  onChange={(e) =>
+                                    setForm({
+                                      ...form,
+                                      release_unit: e.target.value as
+                                        | "minutes"
+                                        | "hours"
+                                        | "days",
+                                    })
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-7 rounded border border-input bg-background px-2 text-xs"
+                                >
+                                  <option value="minutes">minutes</option>
+                                  <option value="hours">hours</option>
+                                  <option value="days">days</option>
+                                </select>
+                                <span className="text-muted-foreground">
+                                  before session starts
+                                </span>
+                              </div>
+                            )}
+                            {form.release_enabled && (
+                              <p className="text-[10px] text-muted-foreground pl-5">
+                                At that point, unused spots from any channel
+                                become bookable by the other.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          <div>
+            <label className="text-xs text-muted-foreground">Notes (optional)</label>
+            <textarea
+              className="mt-1 w-full rounded-lg border border-border bg-background p-3 text-sm min-h-[50px] focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              placeholder="Internal notes for this session..."
+            />
+          </div>
 
         </div>
       </FormSheet>
@@ -1341,4 +1458,143 @@ function calcDuration(start: string, end: string): number {
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
   return (eh * 60 + em) - (sh * 60 + sm);
+}
+
+// ============================================================================
+// ALLOCATION HELPERS — anchored auto-balance for the split-capacity UI.
+// ============================================================================
+
+/** Parse a raw input string and clamp into [0, max]. Empty → null. */
+function clampAlloc(raw: string, max: number): number | null {
+  if (raw === "" || raw == null) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.min(max, Math.floor(n)));
+}
+
+/**
+ * One row in the split-capacity editor. Shows the channel's allocated seat
+ * count plus a `you set` / `auto` chip so the studio knows which value they
+ * own and which one was auto-computed.
+ */
+function AllocationRow({
+  label,
+  value,
+  max,
+  isAnchor,
+  autoFilled,
+  editable,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  isAnchor: boolean;
+  autoFilled: boolean;
+  editable: boolean;
+  onChange: (raw: string) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-xs">{label}</span>
+        {editable && isAnchor && (
+          <span className="text-[9px] uppercase tracking-wider rounded bg-primary/10 px-1 py-0.5 text-primary">
+            you set
+          </span>
+        )}
+        {editable && autoFilled && (
+          <span className="text-[9px] uppercase tracking-wider rounded bg-muted px-1 py-0.5 text-muted-foreground">
+            auto
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5">
+        <Input
+          type="number"
+          min="0"
+          max={max}
+          value={value}
+          disabled={!editable}
+          onChange={(e) => onChange(e.target.value)}
+          onClick={(e) => e.preventDefault()}
+          className="h-7 w-16 text-right"
+        />
+        <span className="text-[10px] text-muted-foreground tabular-nums">/ {max}</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// PUBLISH ROW — one row per channel in the session form's "Publish to" block.
+// State drives the visual + interaction: live = normal toggle; off = locked
+// with "Enable" link to channel settings; locked = locked with "Upgrade" link.
+// ============================================================================
+
+function PublishChannelRow({
+  label,
+  description,
+  state,
+  checked,
+  onCheckedChange,
+  manageHref,
+  upgradeHref,
+}: {
+  label: string;
+  description: string;
+  state: "live" | "off" | "locked";
+  checked: boolean;
+  onCheckedChange: (v: boolean) => void;
+  manageHref: string;
+  upgradeHref: string;
+}) {
+  const disabled = state !== "live";
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-lg border p-3 ${
+        disabled ? "bg-muted/30" : ""
+      }`}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
+          <span>{label}</span>
+          {state === "off" && (
+            <span className="text-[10px] uppercase tracking-wider rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
+              Off in channel settings
+            </span>
+          )}
+          {state === "locked" && (
+            <span className="text-[10px] uppercase tracking-wider rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">
+              Plan upgrade required
+            </span>
+          )}
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          {state === "off" ? (
+            <>
+              Channel is off.{" "}
+              <Link href={manageHref} className="underline hover:no-underline">
+                Enable →
+              </Link>
+            </>
+          ) : state === "locked" ? (
+            <>
+              Marketplace isn&apos;t in your current plan.{" "}
+              <Link href={upgradeHref} className="underline hover:no-underline">
+                Upgrade →
+              </Link>
+            </>
+          ) : (
+            description
+          )}
+        </div>
+      </div>
+      <Switch
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onCheckedChange}
+      />
+    </div>
+  );
 }
