@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { ChannelDeactivateSheet } from "@/components/studio/channel-deactivate-sheet";
 import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -122,14 +123,26 @@ export default function StudioChannelDirectPage() {
     }
   };
 
+  // Track whether the deactivation confirmation sheet is open. Turning the
+  // channel OFF goes through the sheet (impact + policy); turning it back ON
+  // is non-destructive so it stays a direct API call.
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
+
   const toggleDirect = async (next: boolean) => {
     if (!entityId || !prefs) return;
+    if (!next) {
+      // OFF → open the confirmation sheet. Actual API call fires from the
+      // sheet's policy submission via onDeactivated below.
+      setDeactivateOpen(true);
+      return;
+    }
+    // ON → straightforward re-enable, no sheet.
     setTogglingPref(true);
     const previous = prefs;
-    setPrefs({ ...prefs, direct_hosted_enabled: next });
+    setPrefs({ ...prefs, direct_hosted_enabled: true });
     try {
       const res = await studioApi.updateChannelPrefs(entityId, {
-        direct_hosted_enabled: next,
+        direct_hosted_enabled: true,
       });
       setPrefs(res.data);
     } catch (e) {
@@ -138,6 +151,13 @@ export default function StudioChannelDirectPage() {
     } finally {
       setTogglingPref(false);
     }
+  };
+
+  // Called by ChannelDeactivateSheet after a successful POST .../deactivate.
+  // The endpoint already flipped the pref + applied the chosen policy, so
+  // just update local state to reflect that.
+  const handleDeactivated = () => {
+    if (prefs) setPrefs({ ...prefs, direct_hosted_enabled: false });
   };
 
   const copyUrl = () => {
@@ -347,6 +367,14 @@ export default function StudioChannelDirectPage() {
         <p>• Custom domain (e.g. book.yourstudio.com)</p>
         <p>• Embeddable widget code (drop your calendar into any site)</p>
       </section>
+
+      <ChannelDeactivateSheet
+        open={deactivateOpen}
+        onOpenChange={setDeactivateOpen}
+        entityId={entityId}
+        channelType="direct_hosted"
+        onDeactivated={handleDeactivated}
+      />
     </BaseLayout>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { ChannelDeactivateSheet } from "@/components/studio/channel-deactivate-sheet";
 import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,14 +52,21 @@ export default function StudioChannelMarketplacePage() {
     fetchAll();
   }, [fetchAll]);
 
+  // OFF → confirmation sheet (impact + policy); ON → direct API call.
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
+
   const toggleMarketplace = async (next: boolean) => {
     if (!entityId || !prefs) return;
+    if (!next) {
+      setDeactivateOpen(true);
+      return;
+    }
     setToggling(true);
     const previous = prefs;
-    setPrefs({ ...prefs, marketplace_enabled: next });
+    setPrefs({ ...prefs, marketplace_enabled: true });
     try {
       const res = await studioApi.updateChannelPrefs(entityId, {
-        marketplace_enabled: next,
+        marketplace_enabled: true,
       });
       setPrefs(res.data);
     } catch (e) {
@@ -67,6 +75,10 @@ export default function StudioChannelMarketplacePage() {
     } finally {
       setToggling(false);
     }
+  };
+
+  const handleDeactivated = () => {
+    if (prefs) setPrefs({ ...prefs, marketplace_enabled: false });
   };
 
   if (!entityId) {
@@ -235,6 +247,14 @@ export default function StudioChannelMarketplacePage() {
         <p>• Quality metrics dashboard (rating, response time, completion rate)</p>
         <p>• Special offers + limited-time promotions</p>
       </section>
+
+      <ChannelDeactivateSheet
+        open={deactivateOpen}
+        onOpenChange={setDeactivateOpen}
+        entityId={entityId}
+        channelType="marketplace"
+        onDeactivated={handleDeactivated}
+      />
     </BaseLayout>
   );
 }

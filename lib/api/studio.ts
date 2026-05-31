@@ -273,7 +273,46 @@ export const studioApi = {
       `/api/studio/${entityId}/onboarding/complete`,
       { method: "POST" },
     ),
+
+  // Channel deactivation — impact preview + apply with policy.
+  // Used when a studio is about to turn off a channel that has live sessions.
+  getChannelImpact: (entityId: string, type: ChannelDeactivationType) =>
+    apiClient<{ success: boolean; data: ChannelImpact }>(
+      `/api/studio/${entityId}/channels/${type}/impact`,
+    ),
+
+  deactivateChannel: (
+    entityId: string,
+    type: ChannelDeactivationType,
+    policy: ChannelDeactivationPolicy,
+  ) =>
+    apiClient<{
+      success: boolean;
+      data: { policy: ChannelDeactivationPolicy; affected_sessions: number; channel_disabled: true };
+    }>(`/api/studio/${entityId}/channels/${type}/deactivate`, {
+      method: "POST",
+      body: JSON.stringify({ policy }),
+    }),
 };
+
+export type ChannelDeactivationType =
+  | "marketplace"
+  | "direct_hosted"
+  | "direct_link"
+  | "direct_embed";
+
+export type ChannelDeactivationPolicy = "release" | "unpublish" | "keep";
+
+export interface ChannelImpact {
+  /** Future sessions currently published to this channel. */
+  upcoming_sessions: number;
+  /** Sum of allocated_capacity across those sessions for this channel. */
+  allocated_seats: number;
+  /** Pending / confirmed / checked-in bookings on this channel for those sessions. */
+  confirmed_bookings: number;
+  /** Sessions where this is the ONLY channel — would go dark under `unpublish`. */
+  only_channel_sessions: number;
+}
 
 export interface EntityPayoutMethod {
   id: string;
