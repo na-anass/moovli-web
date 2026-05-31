@@ -1,15 +1,10 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { FormSheet } from "@/components/shared/form-sheet";
 import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -468,13 +463,40 @@ export default function ServicesPage() {
         </Table>
       </div>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingService ? "Edit service" : "New service"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto pr-1">
+      {/* Create / Edit sheet */}
+      <FormSheet
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editingService ? "Edit service" : "New service"}
+        subtitle="What people book — a class, a session, a treatment."
+        icon={PackageIcon}
+        iconAccent="violet"
+        width="md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={
+                saving ||
+                !form.name ||
+                !form.duration_minutes ||
+                !form.capacity ||
+                !form.base_price
+              }
+            >
+              {saving
+                ? "Saving…"
+                : editingService
+                  ? "Update service"
+                  : "Create service"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Name *</label>
               <Input
@@ -626,33 +648,11 @@ export default function ServicesPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-border">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={
-                  saving ||
-                  !form.name ||
-                  !form.duration_minutes ||
-                  !form.capacity ||
-                  !form.base_price
-                }
-              >
-                {saving
-                  ? "Saving…"
-                  : editingService
-                    ? "Update service"
-                    : "Create service"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </FormSheet>
 
-      {/* Delete confirmation */}
-      <Dialog
+      {/* Delete confirmation sheet */}
+      <FormSheet
         open={!!deletingService}
         onOpenChange={(open) => {
           if (!open) {
@@ -660,49 +660,50 @@ export default function ServicesPage() {
             setDeleteError(null);
           }
         }}
+        title="Delete service?"
+        subtitle="This action cannot be undone."
+        icon={Trash2Icon}
+        iconAccent="destructive"
+        width="sm"
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setDeletingService(null);
+                setDeleteError(null);
+              }}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting…" : "Delete service"}
+            </Button>
+          </>
+        }
       >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete service?</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 pt-1">
-            <p className="text-sm">
-              Permanently delete{" "}
-              <span className="font-semibold">{deletingService?.name}</span>? This
-              cannot be undone.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              If the service has any sessions, the delete will be blocked — deactivate
-              it instead, which hides it from new schedules without breaking existing
-              bookings.
-            </p>
-            {deleteError && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                {deleteError}
-              </div>
-            )}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setDeletingService(null);
-                  setDeleteError(null);
-                }}
-                disabled={deleting}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleConfirmDelete}
-                disabled={deleting}
-              >
-                {deleting ? "Deleting…" : "Delete service"}
-              </Button>
+        <div className="space-y-3">
+          <p className="text-sm">
+            Permanently delete{" "}
+            <span className="font-semibold">{deletingService?.name}</span>?
+          </p>
+          <p className="text-xs text-muted-foreground">
+            If the service has any sessions, the delete will be blocked — deactivate
+            it instead, which hides it from new schedules without breaking existing
+            bookings.
+          </p>
+          {deleteError && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              {deleteError}
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          )}
+        </div>
+      </FormSheet>
     </BaseLayout>
   );
 }

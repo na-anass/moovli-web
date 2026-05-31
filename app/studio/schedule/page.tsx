@@ -3,14 +3,9 @@
 import { BaseLayout } from "@/components/layout/base-layout";
 import { formatMoneyWhole } from "@/lib/money";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { FormSheet } from "@/components/shared/form-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -753,13 +748,54 @@ export default function SchedulePage() {
         />
       )}
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingSession ? "Edit Session" : "New Session"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 pt-2 max-h-[70vh] overflow-y-auto pr-1">
+      {/* Create / Edit sheet */}
+      <FormSheet
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editingSession ? "Edit session" : "New session"}
+        subtitle={
+          editingSession
+            ? "Update the details of this session."
+            : "Schedule a session and choose where it's published."
+        }
+        icon={editingSession ? PencilIcon : CalendarIcon}
+        iconAccent="emerald"
+        width="lg"
+        footer={
+          <>
+            {editingSession && canManage && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mr-auto text-destructive hover:text-destructive"
+                onClick={() => {
+                  handleDelete(editingSession.id);
+                  setDialogOpen(false);
+                }}
+              >
+                <Trash2Icon className="size-3.5 mr-1.5" /> Cancel session
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+              Close
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={
+                saving ||
+                !form.service_id ||
+                !form.date ||
+                !form.start_time ||
+                !form.end_time ||
+                !form.capacity
+              }
+            >
+              {saving ? "Saving…" : editingSession ? "Update" : "Create"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-5">
             {/* What — which service */}
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">What</p>
@@ -1273,25 +1309,8 @@ export default function SchedulePage() {
               />
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-3 border-t border-border">
-              {editingSession && canManage ? (
-                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"
-                  onClick={() => { handleDelete(editingSession.id); setDialogOpen(false); }}>
-                  <Trash2Icon className="size-3.5 mr-1.5" /> Cancel Session
-                </Button>
-              ) : <div />}
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setDialogOpen(false)}>Close</Button>
-                <Button onClick={handleSave}
-                  disabled={saving || !form.service_id || !form.date || !form.start_time || !form.end_time || !form.capacity}>
-                  {saving ? "Saving..." : editingSession ? "Update" : "Create"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </FormSheet>
     </BaseLayout>
   );
 }

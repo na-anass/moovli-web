@@ -14,12 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { FormSheet } from "@/components/shared/form-sheet";
 import {
   Tooltip,
   TooltipContent,
@@ -279,19 +274,35 @@ export default function TeamPage() {
           </Table>
         </div>
 
-        {/* Invite Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) { setSearchQuery(""); setSearchResults([]); setSelectedUser(null); setError(null); }
-        }}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Invite Team Member</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <p className="text-sm text-muted-foreground">
-                Search by email to add an existing Moovli user to your team.
-              </p>
+        {/* Invite sheet */}
+        <FormSheet
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              setSearchQuery("");
+              setSearchResults([]);
+              setSelectedUser(null);
+              setError(null);
+            }
+          }}
+          title="Invite team member"
+          subtitle="Search by email to add an existing Moovli user to your team."
+          icon={UserPlusIcon}
+          iconAccent="primary"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAdd} disabled={adding || !selectedUser}>
+                <UserPlusIcon className="size-4 mr-1.5" />
+                {adding ? "Inviting…" : "Add to team"}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
 
               <div className="relative">
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -385,17 +396,8 @@ export default function TeamPage() {
                   <p className="text-sm text-destructive">{error}</p>
                 </div>
               )}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleAdd} disabled={adding || !selectedUser}>
-                  <UserPlusIcon className="size-4 mr-1.5" />
-                  {adding ? "Inviting..." : "Add to Team"}
-                </Button>
-              </div>
             </div>
-          </DialogContent>
-        </Dialog>
+        </FormSheet>
       </BaseLayout>
     </TooltipProvider>
   );

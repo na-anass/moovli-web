@@ -2,19 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { BaseLayout } from "@/components/layout/base-layout";
+import { FormSheet } from "@/components/shared/form-sheet";
 import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { PlusIcon, StarIcon, MailIcon, PhoneIcon } from "lucide-react";
+import { PlusIcon, StarIcon, MailIcon, PhoneIcon, UserPlusIcon } from "lucide-react";
 
 interface Provider {
   id: string;
@@ -101,67 +95,72 @@ export default function InstructorsPage() {
       subtitle={`${providers.length} instructor${providers.length !== 1 ? "s" : ""}`}
       action={
         canManage ? (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusIcon className="size-4 mr-2" />
-                Add Instructor
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Instructor</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-2">
-                <div>
-                  <label className="text-sm font-medium">Name *</label>
-                  <Input
-                    className="mt-1.5"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="Instructor name"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Email</label>
-                  <Input
-                    className="mt-1.5"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    placeholder="email@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Phone</label>
-                  <Input
-                    className="mt-1.5"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    placeholder="+212..."
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Bio</label>
-                  <textarea
-                    className="mt-1.5 w-full rounded-lg border border-border bg-background p-3 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
-                    value={form.bio}
-                    onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                    placeholder="Short bio..."
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleAdd} disabled={saving || !form.name.trim()}>
-                    {saving ? "Adding..." : "Add Instructor"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => setDialogOpen(true)}>
+            <PlusIcon className="size-4 mr-2" />
+            Add Instructor
+          </Button>
         ) : undefined
       }
     >
+      <FormSheet
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title="Add instructor"
+        subtitle="Invite someone to teach at your studio"
+        icon={UserPlusIcon}
+        iconAccent="primary"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAdd} disabled={saving || !form.name.trim()}>
+              {saving ? "Adding…" : "Add instructor"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Name *</label>
+            <Input
+              className="mt-1.5"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Instructor name"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Email</label>
+            <Input
+              className="mt-1.5"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="email@example.com"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Phone</label>
+            <Input
+              className="mt-1.5"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="+212..."
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Bio</label>
+            <textarea
+              className="mt-1.5 w-full rounded-lg border border-border bg-background p-3 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
+              value={form.bio}
+              onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              placeholder="Short bio..."
+            />
+          </div>
+        </div>
+      </FormSheet>
+
       {providers.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
           <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
