@@ -54,9 +54,7 @@ dig +short booking.moovli.app
 ```bash
 # As root (or a sudoer)
 cd /opt/apps
-git clone git@github.com:moovli/moovli-web.git
-# or, if you're already pulling api via SSH:
-#   git clone <your-web-remote-url>.git moovli-web
+git clone https://github.com/na-anass/moovli-web.git
 cd moovli-web
 git checkout dev-v2.0          # or main, once dev-v2.0 lands there
 ```
