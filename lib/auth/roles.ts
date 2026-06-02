@@ -62,15 +62,6 @@ export async function getUserRoles(
         currencyCode: row.entity?.currency_code ?? "MAD",
       })
     );
-    // Surface unonboarded studios first so the dashboard's redirect (which keys
-    // on ownedEntities[0].onboardedAt) sends the user into the wizard for any
-    // studio that still needs setup. Once finished, the timestamp sorts it
-    // back into the regular pool on next login.
-    ownedEntities.sort((a, b) => {
-      if (a.onboardedAt === null && b.onboardedAt !== null) return -1;
-      if (a.onboardedAt !== null && b.onboardedAt === null) return 1;
-      return 0;
-    });
 
     const instructorEntities: InstructorMembership[] = ((instructorRes.data as any[]) || []).map(
       (row: any) => ({
