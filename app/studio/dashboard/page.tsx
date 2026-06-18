@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { StatsCard } from "@/components/shared/stats-card";
 import { studioApi, type StudioDashboardMetrics } from "@/lib/api/studio";
@@ -26,20 +25,14 @@ import {
 
 export default function StudioDashboardPage() {
   const { roles } = useAuth();
-  const router = useRouter();
   const [metrics, setMetrics] = useState<StudioDashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const onboardedAt = roles?.ownedEntities?.[0]?.onboardedAt;
   const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
 
-  // First-run gate: brand-new studios (onboarded_at IS NULL) get pushed to the wizard.
-  useEffect(() => {
-    if (entityId && onboardedAt === null) {
-      router.replace("/studio/onboarding");
-    }
-  }, [entityId, onboardedAt, router]);
+  // Onboarding gate now lives in app/studio/layout.tsx (runs before any studio
+  // page paints), so the dashboard no longer needs its own redirect.
 
   useEffect(() => {
     if (!entityId) return;

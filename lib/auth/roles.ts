@@ -81,7 +81,12 @@ export async function getUserRoles(
 /** Determine the best default redirect for a user based on their roles */
 export function getDefaultRedirect(roles: UserRoles): string {
   if (roles.isAdmin) return "/admin/dashboard";
-  if (roles.ownedEntities.length > 0) return "/studio/dashboard";
+  if (roles.ownedEntities.length > 0) {
+    // Brand-new studios (never finished the wizard) go straight to onboarding —
+    // skipping a flash of the dashboard before the client-side gate bounces them.
+    if (roles.ownedEntities[0].onboardedAt === null) return "/studio/onboarding";
+    return "/studio/dashboard";
+  }
   if (roles.instructorEntities.length > 0) return "/instructor/dashboard";
   return "/no-access";
 }

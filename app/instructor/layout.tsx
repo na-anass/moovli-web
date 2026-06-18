@@ -2,6 +2,7 @@
 
 import { Sidebar, type NavItem } from "@/components/layout/sidebar";
 import { TopBar, EditModeProvider } from "@/components/layout/topbar";
+import { FullPageLoader } from "@/components/layout/full-page-loader";
 import { useAuth } from "@/lib/auth/provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -30,19 +31,18 @@ export default function InstructorLayout({
   const { roles, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (loading) return;
-    if (!roles?.isAdmin && (roles?.instructorEntities ?? []).length === 0) {
-      router.push("/no-access");
-    }
-  }, [loading, roles, router]);
+  const redirectTarget =
+    !loading && !roles?.isAdmin && (roles?.instructorEntities ?? []).length === 0
+      ? "/no-access"
+      : null;
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
+  useEffect(() => {
+    if (redirectTarget) router.replace(redirectTarget);
+  }, [redirectTarget, router]);
+
+  // Hold the loader until authorization resolves / any redirect completes.
+  if (loading || redirectTarget) {
+    return <FullPageLoader />;
   }
 
   return (

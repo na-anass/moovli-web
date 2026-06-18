@@ -2,6 +2,7 @@
 
 import { Sidebar, type NavItem, type NavItemStatus } from "@/components/layout/sidebar";
 import { TopBar, EditModeProvider } from "@/components/layout/topbar";
+import { FullPageLoader } from "@/components/layout/full-page-loader";
 import { useAuth } from "@/lib/auth/provider";
 import { entityPlansApi } from "@/lib/api/entityPlans";
 import { studioApi } from "@/lib/api/studio";
@@ -54,16 +55,33 @@ export default function StudioLayout({
 
   const entities = roles?.ownedEntities ?? [];
 
-  useEffect(() => {
-    if (loading) return;
-    if (!roles?.isAdmin && entities.length === 0) {
-      router.push("/no-access");
-      return;
+  // Single source of truth for "should this user be sent elsewhere?". Computed
+  // before render so we can hold the loader and never paint a protected page.
+  // The onboarding gate lives HERE (not in the dashboard page) so a brand-new
+  // studio never sees the dashboard flash before the wizard. null = stay.
+  const redirectTarget = useMemo<string | null>(() => {
+    if (loading) return null;
+    if (!roles?.isAdmin && entities.length === 0) return "/no-access";
+    if (
+      !isOnboarding &&
+      !roles?.isAdmin &&
+      entities.length > 0 &&
+      entities[0].onboardedAt === null
+    ) {
+      return "/studio/onboarding";
     }
+    return null;
+  }, [loading, roles, entities, isOnboarding]);
+
+  useEffect(() => {
+    if (redirectTarget) router.replace(redirectTarget);
+  }, [redirectTarget, router]);
+
+  useEffect(() => {
     if (entities.length > 0 && !selectedEntityId) {
       setSelectedEntityId(entities[0].entityId);
     }
-  }, [loading, roles, entities, selectedEntityId, router]);
+  }, [entities, selectedEntityId]);
 
   const currentRole = useMemo(() => {
     if (roles?.isAdmin) return "owner" as const;
@@ -176,12 +194,10 @@ export default function StudioLayout({
     return items;
   }, [currentRole]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
+  // Hold the loader while auth resolves OR a guard redirect is in flight, so a
+  // protected studio page (or the dashboard pre-onboarding) never paints.
+  if (loading || redirectTarget) {
+    return <FullPageLoader />;
   }
 
   // Onboarding wizard renders its own full-page chrome — skip the studio sidebar/topbar.
