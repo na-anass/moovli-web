@@ -29,7 +29,7 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { type EntityMedia } from "@/lib/api/studio";
+import { type EntityMedia, type EntityPolicies } from "@/lib/api/studio";
 import Image from "next/image";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
@@ -349,10 +349,109 @@ export default function SettingsPage() {
             </div>
           </FormSection>
 
+          {/* Booking policies */}
+          {entityId && <PolicySettings entityId={entityId} canEdit={!!canEdit} />}
+
           {/* Photo gallery */}
           {entityId && <GalleryManager entityId={entityId} canEdit={!!canEdit} />}
         </div>
     </BaseLayout>
+  );
+}
+
+// ── Booking policies ─────────────────────────────────────────────────────────
+// Studio-wide booking rules that the platform actually enforces (cancellation
+// refund window + booking cutoff). Per-channel overrides can come later.
+function PolicySettings({ entityId, canEdit }: { entityId: string; canEdit: boolean }) {
+  const [policies, setPolicies] = useState<EntityPolicies | null>(null);
+  const [cancelHours, setCancelHours] = useState("");
+  const [cutoffMins, setCutoffMins] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    studioApi
+      .getPolicies(entityId)
+      .then((res) => {
+        setPolicies(res.data);
+        setCancelHours(String(res.data.cancellation_free_hours));
+        setCutoffMins(String(res.data.booking_cutoff_minutes));
+      })
+      .catch(console.error);
+  }, [entityId]);
+
+  const dirty =
+    !!policies &&
+    (Number(cancelHours) !== policies.cancellation_free_hours ||
+      Number(cutoffMins) !== policies.booking_cutoff_minutes);
+
+  const save = async () => {
+    setBusy(true);
+    setSaved(false);
+    try {
+      const res = await studioApi.updatePolicies(entityId, {
+        cancellation_free_hours: Math.max(0, parseInt(cancelHours) || 0),
+        booking_cutoff_minutes: Math.max(0, parseInt(cutoffMins) || 0),
+      });
+      setPolicies(res.data);
+      setCancelHours(String(res.data.cancellation_free_hours));
+      setCutoffMins(String(res.data.booking_cutoff_minutes));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <FormSection title="Booking policies" icon={<ClockIcon className="size-5" />}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div>
+          <label className="text-sm font-medium">Free-cancellation window (hours)</label>
+          <Input
+            type="number"
+            min="0"
+            className="mt-1.5"
+            value={cancelHours}
+            disabled={!canEdit}
+            onChange={(e) => setCancelHours(e.target.value)}
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Customers who cancel at least this many hours before the session get a full refund;
+            later cancellations incur the late fee.
+          </p>
+        </div>
+        <div>
+          <label className="text-sm font-medium">Booking cutoff (minutes before start)</label>
+          <Input
+            type="number"
+            min="0"
+            className="mt-1.5"
+            value={cutoffMins}
+            disabled={!canEdit}
+            onChange={(e) => setCutoffMins(e.target.value)}
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            New bookings close this many minutes before a session starts. 0 = open until start.
+          </p>
+        </div>
+      </div>
+
+      {canEdit && (
+        <div className="flex items-center gap-2 mt-4">
+          <Button onClick={save} disabled={busy || !dirty}>
+            {busy ? "Saving…" : "Save policies"}
+          </Button>
+          {saved && (
+            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+              <CheckIcon className="size-3 mr-1" /> Saved
+            </Badge>
+          )}
+        </div>
+      )}
+    </FormSection>
   );
 }
 

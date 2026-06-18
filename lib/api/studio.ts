@@ -201,6 +201,16 @@ export const studioApi = {
       method: "DELETE",
     }),
 
+  // Booking policies (studio-wide defaults).
+  getPolicies: (entityId: string) =>
+    apiClient<{ success: boolean; data: EntityPolicies }>(`/api/studio/${entityId}/policies`),
+
+  updatePolicies: (entityId: string, data: Partial<EntityPolicies>) =>
+    apiClient<{ success: boolean; data: EntityPolicies }>(`/api/studio/${entityId}/policies`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
   getProviders: (entityId: string) =>
     apiClient<{ success: boolean; data: any[] }>(`/api/studio/${entityId}/providers`),
 
@@ -399,6 +409,13 @@ export interface EntityMedia {
   display_order: number;
   is_primary: boolean;
   media_type: string;
+}
+
+export interface EntityPolicies {
+  /** Cancel at least this many hours before start for a full refund. */
+  cancellation_free_hours: number;
+  /** Bookings close this many minutes before start (0 = no cutoff). */
+  booking_cutoff_minutes: number;
 }
 
 export interface ChannelPrefs {
