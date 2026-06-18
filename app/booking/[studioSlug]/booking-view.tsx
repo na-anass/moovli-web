@@ -72,6 +72,44 @@ const sameDay = (a: Date, b: Date) =>
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
 
+const startOfDay = (d: Date) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+};
+
+// Date filter: "all" | "today" | "tomorrow" | "week" | a YYYY-MM-DD string.
+const inDateBucket = (iso: string, bucket: string) => {
+  if (bucket === "all") return true;
+  const day = startOfDay(new Date(iso)).getTime();
+  const today = startOfDay(new Date()).getTime();
+  if (bucket === "today") return day === today;
+  if (bucket === "tomorrow") return day === today + 86_400_000;
+  if (bucket === "week") {
+    const ws = getWeekStart(new Date()).getTime();
+    return day >= ws && day < ws + 7 * 86_400_000;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(bucket)) return iso.slice(0, 10) === bucket;
+  return true;
+};
+
+// Time-of-day filter by start hour.
+const inTimeBucket = (iso: string, bucket: string) => {
+  if (bucket === "any") return true;
+  const h = new Date(iso).getHours();
+  if (bucket === "morning") return h >= 6 && h < 12;
+  if (bucket === "afternoon") return h >= 12 && h < 17;
+  if (bucket === "evening") return h >= 17 && h < 22;
+  return true;
+};
+
+const DATE_CHIPS: { value: string; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "today", label: "Today" },
+  { value: "tomorrow", label: "Tomorrow" },
+  { value: "week", label: "This week" },
+];
+
 export function BookingView({ sessions, studioSlug, entityId, channelId, brandColor, currency }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -79,8 +117,28 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
   const [view, setView] = useState<ViewMode>("list");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
   const [instructorFilter, setInstructorFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
+  const [timeFilter, setTimeFilter] = useState<string>("any");
+  const [availableOnly, setAvailableOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [calendarDate, setCalendarDate] = useState(getWeekStart(new Date()));
+
+  const hasActiveFilters =
+    serviceFilter !== "all" ||
+    instructorFilter !== "all" ||
+    dateFilter !== "all" ||
+    timeFilter !== "any" ||
+    availableOnly ||
+    searchQuery.length > 0;
+
+  const resetFilters = () => {
+    setServiceFilter("all");
+    setInstructorFilter("all");
+    setDateFilter("all");
+    setTimeFilter("any");
+    setAvailableOnly(false);
+    setSearchQuery("");
+  };
 
   // Booking sheet — opened by clicking a session card.
   // URL syncs to ?book=<sessionId> so it's shareable + back-button friendly.
@@ -131,9 +189,16 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
   // Apply filters + free-text search
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
+    const now = new Date();
     return sessions.filter((s) => {
       if (serviceFilter !== "all" && s.service?.id !== serviceFilter) return false;
       if (instructorFilter !== "all" && s.provider?.id !== instructorFilter) return false;
+      if (!inDateBucket(s.start_time, dateFilter)) return false;
+      if (!inTimeBucket(s.start_time, timeFilter)) return false;
+      if (availableOnly) {
+        const open = s.capacity - s.booked_count > 0 && new Date(s.end_time) > now;
+        if (!open) return false;
+      }
       if (q.length > 0) {
         const haystack = [
           s.service?.name ?? "",
@@ -147,7 +212,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
       }
       return true;
     });
-  }, [sessions, serviceFilter, instructorFilter, searchQuery]);
+  }, [sessions, serviceFilter, instructorFilter, dateFilter, timeFilter, availableOnly, searchQuery]);
 
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -184,8 +249,8 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
 
   return (
     <div style={{ ["--brand" as string]: accent } as React.CSSProperties}>
-      {/* Filters bar */}
-      <div className="space-y-3 mb-4 p-3 rounded-lg border bg-card">
+      {/* Filters bar — sticky so it stays reachable while scrolling sessions */}
+      <div className="sticky top-2 z-20 space-y-3 mb-4 p-3 rounded-lg border bg-card/95 backdrop-blur">
         {/* Top row: search + count */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1 min-w-0">
@@ -203,11 +268,36 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
           </div>
         </div>
 
+        {/* Date quick-chips */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {DATE_CHIPS.map((c) => {
+            const active = dateFilter === c.value;
+            return (
+              <button
+                key={c.value}
+                onClick={() => setDateFilter(c.value)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${active ? "text-white border-transparent" : "border-input text-muted-foreground hover:text-foreground"}`}
+                style={active ? { backgroundColor: accent } : undefined}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+          {/* Specific date */}
+          <Input
+            type="date"
+            value={/^\d{4}-\d{2}-\d{2}$/.test(dateFilter) ? dateFilter : ""}
+            onChange={(e) => setDateFilter(e.target.value || "all")}
+            className="h-8 w-40 text-xs"
+            aria-label="Pick a date"
+          />
+        </div>
+
         {/* Bottom row: filters + view toggle */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {services.length > 1 && (
             <Select value={serviceFilter} onValueChange={setServiceFilter}>
-              <SelectTrigger className="w-45 h-8 text-xs">
+              <SelectTrigger className="w-44 h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -223,7 +313,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
 
           {instructors.length > 1 && (
             <Select value={instructorFilter} onValueChange={setInstructorFilter}>
-              <SelectTrigger className="w-45 h-8 text-xs">
+              <SelectTrigger className="w-44 h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -237,13 +327,30 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
             </Select>
           )}
 
-          {(serviceFilter !== "all" || instructorFilter !== "all" || searchQuery.length > 0) && (
+          <Select value={timeFilter} onValueChange={setTimeFilter}>
+            <SelectTrigger className="w-36 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any time</SelectItem>
+              <SelectItem value="morning">Morning</SelectItem>
+              <SelectItem value="afternoon">Afternoon</SelectItem>
+              <SelectItem value="evening">Evening</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <button
+            onClick={() => setAvailableOnly((v) => !v)}
+            aria-pressed={availableOnly}
+            className={`px-2.5 py-1.5 rounded-md text-xs font-medium border transition ${availableOnly ? "text-white border-transparent" : "border-input text-muted-foreground hover:text-foreground"}`}
+            style={availableOnly ? { backgroundColor: accent } : undefined}
+          >
+            Available only
+          </button>
+
+          {hasActiveFilters && (
             <button
-              onClick={() => {
-                setServiceFilter("all");
-                setInstructorFilter("all");
-                setSearchQuery("");
-              }}
+              onClick={resetFilters}
               className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
             >
               Clear filters

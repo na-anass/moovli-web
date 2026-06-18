@@ -54,6 +54,7 @@ export default async function StudioPublicPage({ params }: PageProps) {
       )`,
     )
     .eq("channel_id", channel.id)
+    .eq("session.lifecycle_status", "published")
     .gte("session.start_time", new Date().toISOString())
     .lte("session.start_time", horizon.toISOString())
     .order("session(start_time)", { ascending: true })
