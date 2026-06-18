@@ -59,9 +59,6 @@ const EMPTY_FORM = {
   base_price: "",
   duration_minutes: "60",
   capacity: "10",
-  min_capacity: "",
-  booking_buffer_minutes: "15",
-  cancellation_hours: "24",
   is_featured: false,
   category_id: "",
 };
@@ -176,9 +173,6 @@ export default function ServicesPage() {
       base_price: String(s.base_price),
       duration_minutes: String(s.duration_minutes),
       capacity: String(s.capacity),
-      min_capacity: String(s.min_capacity || ""),
-      booking_buffer_minutes: String(s.booking_buffer_minutes ?? 15),
-      cancellation_hours: String(s.cancellation_hours ?? 24),
       is_featured: s.is_featured,
       category_id: s.category_id || "",
     });
@@ -196,9 +190,6 @@ export default function ServicesPage() {
         base_price: parseFloat(form.base_price) || 0,
         duration_minutes: parseInt(form.duration_minutes) || 60,
         capacity: parseInt(form.capacity) || 10,
-        min_capacity: parseInt(form.min_capacity) || null,
-        booking_buffer_minutes: parseInt(form.booking_buffer_minutes) || 15,
-        cancellation_hours: parseInt(form.cancellation_hours) || 24,
         is_featured: form.is_featured,
         category_id: form.category_id || null,
       };
@@ -549,7 +540,7 @@ export default function ServicesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium">Price ({currency}) *</label>
                 <Input
@@ -559,44 +550,6 @@ export default function ServicesPage() {
                   min="0"
                   step="0.01"
                   onChange={(e) => setForm({ ...form, base_price: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Min capacity</label>
-                <Input
-                  type="number"
-                  className="mt-1.5"
-                  value={form.min_capacity}
-                  min="0"
-                  onChange={(e) => setForm({ ...form, min_capacity: e.target.value })}
-                  placeholder="Optional"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Booking buffer (min)</label>
-                <Input
-                  type="number"
-                  className="mt-1.5"
-                  value={form.booking_buffer_minutes}
-                  min="0"
-                  onChange={(e) =>
-                    setForm({ ...form, booking_buffer_minutes: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium">Cancellation window (hours)</label>
-                <Input
-                  type="number"
-                  className="mt-1.5"
-                  value={form.cancellation_hours}
-                  min="0"
-                  onChange={(e) =>
-                    setForm({ ...form, cancellation_hours: e.target.value })
-                  }
                 />
               </div>
               <div className="flex items-end pb-1">
