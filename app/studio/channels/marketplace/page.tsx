@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { entityPlansApi, type EntityPlan } from "@/lib/api/entityPlans";
 import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import {
   ArrowRightIcon,
   CoinsIcon,
@@ -20,11 +20,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 export default function StudioChannelMarketplacePage() {
-  const { roles } = useAuth();
-  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const role = roles?.ownedEntities?.[0]?.role;
-  const canManage = role === "owner" || role === "manager" || roles?.isAdmin;
+  const activeEntity = useActiveEntity();
+  const currency = activeEntity.currencyCode;
+  const entityId = activeEntity.entityId;
+  const role = activeEntity.role;
+  const canManage = role === "owner" || role === "manager";
 
   const [plan, setPlan] = useState<EntityPlan | null>(null);
   const [prefs, setPrefs] = useState<ChannelPrefs | null>(null);

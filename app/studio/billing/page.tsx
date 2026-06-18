@@ -18,7 +18,7 @@ import {
   type EntityPlan,
   type EntitySubscription,
 } from "@/lib/api/entityPlans";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import {
   AlertCircleIcon,
   CheckIcon,
@@ -58,11 +58,11 @@ const STATUS_BADGE: Record<EntitySubscription["status"], { variant: "default" | 
 // ============================================================================
 
 export default function StudioBillingPage() {
-  const { roles } = useAuth();
-  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const role = roles?.ownedEntities?.[0]?.role;
-  const canManage = role === "owner" || role === "manager" || roles?.isAdmin;
+  const activeEntity = useActiveEntity();
+  const currency = activeEntity.currencyCode;
+  const entityId = activeEntity.entityId;
+  const role = activeEntity.role;
+  const canManage = role === "owner" || role === "manager";
 
   const [subscription, setSubscription] = useState<EntitySubscription | null>(null);
   const [activePlan, setActivePlan] = useState<EntityPlan | null>(null);

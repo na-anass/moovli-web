@@ -5,7 +5,7 @@ import { formatMoneyWhole } from "@/lib/money";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { studioApi, type AcquisitionSource, type EntityCustomer } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EyeIcon } from "lucide-react";
@@ -34,10 +34,10 @@ const formatDate = (iso: string | null) => {
 };
 
 export default function StudioCustomersPage() {
-  const { roles } = useAuth();
+  const activeEntity = useActiveEntity();
   const router = useRouter();
-  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
+  const currency = activeEntity.currencyCode;
+  const entityId = activeEntity.entityId;
 
   const [customers, setCustomers] = useState<EntityCustomer[]>([]);
   const [total, setTotal] = useState(0);

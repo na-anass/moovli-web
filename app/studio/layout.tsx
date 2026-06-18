@@ -3,16 +3,19 @@
 import { Sidebar, type NavItem, type NavItemStatus } from "@/components/layout/sidebar";
 import { TopBar, EditModeProvider } from "@/components/layout/topbar";
 import { FullPageLoader } from "@/components/layout/full-page-loader";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/provider";
+import { ActiveEntityProvider, useActiveEntity } from "@/lib/studio/active-entity";
 import { entityPlansApi } from "@/lib/api/entityPlans";
 import { studioApi } from "@/lib/api/studio";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import {
   BarChart3Icon,
   BookOpenIcon,
   CalendarIcon,
   CreditCardIcon,
+  EyeIcon,
   GlobeIcon,
   LayoutDashboardIcon,
   LifeBuoyIcon,
@@ -22,6 +25,7 @@ import {
   UserCircle2Icon,
   Users2Icon,
   UsersIcon,
+  XIcon,
 } from "lucide-react";
 import {
   Select,
@@ -47,13 +51,8 @@ export default function StudioLayout({
   const router = useRouter();
   const pathname = usePathname();
   const isOnboarding = pathname?.startsWith("/studio/onboarding") ?? false;
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
-  const [channelStatuses, setChannelStatuses] = useState<ChannelStatuses>({
-    marketplace: "off",
-    direct: "off",
-  });
 
-  const entities = roles?.ownedEntities ?? [];
+  const entities = useMemo(() => roles?.ownedEntities ?? [], [roles]);
 
   // Single source of truth for "should this user be sent elsewhere?". Computed
   // before render so we can hold the loader and never paint a protected page.
@@ -77,123 +76,6 @@ export default function StudioLayout({
     if (redirectTarget) router.replace(redirectTarget);
   }, [redirectTarget, router]);
 
-  useEffect(() => {
-    if (entities.length > 0 && !selectedEntityId) {
-      setSelectedEntityId(entities[0].entityId);
-    }
-  }, [entities, selectedEntityId]);
-
-  const currentRole = useMemo(() => {
-    if (roles?.isAdmin) return "owner" as const;
-    const membership = entities.find((e) => e.entityId === selectedEntityId);
-    return membership?.role ?? ("staff" as const);
-  }, [roles, entities, selectedEntityId]);
-
-  // Resolve channel status for sidebar dots/locks.
-  useEffect(() => {
-    if (!selectedEntityId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [subRes, prefRes] = await Promise.all([
-          entityPlansApi.getSubscription(selectedEntityId),
-          studioApi.getChannelPrefs(selectedEntityId),
-        ]);
-        if (cancelled) return;
-        const allowed = subRes.data.plan?.allowed_channel_types ?? [];
-        const allows = (k: ChannelKey) => allowed.includes(k);
-        const next: ChannelStatuses = {
-          marketplace: !allows("marketplace")
-            ? "locked"
-            : prefRes.data.marketplace_enabled
-              ? "on"
-              : "off",
-          direct: !allows("direct_hosted")
-            ? "locked"
-            : prefRes.data.direct_hosted_enabled
-              ? "on"
-              : "off",
-        };
-        setChannelStatuses(next);
-      } catch (e) {
-        // Non-fatal — sidebar simply shows no dots.
-        console.error(e);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedEntityId]);
-
-  const navItems = useMemo((): NavItem[] => {
-    const items: NavItem[] = [
-      {
-        section: "Overview",
-        label: "Dashboard",
-        icon: LayoutDashboardIcon,
-        href: "/studio/dashboard",
-      },
-      {
-        section: "Daily ops",
-        label: "Schedule",
-        icon: CalendarIcon,
-        href: "/studio/schedule",
-      },
-      { label: "Bookings", icon: BookOpenIcon, href: "/studio/bookings" },
-      { label: "Customers", icon: UserCircle2Icon, href: "/studio/customers" },
-      {
-        section: "Catalog",
-        label: "Services",
-        icon: PackageIcon,
-        href: "/studio/services",
-      },
-      { label: "Instructors", icon: UsersIcon, href: "/studio/instructors" },
-      {
-        section: "Channels",
-        label: "Marketplace",
-        icon: ShoppingBagIcon,
-        href: "/studio/channels/marketplace",
-        status: channelStatuses.marketplace,
-      },
-      {
-        label: "Direct",
-        icon: GlobeIcon,
-        href: "/studio/channels/direct",
-        status: channelStatuses.direct,
-      },
-    ];
-
-    if (currentRole === "manager" || currentRole === "owner") {
-      items.push({
-        section: "Insights",
-        label: "Analytics",
-        icon: BarChart3Icon,
-        href: "/studio/insights",
-      });
-    }
-
-    if (currentRole === "owner") {
-      items.push({
-        section: "Team",
-        label: "Members",
-        icon: Users2Icon,
-        href: "/studio/team",
-      });
-    }
-
-    return items;
-  }, [currentRole, channelStatuses]);
-
-  const bottomItems: NavItem[] = useMemo(() => {
-    const items: NavItem[] = [];
-    if (currentRole === "owner" || currentRole === "manager") {
-      items.push({ label: "Billing", icon: CreditCardIcon, href: "/studio/billing" });
-    }
-    items.push({ label: "Docs", icon: LifeBuoyIcon, href: "/studio/docs" });
-    items.push({ label: "Settings", icon: SettingsIcon, href: "/studio/settings" });
-    return items;
-  }, [currentRole]);
-
   // Hold the loader while auth resolves OR a guard redirect is in flight, so a
   // protected studio page (or the dashboard pre-onboarding) never paints.
   if (loading || redirectTarget) {
@@ -205,25 +87,137 @@ export default function StudioLayout({
     return <EditModeProvider>{children}</EditModeProvider>;
   }
 
-  const currentEntity = entities.find((e) => e.entityId === selectedEntityId);
-
   return (
     <EditModeProvider>
+      <Suspense fallback={<FullPageLoader />}>
+        <ActiveEntityProvider>
+          <StudioChrome>{children}</StudioChrome>
+        </ActiveEntityProvider>
+      </Suspense>
+    </EditModeProvider>
+  );
+}
+
+/** Studio sidebar/topbar chrome — reads the active studio (selection or admin impersonation). */
+function StudioChrome({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const {
+    entityId,
+    entityName,
+    role,
+    entities,
+    isImpersonating,
+    setSelectedEntityId,
+    exitImpersonation,
+  } = useActiveEntity();
+
+  const [channelStatuses, setChannelStatuses] = useState<ChannelStatuses>({
+    marketplace: "off",
+    direct: "off",
+  });
+
+  // Resolve channel status for sidebar dots/locks against the active studio.
+  useEffect(() => {
+    if (!entityId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [subRes, prefRes] = await Promise.all([
+          entityPlansApi.getSubscription(entityId),
+          studioApi.getChannelPrefs(entityId),
+        ]);
+        if (cancelled) return;
+        const allowed = subRes.data.plan?.allowed_channel_types ?? [];
+        const allows = (k: ChannelKey) => allowed.includes(k);
+        setChannelStatuses({
+          marketplace: !allows("marketplace")
+            ? "locked"
+            : prefRes.data.marketplace_enabled
+              ? "on"
+              : "off",
+          direct: !allows("direct_hosted")
+            ? "locked"
+            : prefRes.data.direct_hosted_enabled
+              ? "on"
+              : "off",
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [entityId]);
+
+  const navItems = useMemo((): NavItem[] => {
+    const items: NavItem[] = [
+      { section: "Overview", label: "Dashboard", icon: LayoutDashboardIcon, href: "/studio/dashboard" },
+      { section: "Daily ops", label: "Schedule", icon: CalendarIcon, href: "/studio/schedule" },
+      { label: "Bookings", icon: BookOpenIcon, href: "/studio/bookings" },
+      { label: "Customers", icon: UserCircle2Icon, href: "/studio/customers" },
+      { section: "Catalog", label: "Services", icon: PackageIcon, href: "/studio/services" },
+      { label: "Instructors", icon: UsersIcon, href: "/studio/instructors" },
+      {
+        section: "Channels",
+        label: "Marketplace",
+        icon: ShoppingBagIcon,
+        href: "/studio/channels/marketplace",
+        status: channelStatuses.marketplace,
+      },
+      { label: "Direct", icon: GlobeIcon, href: "/studio/channels/direct", status: channelStatuses.direct },
+    ];
+
+    if (role === "manager" || role === "owner") {
+      items.push({ section: "Insights", label: "Analytics", icon: BarChart3Icon, href: "/studio/insights" });
+    }
+    if (role === "owner") {
+      items.push({ section: "Team", label: "Members", icon: Users2Icon, href: "/studio/team" });
+    }
+    return items;
+  }, [role, channelStatuses]);
+
+  const bottomItems: NavItem[] = useMemo(() => {
+    const items: NavItem[] = [];
+    if (role === "owner" || role === "manager") {
+      items.push({ label: "Billing", icon: CreditCardIcon, href: "/studio/billing" });
+    }
+    items.push({ label: "Docs", icon: LifeBuoyIcon, href: "/studio/docs" });
+    items.push({ label: "Settings", icon: SettingsIcon, href: "/studio/settings" });
+    return items;
+  }, [role]);
+
+  return (
     <div className="flex min-h-screen">
-      <Sidebar
-        navItems={navItems}
-        bottomItems={bottomItems}
-        title="Studio"
-        subtitle={currentEntity?.entityName}
-      />
+      <Sidebar navItems={navItems} bottomItems={bottomItems} title="Studio" subtitle={entityName ?? undefined} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar />
+
+        {/* Admin impersonation banner */}
+        {isImpersonating && (
+          <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-6 py-2 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+            <span className="flex items-center gap-2 text-xs font-medium">
+              <EyeIcon className="size-3.5" />
+              Viewing {entityName ?? "this studio"} as admin
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => {
+                exitImpersonation();
+                router.push("/admin/studios");
+              }}
+            >
+              <XIcon className="size-3.5 mr-1" /> Exit
+            </Button>
+          </div>
+        )}
+
+        {/* Multi-studio switcher (real owners only) */}
         {entities.length > 1 && (
           <div className="border-b border-border px-6 py-2 shrink-0">
-            <Select
-              value={selectedEntityId ?? ""}
-              onValueChange={setSelectedEntityId}
-            >
+            <Select value={entityId ?? ""} onValueChange={setSelectedEntityId}>
               <SelectTrigger className="w-[250px]">
                 <SelectValue placeholder="Select entity" />
               </SelectTrigger>
@@ -237,9 +231,9 @@ export default function StudioLayout({
             </Select>
           </div>
         )}
+
         <main className="flex-1 p-6 overflow-y-auto">{children}</main>
       </div>
     </div>
-    </EditModeProvider>
   );
 }

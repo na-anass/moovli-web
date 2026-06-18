@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { adminApi } from "@/lib/api/admin";
 import { Badge } from "@/components/ui/badge";
-import { EyeIcon } from "lucide-react";
+import { EyeIcon, ExternalLinkIcon } from "lucide-react";
 
 interface Entity {
   id: string;
@@ -123,6 +123,11 @@ export default function StudiosPage() {
             label: "View studio",
             icon: EyeIcon,
             onClick: () => router.push(`/admin/studios/${row.id}`),
+          },
+          {
+            label: "Open dashboard (as studio)",
+            icon: ExternalLinkIcon,
+            onClick: () => router.push(`/studio/dashboard?as=${row.id}`),
           },
         ]}
       />

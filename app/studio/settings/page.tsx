@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { studioApi } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ interface DayHours {
 type OperatingHours = Record<string, DayHours>;
 
 export default function SettingsPage() {
-  const { roles } = useAuth();
+  const activeEntity = useActiveEntity();
   const [entity, setEntity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -62,9 +62,9 @@ export default function SettingsPage() {
 
   const [hours, setHours] = useState<OperatingHours>({});
 
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const currentRole = roles?.ownedEntities?.[0]?.role;
-  const canEdit = currentRole === "manager" || currentRole === "owner" || roles?.isAdmin;
+  const entityId = activeEntity.entityId;
+  const currentRole = activeEntity.role;
+  const canEdit = currentRole === "manager" || currentRole === "owner";
 
   const syncForm = (e: any) => {
     setForm({

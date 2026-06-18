@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { channelsApi, type Channel } from "@/lib/api/channels";
 import { entityPlansApi } from "@/lib/api/entityPlans";
 import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import {
   CheckIcon,
   CopyIcon,
@@ -44,11 +44,11 @@ const directHostedUrl = (slug: string): string =>
     : `${PUBLIC_BOOKING_BASE}/booking/${slug}`;
 
 export default function StudioChannelDirectPage() {
-  const { roles } = useAuth();
-  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const role = roles?.ownedEntities?.[0]?.role;
-  const canManage = role === "owner" || role === "manager" || roles?.isAdmin;
+  const activeEntity = useActiveEntity();
+  const currency = activeEntity.currencyCode;
+  const entityId = activeEntity.entityId;
+  const role = activeEntity.role;
+  const canManage = role === "owner" || role === "manager";
 
   const [channel, setChannel] = useState<Channel | null>(null);
   const [prefs, setPrefs] = useState<ChannelPrefs | null>(null);

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +55,8 @@ const ROLE_CONFIG: Record<string, { color: string; icon: React.ElementType; labe
 };
 
 export default function TeamPage() {
-  const { roles, user: currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
+  const activeEntity = useActiveEntity();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -68,7 +70,7 @@ export default function TeamPage() {
   const [error, setError] = useState<string | null>(null);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
+  const entityId = activeEntity.entityId;
 
   const fetchTeam = useCallback(async () => {
     if (!entityId) return;

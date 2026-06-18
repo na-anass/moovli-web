@@ -5,15 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { studioApi, type EntityPayoutMethod } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import { AlertCircleIcon, BanknoteIcon, CheckCircleIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 export default function PayoutsSettingsPage() {
-  const { roles } = useAuth();
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const role = roles?.ownedEntities?.[0]?.role;
-  const canManage = role === "owner" || role === "manager" || roles?.isAdmin;
+  const activeEntity = useActiveEntity();
+  const entityId = activeEntity.entityId;
+  const role = activeEntity.role;
+  const canManage = role === "owner" || role === "manager";
 
   const [current, setCurrent] = useState<EntityPayoutMethod | null>(null);
   const [loading, setLoading] = useState(true);

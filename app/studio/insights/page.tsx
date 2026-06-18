@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { StatsCard } from "@/components/shared/stats-card";
 import { studioApi } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import {
   CalendarIcon,
   XCircleIcon,
@@ -19,11 +19,11 @@ interface InsightsData {
 }
 
 export default function InsightsPage() {
-  const { roles } = useAuth();
+  const activeEntity = useActiveEntity();
   const [insights, setInsights] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
+  const entityId = activeEntity.entityId;
 
   useEffect(() => {
     if (!entityId) return;

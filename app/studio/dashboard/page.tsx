@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { StatsCard } from "@/components/shared/stats-card";
 import { studioApi, type StudioDashboardMetrics } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,12 +24,12 @@ import {
 } from "lucide-react";
 
 export default function StudioDashboardPage() {
-  const { roles } = useAuth();
+  const activeEntity = useActiveEntity();
   const [metrics, setMetrics] = useState<StudioDashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
+  const entityId = activeEntity.entityId;
+  const currency = activeEntity.currencyCode;
 
   // Onboarding gate now lives in app/studio/layout.tsx (runs before any studio
   // page paints), so the dashboard no longer needs its own redirect.

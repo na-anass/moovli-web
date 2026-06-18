@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { FormSheet } from "@/components/shared/form-sheet";
 import { studioApi } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,16 +37,16 @@ function getInitials(name: string): string {
 }
 
 export default function InstructorsPage() {
-  const { roles } = useAuth();
+  const activeEntity = useActiveEntity();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", bio: "" });
 
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const currentRole = roles?.ownedEntities?.[0]?.role;
-  const canManage = currentRole === "manager" || currentRole === "owner" || roles?.isAdmin;
+  const entityId = activeEntity.entityId;
+  const currentRole = activeEntity.role;
+  const canManage = currentRole === "manager" || currentRole === "owner";
 
   const fetchProviders = () => {
     if (!entityId) return;

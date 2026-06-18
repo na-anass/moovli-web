@@ -5,7 +5,7 @@ import { formatMoneyWhole } from "@/lib/money";
 import { DataTable, type Column, type RowAction } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { studioApi, type StudioBookingRow } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import {
   CheckIcon,
   ClipboardCheckIcon,
@@ -41,9 +41,9 @@ const formatDateTime = (iso: string | null) => {
 };
 
 export default function StudioBookingsPage() {
-  const { roles } = useAuth();
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
+  const activeEntity = useActiveEntity();
+  const entityId = activeEntity.entityId;
+  const currency = activeEntity.currencyCode;
   const formatPrice = (n: number | null) => (n != null ? formatMoneyWhole(n, currency) : "—");
 
   const [tab, setTab] = useState<FilterTab>("all");

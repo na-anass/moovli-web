@@ -17,7 +17,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { catalogApi, type Category } from "@/lib/api/catalog";
 import { studioApi } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import {
   ClockIcon,
   PackageIcon,
@@ -70,8 +70,8 @@ type StatusFilter = "all" | "active" | "inactive";
 type FeaturedFilter = "all" | "featured" | "regular";
 
 export default function ServicesPage() {
-  const { roles } = useAuth();
-  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
+  const activeEntity = useActiveEntity();
+  const currency = activeEntity.currencyCode;
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,10 +93,10 @@ export default function ServicesPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [featuredFilter, setFeaturedFilter] = useState<FeaturedFilter>("all");
 
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const currentRole = roles?.ownedEntities?.[0]?.role;
+  const entityId = activeEntity.entityId;
+  const currentRole = activeEntity.role;
   const canManage =
-    currentRole === "manager" || currentRole === "owner" || roles?.isAdmin;
+    currentRole === "manager" || currentRole === "owner";
 
   const categoryById = useMemo(() => {
     const map = new Map<string, Category>();

@@ -16,7 +16,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { entityPlansApi } from "@/lib/api/entityPlans";
 import { studioApi } from "@/lib/api/studio";
-import { useAuth } from "@/lib/auth/provider";
+import { useActiveEntity } from "@/lib/studio/active-entity";
 import { formatMoneyWhole } from "@/lib/money";
 import Link from "next/link";
 import {
@@ -157,8 +157,8 @@ const HOUR_HEIGHT = 64; // px per hour
 // ============================================================================
 
 export default function SchedulePage() {
-  const { roles } = useAuth();
-  const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
+  const activeEntity = useActiveEntity();
+  const currency = activeEntity.currencyCode;
   const [sessions, setSessions] = useState<Session[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -213,9 +213,9 @@ export default function SchedulePage() {
     allocation_anchor: null as "direct" | "marketplace" | null,
   });
 
-  const entityId = roles?.ownedEntities?.[0]?.entityId;
-  const currentRole = roles?.ownedEntities?.[0]?.role;
-  const canManage = currentRole === "manager" || currentRole === "owner" || roles?.isAdmin;
+  const entityId = activeEntity.entityId;
+  const currentRole = activeEntity.role;
+  const canManage = currentRole === "manager" || currentRole === "owner";
 
   // ============================================================================
   // DATA FETCHING
