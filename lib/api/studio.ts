@@ -166,6 +166,28 @@ export const studioApi = {
       body: JSON.stringify(data),
     }),
 
+  // Gallery / media — studio photos. The default cover is the item with
+  // is_primary = true (also synced to the entity's cover_image_url).
+  getMedia: (entityId: string) =>
+    apiClient<{ success: boolean; data: EntityMedia[] }>(`/api/studio/${entityId}/media`),
+
+  addMedia: (entityId: string, data: { url: string; title?: string }) =>
+    apiClient<{ success: boolean; data: EntityMedia }>(`/api/studio/${entityId}/media`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  setPrimaryMedia: (entityId: string, mediaId: string) =>
+    apiClient<{ success: boolean; data: EntityMedia }>(
+      `/api/studio/${entityId}/media/${mediaId}/primary`,
+      { method: "POST" },
+    ),
+
+  deleteMedia: (entityId: string, mediaId: string) =>
+    apiClient<{ success: boolean }>(`/api/studio/${entityId}/media/${mediaId}`, {
+      method: "DELETE",
+    }),
+
   getProviders: (entityId: string) =>
     apiClient<{ success: boolean; data: any[] }>(`/api/studio/${entityId}/providers`),
 
@@ -353,6 +375,17 @@ export interface PayoutMethodInput {
   iban?: string;
   bank_name?: string;
   swift_bic?: string;
+}
+
+export interface EntityMedia {
+  id: string;
+  entity_id: string;
+  url: string;
+  thumbnail_url: string | null;
+  title: string | null;
+  display_order: number;
+  is_primary: boolean;
+  media_type: string;
 }
 
 export interface ChannelPrefs {

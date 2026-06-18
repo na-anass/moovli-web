@@ -23,7 +23,11 @@ import {
   MapPinIcon,
   PencilIcon,
   PhoneIcon,
+  PlusIcon,
+  StarIcon,
+  Trash2Icon,
 } from "lucide-react";
+import { type EntityMedia } from "@/lib/api/studio";
 import Image from "next/image";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
@@ -342,7 +346,133 @@ export default function SettingsPage() {
               })}
             </div>
           </FormSection>
+
+          {/* Photo gallery */}
+          {entityId && <GalleryManager entityId={entityId} canEdit={!!canEdit} />}
         </div>
     </BaseLayout>
+  );
+}
+
+// ── Gallery manager ──────────────────────────────────────────────────────────
+// Studio photos backed by entity_media. The "Set as cover" star marks the
+// default cover (is_primary), which the API also syncs to entities.cover_image_url.
+function GalleryManager({ entityId, canEdit }: { entityId: string; canEdit: boolean }) {
+  const [photos, setPhotos] = useState<EntityMedia[]>([]);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const refresh = () => {
+    studioApi
+      .getMedia(entityId)
+      .then((res) => setPhotos(res.data))
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entityId]);
+
+  const addPhoto = async () => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    try {
+      await studioApi.addMedia(entityId, { url: trimmed });
+      setUrl("");
+      refresh();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setCover = async (id: string) => {
+    setBusy(true);
+    try {
+      await studioApi.setPrimaryMedia(entityId, id);
+      refresh();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Remove this photo?")) return;
+    setBusy(true);
+    try {
+      await studioApi.deleteMedia(entityId, id);
+      refresh();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <FormSection title="Photo gallery" icon={<ImageIcon className="size-5" />}>
+      {canEdit && (
+        <div className="flex gap-2 mb-4">
+          <Input
+            placeholder="Paste an image URL…"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addPhoto()}
+          />
+          <Button onClick={addPhoto} disabled={busy || !url.trim()}>
+            <PlusIcon className="size-4 mr-1.5" /> Add photo
+          </Button>
+        </div>
+      )}
+
+      {photos.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No photos yet. {canEdit ? "Add image URLs to build your gallery." : ""}
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {photos.map((p) => (
+            <div key={p.id} className="group relative aspect-video overflow-hidden rounded-lg border border-border bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.url} alt={p.title ?? ""} className="size-full object-cover" />
+              {p.is_primary && (
+                <Badge className="absolute left-1.5 top-1.5 gap-1 bg-primary text-primary-foreground text-[10px]">
+                  <StarIcon className="size-2.5 fill-current" /> Cover
+                </Badge>
+              )}
+              {canEdit && (
+                <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  {!p.is_primary && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 text-[11px]"
+                      disabled={busy}
+                      onClick={() => setCover(p.id)}
+                    >
+                      <StarIcon className="size-3 mr-1" /> Cover
+                    </Button>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="size-7 text-destructive"
+                    disabled={busy}
+                    onClick={() => remove(p.id)}
+                  >
+                    <Trash2Icon className="size-3.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </FormSection>
   );
 }

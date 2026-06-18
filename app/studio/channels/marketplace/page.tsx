@@ -299,15 +299,6 @@ export default function StudioChannelMarketplacePage() {
         </section>
       )}
 
-      {/* Coming soon */}
-      <section className="rounded-xl border border-dashed p-5 text-xs text-muted-foreground space-y-1">
-        <p className="font-medium text-foreground text-sm">Coming soon</p>
-        <p>• Featured photo + tagline shown on your marketplace storefront</p>
-        <p>• Highlight tags (&ldquo;First class free&rdquo;, &ldquo;Outdoor classes&rdquo;, etc.)</p>
-        <p>• Quality metrics dashboard (rating, response time, completion rate)</p>
-        <p>• Special offers + limited-time promotions</p>
-      </section>
-
       <ChannelDeactivateSheet
         open={deactivateOpen}
         onOpenChange={setDeactivateOpen}

@@ -367,15 +367,6 @@ export default function StudioChannelDirectPage() {
         )}
       </section>
 
-      {/* Coming soon */}
-      <section className="rounded-xl border border-dashed p-5 text-xs text-muted-foreground space-y-1">
-        <p className="font-medium text-foreground text-sm">Coming soon</p>
-        <p>• Logo upload + cover image dedicated to the booking page</p>
-        <p>• Welcome message + cancellation policy text</p>
-        <p>• Custom domain (e.g. book.yourstudio.com)</p>
-        <p>• Embeddable widget code (drop your calendar into any site)</p>
-      </section>
-
       <ChannelDeactivateSheet
         open={deactivateOpen}
         onOpenChange={setDeactivateOpen}
