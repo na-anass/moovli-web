@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { studioApi } from "@/lib/api/studio";
+import { createClient } from "@/lib/supabase/client";
 import { useActiveEntity } from "@/lib/studio/active-entity";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import {
   PlusIcon,
   StarIcon,
   Trash2Icon,
+  UploadIcon,
 } from "lucide-react";
 import { type EntityMedia } from "@/lib/api/studio";
 import Image from "next/image";
@@ -361,6 +363,7 @@ function GalleryManager({ entityId, canEdit }: { entityId: string; canEdit: bool
   const [photos, setPhotos] = useState<EntityMedia[]>([]);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const refresh = () => {
     studioApi
@@ -386,6 +389,37 @@ function GalleryManager({ entityId, canEdit }: { entityId: string; canEdit: bool
       alert((e as Error).message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const uploadFile = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      alert("Please choose an image file.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      alert("Image must be 8MB or smaller.");
+      return;
+    }
+    setBusy(true);
+    try {
+      // 1) mint a signed upload URL, 2) upload straight to Storage, 3) record it.
+      const { data: up } = await studioApi.createMediaUploadUrl(entityId, {
+        filename: file.name,
+        contentType: file.type,
+      });
+      const supabase = createClient();
+      const { error } = await supabase.storage
+        .from(up.bucket)
+        .uploadToSignedUrl(up.path, up.token, file, { contentType: file.type });
+      if (error) throw error;
+      await studioApi.addMedia(entityId, { url: up.publicUrl, title: file.name });
+      refresh();
+    } catch (e) {
+      alert((e as Error).message || "Upload failed");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
@@ -417,16 +451,37 @@ function GalleryManager({ entityId, canEdit }: { entityId: string; canEdit: bool
   return (
     <FormSection title="Photo gallery" icon={<ImageIcon className="size-5" />}>
       {canEdit && (
-        <div className="flex gap-2 mb-4">
-          <Input
-            placeholder="Paste an image URL…"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addPhoto()}
-          />
-          <Button onClick={addPhoto} disabled={busy || !url.trim()}>
-            <PlusIcon className="size-4 mr-1.5" /> Add photo
-          </Button>
+        <div className="space-y-2 mb-4">
+          {/* Upload from device */}
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) uploadFile(f);
+              }}
+            />
+            <Button onClick={() => fileRef.current?.click()} disabled={busy}>
+              <UploadIcon className="size-4 mr-1.5" />
+              {busy ? "Uploading…" : "Upload photo"}
+            </Button>
+            <span className="text-xs text-muted-foreground">JPG/PNG, up to 8MB</span>
+          </div>
+          {/* Or add by URL */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="…or paste an image URL"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addPhoto()}
+            />
+            <Button variant="outline" onClick={addPhoto} disabled={busy || !url.trim()}>
+              <PlusIcon className="size-4 mr-1.5" /> Add
+            </Button>
+          </div>
         </div>
       )}
 

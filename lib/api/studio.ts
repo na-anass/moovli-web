@@ -171,6 +171,19 @@ export const studioApi = {
   getMedia: (entityId: string) =>
     apiClient<{ success: boolean; data: EntityMedia[] }>(`/api/studio/${entityId}/media`),
 
+  // Mint a signed upload URL for direct browser→Storage upload of a gallery photo.
+  createMediaUploadUrl: (
+    entityId: string,
+    data: { filename?: string; contentType?: string },
+  ) =>
+    apiClient<{
+      success: boolean;
+      data: { bucket: string; path: string; token: string; signedUrl: string; publicUrl: string };
+    }>(`/api/studio/${entityId}/media/upload-url`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   addMedia: (entityId: string, data: { url: string; title?: string }) =>
     apiClient<{ success: boolean; data: EntityMedia }>(`/api/studio/${entityId}/media`, {
       method: "POST",
