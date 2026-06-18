@@ -13,12 +13,14 @@ import {
   BarChart3Icon,
   SettingsIcon,
   SlidersHorizontalIcon,
+  GraduationCapIcon,
 } from "lucide-react";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboardIcon, href: "/admin/dashboard" },
   { label: "Users", icon: UsersIcon, href: "/admin/users" },
   { label: "Studios", icon: BuildingIcon, href: "/admin/studios" },
+  { label: "Instructors", icon: GraduationCapIcon, href: "/admin/instructors" },
   { label: "Bookings", icon: BookOpenIcon, href: "/admin/bookings" },
   { label: "Analytics", icon: BarChart3Icon, href: "/admin/analytics" },
   { label: "Policies", icon: SlidersHorizontalIcon, href: "/admin/policies" },

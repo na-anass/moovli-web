@@ -1,7 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
-import { DataTable, type Column } from "@/components/shared/data-table";
+import { DataTable, type Column, type RowAction } from "@/components/shared/data-table";
 import { FormSheet } from "@/components/shared/form-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,10 @@ import {
   ListIcon,
   PencilIcon,
   PlusIcon,
+  SendIcon,
   Trash2Icon,
   UsersIcon,
+  XCircleIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -45,6 +47,10 @@ interface Session {
   booked_count: number;
   waitlist_count: number;
   status: string;
+  /** Publication lifecycle: 'draft' (studio-only, deletable) or 'published' (live, cancel-only). */
+  lifecycle_status?: string;
+  /** Shared id across a recurring series — enables "cancel whole series". */
+  recurrence_group_id?: string | null;
   // MAD-based pricing (spec A)
   price_mad?: number;
   marketplace_price_mad?: number;
@@ -98,6 +104,47 @@ const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }
   completed: { bg: "bg-gray-50 dark:bg-gray-900/40", border: "border-l-gray-400", text: "text-gray-500 dark:text-gray-400" },
 };
 
+// Old / due sessions (already ended) render in a muted gray treatment in every
+// view, regardless of their status — so the calendar reads "past = done".
+const PAST_COLORS = {
+  bg: "bg-gray-50 dark:bg-gray-900/40",
+  border: "border-l-gray-300 dark:border-l-gray-700",
+  text: "text-gray-400 dark:text-gray-500",
+};
+
+const isPastSession = (s: { end_time: string }) => new Date(s.end_time) < new Date();
+
+// Group sessions whose time ranges overlap into clusters, so the calendar can
+// lay them out side-by-side (Google-Calendar style) instead of stacking them.
+const clusterByOverlap = <T extends { start_time: string; end_time: string }>(items: T[]): T[][] => {
+  const sorted = [...items].sort((a, b) => a.start_time.localeCompare(b.start_time));
+  const clusters: T[][] = [];
+  let current: T[] = [];
+  let clusterEnd = 0;
+  for (const s of sorted) {
+    const start = new Date(s.start_time).getTime();
+    const end = new Date(s.end_time).getTime();
+    if (current.length === 0 || start < clusterEnd) {
+      current.push(s);
+      clusterEnd = Math.max(clusterEnd, end);
+    } else {
+      clusters.push(current);
+      current = [s];
+      clusterEnd = end;
+    }
+  }
+  if (current.length) clusters.push(current);
+  return clusters;
+};
+
+// Max columns rendered side-by-side before collapsing the rest into "+N more".
+const MAX_OVERLAP_COLUMNS = 3;
+
+// Resolve the visual palette for a session: past sessions are always grayed out,
+// otherwise we use the status palette.
+const sessionColors = (s: { end_time: string; status: string }) =>
+  isPastSession(s) ? PAST_COLORS : STATUS_COLORS[s.status] || STATUS_COLORS.available;
+
 // ============================================================================
 // HOURS CONFIG (for calendar time grid)
 // ============================================================================
@@ -117,6 +164,11 @@ export default function SchedulePage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewMode>("week");
+
+  // Filters — applied client-side over the fetched window so all three views
+  // stay in sync without refetching.
+  const [lifecycleFilter, setLifecycleFilter] = useState<"all" | "draft" | "published">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
@@ -184,6 +236,19 @@ export default function SchedulePage() {
   }, [entityId]);
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
+
+  // Apply lifecycle + status filters client-side (shared across all views).
+  // "active" = available/full; "inactive" = cancelled/completed.
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((s) => {
+      if (lifecycleFilter !== "all" && (s.lifecycle_status ?? "published") !== lifecycleFilter) {
+        return false;
+      }
+      if (statusFilter === "active" && !["available", "full"].includes(s.status)) return false;
+      if (statusFilter === "inactive" && !["cancelled", "completed"].includes(s.status)) return false;
+      return true;
+    });
+  }, [sessions, lifecycleFilter, statusFilter]);
 
   useEffect(() => {
     if (!entityId) return;
@@ -322,7 +387,9 @@ export default function SchedulePage() {
     setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  // `publish` only matters when creating: true → goes live immediately,
+  // false → saved as a draft. Ignored on edit (use the Publish action instead).
+  const handleSave = async (publish = false) => {
     if (!entityId) return;
     setSaving(true);
     try {
@@ -405,6 +472,7 @@ export default function SchedulePage() {
         capacity: parseInt(form.capacity),
         price_mad: priceMad,
         notes: form.notes || null,
+        publish,
         publish_to_channel_types: channelTypes,
         ...(channelAllocations ? { channel_allocations: channelAllocations } : {}),
         ...(releaseMinutesBefore != null
@@ -426,13 +494,54 @@ export default function SchedulePage() {
     }
   };
 
-  const handleDelete = async (sessionId: string) => {
-    if (!entityId || !confirm("Cancel this session?")) return;
+  // Draft only — hard delete. The backend rejects deleting published sessions.
+  const handleDelete = async (session: Session) => {
+    if (!entityId || !confirm("Delete this draft session? This cannot be undone.")) return;
     try {
-      await studioApi.deleteSession(entityId, sessionId);
+      await studioApi.deleteSession(entityId, session.id);
       fetchSessions();
     } catch (e) {
       console.error(e);
+      alert((e as Error).message || "Failed to delete session");
+    }
+  };
+
+  // Draft → published (goes live on its channels).
+  const handlePublish = async (session: Session) => {
+    if (!entityId) return;
+    try {
+      await studioApi.publishSession(entityId, session.id, {
+        publish_to_channel_types: [
+          ...(channelState.marketplace === "live" ? ["marketplace"] : []),
+          ...(channelState.direct === "live" ? ["direct_hosted"] : []),
+        ],
+      });
+      fetchSessions();
+    } catch (e) {
+      console.error(e);
+      alert((e as Error).message || "Failed to publish session");
+    }
+  };
+
+  // Published → cancelled. Recurring sessions offer to cancel the whole series.
+  const handleCancel = async (session: Session) => {
+    if (!entityId) return;
+    let scope: "single" | "series" = "single";
+    if (session.recurrence_group_id) {
+      scope = confirm(
+        "This session is part of a recurring series.\n\nOK = cancel the ENTIRE series.\nCancel = cancel only this one session.",
+      )
+        ? "series"
+        : "single";
+    } else if (!confirm("Cancel this session?")) {
+      return;
+    }
+    try {
+      await studioApi.cancelSession(entityId, session.id, scope);
+      fetchSessions();
+    } catch (e) {
+      console.error(e);
+      alert((e as Error).message || "Failed to cancel session");
     }
   };
 
@@ -462,7 +571,7 @@ export default function SchedulePage() {
 
   const getSessionsForDay = (day: Date) => {
     const dayStr = day.toISOString().split("T")[0];
-    return sessions
+    return filteredSessions
       .filter((s) => s.start_time.startsWith(dayStr))
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
   };
@@ -518,34 +627,59 @@ export default function SchedulePage() {
     {
       header: "Status",
       cell: (r) => (
-        <Badge variant="outline" className={`${STATUS_COLORS[r.status]?.bg || ""} ${STATUS_COLORS[r.status]?.text || ""}`}>
-          {r.status}
-        </Badge>
-      ),
-    },
-    ...(canManage ? [{
-      header: "",
-      cell: (r: Session) => (
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(r)}><PencilIcon className="size-3" /></Button>
-          <Button variant="ghost" size="icon" className="size-7 text-destructive" onClick={() => handleDelete(r.id)}><Trash2Icon className="size-3" /></Button>
+        <div className="flex items-center gap-1.5">
+          {(r.lifecycle_status ?? "published") === "draft" && (
+            <Badge variant="outline" className="text-[10px] border-dashed">Draft</Badge>
+          )}
+          <Badge variant="outline" className={`${STATUS_COLORS[r.status]?.bg || ""} ${STATUS_COLORS[r.status]?.text || ""}`}>
+            {r.status}
+          </Badge>
         </div>
       ),
-    }] : []),
+    },
   ];
+
+  // Lifecycle-aware row actions shared by the list view kebab.
+  const sessionRowActions = (s: Session): RowAction[] => {
+    const isDraft = (s.lifecycle_status ?? "published") === "draft";
+    const actions: RowAction[] = [
+      { label: "Edit", icon: PencilIcon, onClick: () => openEdit(s) },
+    ];
+    if (isDraft) {
+      actions.push({ label: "Publish", icon: SendIcon, onClick: () => handlePublish(s) });
+      actions.push({
+        label: "Delete",
+        icon: Trash2Icon,
+        variant: "destructive",
+        separatorBefore: true,
+        onClick: () => handleDelete(s),
+      });
+    } else {
+      actions.push({
+        label: s.recurrence_group_id ? "Cancel…" : "Cancel session",
+        icon: XCircleIcon,
+        variant: "destructive",
+        separatorBefore: true,
+        onClick: () => handleCancel(s),
+      });
+    }
+    return actions;
+  };
 
   // ============================================================================
   // RENDER: SESSION CARD (for calendar)
   // ============================================================================
 
   const SessionCard = ({ session, compact }: { session: Session; compact?: boolean }) => {
-    const colors = STATUS_COLORS[session.status] || STATUS_COLORS.available;
+    const colors = sessionColors(session);
+    const isDraft = (session.lifecycle_status ?? "published") === "draft";
     return (
       <button
         onClick={() => canManage ? openEdit(session) : undefined}
-        className={`w-full text-left rounded-md border-l-[3px] px-2 py-1 transition-all hover:shadow-sm ${colors.bg} ${colors.border} ${canManage ? "cursor-pointer" : ""}`}
+        className={`w-full text-left rounded-md border-l-[3px] px-2 py-1 transition-all hover:shadow-sm ${colors.bg} ${colors.border} ${isDraft ? "border border-dashed" : ""} ${canManage ? "cursor-pointer" : ""}`}
       >
         <p className={`text-xs font-medium truncate ${colors.text}`}>
+          {isDraft && <span className="font-semibold">[Draft] </span>}
           {session.service?.name || "Session"}
         </p>
         {!compact && (
@@ -694,18 +828,54 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* Sessions */}
-        {daySessions.map((s) => {
-          const { top, height } = getSessionPosition(s);
-          return (
-            <div
-              key={s.id}
-              className="absolute left-1 right-1 z-[5]"
-              style={{ top, height: Math.max(height - 2, 22) }}
-            >
-              <SessionCard session={s} compact={height < 40} />
-            </div>
-          );
+        {/* Sessions — overlapping ones are laid out in up to 3 side-by-side
+            columns (Google-Calendar style); any beyond that collapse into a
+            "+N more" chip that opens the day view. */}
+        {clusterByOverlap(daySessions).flatMap((cluster) => {
+          const size = cluster.length;
+          const colCount = Math.min(size, MAX_OVERLAP_COLUMNS);
+          const widthPct = 100 / colCount;
+          const overflow = size > MAX_OVERLAP_COLUMNS;
+          const visible = overflow ? cluster.slice(0, MAX_OVERLAP_COLUMNS - 1) : cluster;
+
+          const nodes = visible.map((s, i) => {
+            const { top, height } = getSessionPosition(s);
+            return (
+              <div
+                key={s.id}
+                className="absolute z-[5]"
+                style={{
+                  top,
+                  height: Math.max(height - 2, 22),
+                  left: `calc(${i * widthPct}% + 2px)`,
+                  width: `calc(${widthPct}% - 4px)`,
+                }}
+              >
+                <SessionCard session={s} compact={height < 40 || colCount > 1} />
+              </div>
+            );
+          });
+
+          if (overflow) {
+            const top = Math.min(...cluster.map((s) => getSessionPosition(s).top));
+            const lastCol = MAX_OVERLAP_COLUMNS - 1;
+            nodes.push(
+              <div
+                key={`more-${cluster[0].id}`}
+                className="absolute z-[6]"
+                style={{ top, left: `calc(${lastCol * widthPct}% + 2px)`, width: `calc(${widthPct}% - 4px)` }}
+              >
+                <button
+                  onClick={() => { setCalendarDate(new Date(cluster[0].start_time)); setView("day"); }}
+                  className="w-full rounded-md border border-dashed border-border bg-muted/60 px-1 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted"
+                >
+                  +{size - (MAX_OVERLAP_COLUMNS - 1)} more
+                </button>
+              </div>,
+            );
+          }
+
+          return nodes;
         })}
       </div>
     );
@@ -748,6 +918,33 @@ export default function SchedulePage() {
         </>
       }
     >
+      {/* Filters — lifecycle (draft/published) + status (active/inactive) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={lifecycleFilter} onValueChange={(v) => setLifecycleFilter(v as typeof lifecycleFilter)}>
+          <SelectTrigger size="sm" className="w-auto min-w-32">
+            <SelectValue placeholder="Lifecycle" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All sessions</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="published">Published</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+          <SelectTrigger size="sm" className="w-auto min-w-32">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground">
+          {filteredSessions.length} of {sessions.length} shown
+        </span>
+      </div>
+
       {/* Calendar navigation */}
       {view !== "list" && (
         <div className="flex items-center gap-3">
@@ -810,11 +1007,11 @@ export default function SchedulePage() {
       {view === "list" && (
         <DataTable
           columns={columns}
-          data={sessions}
-          total={total}
+          data={filteredSessions}
           page={page}
           pageSize={50}
           onPageChange={setPage}
+          rowActions={canManage ? sessionRowActions : undefined}
           isLoading={loading}
         />
       )}
@@ -832,39 +1029,72 @@ export default function SchedulePage() {
         icon={editingSession ? PencilIcon : CalendarIcon}
         iconAccent="emerald"
         width="lg"
-        footer={
-          <>
-            {editingSession && canManage && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mr-auto text-destructive hover:text-destructive"
-                onClick={() => {
-                  handleDelete(editingSession.id);
-                  setDialogOpen(false);
-                }}
-              >
-                <Trash2Icon className="size-3.5 mr-1.5" /> Cancel session
+        footer={(() => {
+          const formInvalid =
+            saving ||
+            !form.service_id ||
+            !form.date ||
+            !form.start_time ||
+            !form.end_time ||
+            !form.capacity;
+          const isDraft = (editingSession?.lifecycle_status ?? "published") === "draft";
+          return (
+            <>
+              {/* Destructive lifecycle action (left-aligned) */}
+              {editingSession && canManage && (
+                isDraft ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mr-auto text-destructive hover:text-destructive"
+                    onClick={() => { handleDelete(editingSession); setDialogOpen(false); }}
+                  >
+                    <Trash2Icon className="size-3.5 mr-1.5" /> Delete draft
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mr-auto text-destructive hover:text-destructive"
+                    onClick={() => { handleCancel(editingSession); setDialogOpen(false); }}
+                  >
+                    <XCircleIcon className="size-3.5 mr-1.5" /> Cancel session
+                  </Button>
+                )
+              )}
+              <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+                Close
               </Button>
-            )}
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-              Close
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={
-                saving ||
-                !form.service_id ||
-                !form.date ||
-                !form.start_time ||
-                !form.end_time ||
-                !form.capacity
-              }
-            >
-              {saving ? "Saving…" : editingSession ? "Update" : "Create"}
-            </Button>
-          </>
-        }
+
+              {editingSession ? (
+                <>
+                  {/* Draft sessions can be published straight from the editor. */}
+                  {canManage && isDraft && (
+                    <Button
+                      variant="outline"
+                      disabled={formInvalid}
+                      onClick={async () => { await handleSave(false); await handlePublish(editingSession); }}
+                    >
+                      <SendIcon className="size-4 mr-1.5" /> Publish
+                    </Button>
+                  )}
+                  <Button onClick={() => handleSave(false)} disabled={formInvalid}>
+                    {saving ? "Saving…" : "Update"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => handleSave(false)} disabled={formInvalid}>
+                    {saving ? "Saving…" : "Save as draft"}
+                  </Button>
+                  <Button onClick={() => handleSave(true)} disabled={formInvalid}>
+                    <SendIcon className="size-4 mr-1.5" /> Publish
+                  </Button>
+                </>
+              )}
+            </>
+          );
+        })()}
       >
         <div className="space-y-5">
           {/* What — which service */}

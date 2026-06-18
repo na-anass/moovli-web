@@ -89,6 +89,22 @@ export const adminApi = {
     return apiClient<PaginatedResponse<any>>(`/api/admin/bookings?${query}`);
   },
 
+  getInstructors: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    is_active?: boolean;
+    entity_id?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.limit) query.set("limit", String(params.limit));
+    if (params?.search) query.set("search", params.search);
+    if (params?.is_active !== undefined) query.set("is_active", String(params.is_active));
+    if (params?.entity_id) query.set("entity_id", params.entity_id);
+    return apiClient<PaginatedResponse<any>>(`/api/admin/instructors?${query}`);
+  },
+
   getAnalyticsOverview: () =>
     apiClient<{ success: boolean; data: any }>("/api/admin/analytics/overview"),
 

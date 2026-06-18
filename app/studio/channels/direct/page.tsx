@@ -251,8 +251,16 @@ export default function StudioChannelDirectPage() {
                 ? "Your page is visible to anyone with this link. Bookings show up in your Bookings inbox as pending — confirm to lock in the seat."
                 : directOn
                   ? "Your page is configured but the channel is currently off."
-                  : "Turn on the channel above to make this page live."}
+                  : "Preview your page, then publish to make it live."}
             </p>
+            {/* Explicit publish CTA — clearer than the header switch when the
+                page is configured but not yet live. */}
+            {planAllowsDirect && canManage && !isLive && (
+              <Button size="sm" onClick={() => toggleDirect(true)} disabled={togglingPref}>
+                <CheckIcon className="size-3.5 mr-1.5" />
+                {togglingPref ? "Publishing…" : "Publish page — go live"}
+              </Button>
+            )}
           </>
         ) : (
           <p className="text-xs text-muted-foreground">

@@ -15,20 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormSheet } from "@/components/shared/form-sheet";
+import { DataTable, type Column } from "@/components/shared/data-table";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Trash2Icon,
   UserPlusIcon,
@@ -145,6 +138,88 @@ export default function TeamPage() {
     );
   }
 
+  const memberColumns: Column<TeamMember>[] = [
+    {
+      header: "Member",
+      cell: (member) => {
+        const isCurrentUser = member.user_id === currentUser?.id;
+        return (
+          <div className="flex items-center gap-3">
+            {member.user?.avatar_url ? (
+              <img src={member.user.avatar_url} alt="" className="size-8 rounded-full object-cover" />
+            ) : (
+              <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                {(member.user?.name || "?").charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-medium">
+                {member.user?.name || "Unknown"}
+                {isCurrentUser && <span className="text-muted-foreground font-normal ml-1">(you)</span>}
+              </p>
+              <p className="text-xs text-muted-foreground">{member.user?.email || member.user_id}</p>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: "Role",
+      cell: (member) => {
+        const roleConfig = ROLE_CONFIG[member.role] || ROLE_CONFIG.staff;
+        const isCurrentUser = member.user_id === currentUser?.id;
+        return isCurrentUser ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="outline" className={`${roleConfig.color} cursor-help`}>
+                {roleConfig.label}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs max-w-48">{roleConfig.description}</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Select
+                  value={member.role}
+                  onValueChange={(v) => handleRoleChange(member.user_id, v)}
+                >
+                  <SelectTrigger className="w-28 h-7 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ROLE_CONFIG).map(([key, cfg]) => (
+                      <SelectItem key={key} value={key}>
+                        <span className="flex items-center gap-1.5">
+                          <cfg.icon className="size-3" />
+                          {cfg.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs max-w-48">{roleConfig.description}</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      header: "Joined",
+      cell: (member) => (
+        <span className="text-sm text-muted-foreground">
+          {new Date(member.created_at).toLocaleDateString()}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <TooltipProvider delayDuration={200}>
       <BaseLayout
@@ -159,120 +234,23 @@ export default function TeamPage() {
         }
       >
         {/* Team table */}
-        <div className="rounded-xl border border-border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Member</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="w-12" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                    No team members yet. Invite someone to get started.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                members.map((member) => {
-                  const roleConfig = ROLE_CONFIG[member.role] || ROLE_CONFIG.staff;
-                  const isCurrentUser = member.user_id === currentUser?.id;
-                  return (
-                    <TableRow key={member.user_id}>
-                      {/* Member info */}
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {member.user?.avatar_url ? (
-                            <img src={member.user.avatar_url} alt="" className="size-8 rounded-full object-cover" />
-                          ) : (
-                            <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                              {(member.user?.name || "?").charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-sm font-medium">
-                              {member.user?.name || "Unknown"}
-                              {isCurrentUser && <span className="text-muted-foreground font-normal ml-1">(you)</span>}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{member.user?.email || member.user_id}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* Role */}
-                      <TableCell>
-                        {isCurrentUser ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge variant="outline" className={`${roleConfig.color} cursor-help`}>
-                                {roleConfig.label}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p className="text-xs max-w-48">{roleConfig.description}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div>
-                                <Select
-                                  value={member.role}
-                                  onValueChange={(v) => handleRoleChange(member.user_id, v)}
-                                >
-                                  <SelectTrigger className="w-28 h-7 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {Object.entries(ROLE_CONFIG).map(([key, cfg]) => (
-                                      <SelectItem key={key} value={key}>
-                                        <span className="flex items-center gap-1.5">
-                                          <cfg.icon className="size-3" />
-                                          {cfg.label}
-                                        </span>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p className="text-xs max-w-48">{roleConfig.description}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-
-                      {/* Joined */}
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(member.created_at).toLocaleDateString()}
-                        </span>
-                      </TableCell>
-
-                      {/* Remove */}
-                      <TableCell>
-                        {!isCurrentUser && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-7 text-muted-foreground hover:text-destructive"
-                            onClick={() => handleRemove(member.user_id, member.user?.name || "this member")}
-                          >
-                            <Trash2Icon className="size-3.5" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          columns={memberColumns}
+          data={members}
+          rowActions={(member) =>
+            member.user_id === currentUser?.id
+              ? []
+              : [
+                  {
+                    label: "Remove from team",
+                    icon: Trash2Icon,
+                    variant: "destructive",
+                    onClick: () =>
+                      handleRemove(member.user_id, member.user?.name || "this member"),
+                  },
+                ]
+          }
+        />
 
         {/* Invite sheet */}
         <FormSheet

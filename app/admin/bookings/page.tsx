@@ -30,12 +30,17 @@ export default function BookingsPage() {
   const [data, setData] = useState<Booking[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(true);
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getBookings({ page, limit: 20 });
+      const res = await adminApi.getBookings({
+        page,
+        limit: 20,
+        status: status === "all" ? undefined : status,
+      });
       setData(res.data);
       setTotal(res.pagination.total);
     } catch (e) {
@@ -43,7 +48,7 @@ export default function BookingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, status]);
 
   useEffect(() => {
     fetchBookings();
@@ -97,6 +102,24 @@ export default function BookingsPage() {
         page={page}
         pageSize={20}
         onPageChange={setPage}
+        filters={[
+          {
+            label: "Status",
+            value: status,
+            onChange: (v) => {
+              setStatus(v);
+              setPage(1);
+            },
+            options: [
+              { label: "All statuses", value: "all" },
+              { label: "Confirmed", value: "confirmed" },
+              { label: "Pending", value: "pending" },
+              { label: "Cancelled", value: "cancelled" },
+              { label: "Completed", value: "completed" },
+              { label: "No show", value: "no_show" },
+            ],
+          },
+        ]}
         isLoading={loading}
       />
     </div>

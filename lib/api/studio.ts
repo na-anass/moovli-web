@@ -50,11 +50,15 @@ export const studioApi = {
       `/api/studio/${entityId}/dashboard`
     ),
 
-  getSessions: (entityId: string, params?: { page?: number; limit?: number; status?: string }) => {
+  getSessions: (
+    entityId: string,
+    params?: { page?: number; limit?: number; status?: string; lifecycle_status?: string },
+  ) => {
     const query = new URLSearchParams();
     if (params?.page) query.set("page", String(params.page));
     if (params?.limit) query.set("limit", String(params.limit));
     if (params?.status) query.set("status", params.status);
+    if (params?.lifecycle_status) query.set("lifecycle_status", params.lifecycle_status);
     return apiClient<PaginatedResponse<any>>(`/api/studio/${entityId}/sessions?${query}`);
   },
 
@@ -69,6 +73,21 @@ export const studioApi = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+
+  // Publish a draft session — goes live on its channels. Optionally pass the
+  // same channel-publish options used at create time.
+  publishSession: (entityId: string, sessionId: string, data: Record<string, any> = {}) =>
+    apiClient<{ success: boolean; data: any }>(
+      `/api/studio/${entityId}/sessions/${sessionId}/publish`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  // Cancel a published session. scope="series" cancels the whole recurring series.
+  cancelSession: (entityId: string, sessionId: string, scope: "single" | "series" = "single") =>
+    apiClient<{ success: boolean; message: string; cancelled: number }>(
+      `/api/studio/${entityId}/sessions/${sessionId}/cancel?scope=${scope}`,
+      { method: "POST" },
+    ),
 
   deleteSession: (entityId: string, sessionId: string) =>
     apiClient<{ success: boolean }>(`/api/studio/${entityId}/sessions/${sessionId}`, {
@@ -341,6 +360,8 @@ export interface ChannelPrefs {
   direct_hosted_enabled: boolean;
   direct_link_enabled: boolean;
   direct_embed_enabled: boolean;
+  /** Studio-set marketplace markup %. null = dynamic pricing (no override). */
+  marketplace_markup_pct: number | null;
 }
 
 export interface StudioBookingRow {

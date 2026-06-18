@@ -9,6 +9,7 @@ import {
   LayoutDashboardIcon,
   CalendarIcon,
   UserIcon,
+  SettingsIcon,
 } from "lucide-react";
 
 const navItems: NavItem[] = [
@@ -18,6 +19,7 @@ const navItems: NavItem[] = [
 
 const bottomItems: NavItem[] = [
   { label: "Profile", icon: UserIcon, href: "/instructor/profile" },
+  { label: "Settings", icon: SettingsIcon, href: "/instructor/settings" },
 ];
 
 export default function InstructorLayout({

@@ -31,6 +31,13 @@ export default function StudioChannelMarketplacePage() {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
 
+  // Studio-set markup slider state.
+  const MARKUP_FLOOR = 20;
+  const MARKUP_CEILING = 50;
+  const [markup, setMarkup] = useState<number>(MARKUP_FLOOR);
+  const [savingMarkup, setSavingMarkup] = useState(false);
+  const [markupSaved, setMarkupSaved] = useState(false);
+
   const fetchAll = useCallback(async () => {
     if (!entityId) return;
     setLoading(true);
@@ -41,12 +48,33 @@ export default function StudioChannelMarketplacePage() {
       ]);
       setPlan(subRes.data.plan);
       setPrefs(prefRes.data);
+      // Initialize the slider from the studio's saved markup, falling back to
+      // the plan's baseline (clamped to the allowed range).
+      const saved = prefRes.data.marketplace_markup_pct;
+      const baseline = Math.round(Number(subRes.data.plan?.base_markup_pct ?? MARKUP_FLOOR));
+      setMarkup(Math.max(MARKUP_FLOOR, Math.min(MARKUP_CEILING, saved ?? baseline)));
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
   }, [entityId]);
+
+  const saveMarkup = async () => {
+    if (!entityId) return;
+    setSavingMarkup(true);
+    setMarkupSaved(false);
+    try {
+      const res = await studioApi.updateChannelPrefs(entityId, { marketplace_markup_pct: markup });
+      setPrefs(res.data);
+      setMarkupSaved(true);
+      setTimeout(() => setMarkupSaved(false), 3000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingMarkup(false);
+    }
+  };
 
   useEffect(() => {
     fetchAll();
@@ -199,13 +227,11 @@ export default function StudioChannelMarketplacePage() {
               <div className="text-muted-foreground">+</div>
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Moovli markup
+                  Marketplace markup
                 </div>
-                <div className="text-xl font-semibold mt-0.5">
-                  ~{baseMarkup}%
-                </div>
+                <div className="text-xl font-semibold mt-0.5">{markup}%</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Adjusted dynamically
+                  You set this
                 </div>
               </div>
               <div className="text-muted-foreground">=</div>
@@ -214,7 +240,7 @@ export default function StudioChannelMarketplacePage() {
                   Booker pays
                 </div>
                 <div className="text-xl font-semibold mt-0.5 text-primary">
-                  {formatMoneyWhole(Math.round(100 * (1 + baseMarkup / 100)), currency)}
+                  {formatMoneyWhole(Math.round(100 * (1 + markup / 100)), currency)}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
                   Example for a {formatMoneyWhole(100, currency)} session
@@ -223,12 +249,46 @@ export default function StudioChannelMarketplacePage() {
             </div>
           </div>
 
+          {/* Markup slider — studios set their own markup (min 20%). */}
+          {canManage ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium">Your marketplace markup</label>
+                <span className="text-sm font-semibold tabular-nums">{markup}%</span>
+              </div>
+              <input
+                type="range"
+                min={MARKUP_FLOOR}
+                max={MARKUP_CEILING}
+                step={1}
+                value={markup}
+                onChange={(e) => setMarkup(Number(e.target.value))}
+                className="w-full accent-primary"
+                aria-label="Marketplace markup percentage"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>Min {MARKUP_FLOOR}%</span>
+                <span>Max {MARKUP_CEILING}%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={saveMarkup} disabled={savingMarkup || markup === (prefs?.marketplace_markup_pct ?? -1)}>
+                  {savingMarkup ? "Saving…" : "Save markup"}
+                </Button>
+                {markupSaved && (
+                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">
+                    Saved
+                  </Badge>
+                )}
+              </div>
+            </div>
+          ) : null}
+
           <div className="space-y-2 text-xs text-muted-foreground">
             <p>
-              <span className="font-medium text-foreground">How markup works:</span> Moovli
-              applies a small platform margin on top of your session price. The exact
-              percentage varies per session based on time of day, your studio rating, and
-              demand — all within a {baseMarkup}% baseline.
+              <span className="font-medium text-foreground">How markup works:</span> You choose the
+              markup Moovli adds on top of your session price (minimum {MARKUP_FLOOR}%, up to{" "}
+              {MARKUP_CEILING}%). A higher markup means bookers pay more — your recommended baseline
+              is {baseMarkup}%.
             </p>
             <p>
               <span className="font-medium text-foreground">Your earnings:</span> You always

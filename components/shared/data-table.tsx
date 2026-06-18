@@ -11,12 +11,54 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ChevronLeftIcon, ChevronRightIcon, SearchIcon } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MoreVerticalIcon,
+  SearchIcon,
+} from "lucide-react";
 
 export interface Column<T> {
   header: string;
   accessorKey?: keyof T;
   cell?: (row: T) => React.ReactNode;
+}
+
+export interface FilterOption {
+  label: string;
+  value: string;
+}
+
+export interface FilterConfig {
+  /** Short label used as the placeholder when no value is selected. */
+  label: string;
+  value: string;
+  options: FilterOption[];
+  onChange: (value: string) => void;
+}
+
+export interface RowAction {
+  label: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  onClick: () => void;
+  variant?: "default" | "destructive";
+  disabled?: boolean;
+  /** Render a separator above this action. */
+  separatorBefore?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -28,6 +70,8 @@ interface DataTableProps<T> {
   onPageChange?: (page: number) => void;
   searchPlaceholder?: string;
   onSearch?: (query: string) => void;
+  filters?: FilterConfig[];
+  rowActions?: (row: T) => RowAction[];
   isLoading?: boolean;
 }
 
@@ -40,6 +84,8 @@ export function DataTable<T extends Record<string, any>>({
   onPageChange,
   searchPlaceholder = "Search...",
   onSearch,
+  filters,
+  rowActions,
   isLoading,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,23 +95,46 @@ export function DataTable<T extends Record<string, any>>({
     onSearch?.(searchQuery);
   };
 
+  const hasToolbar = !!onSearch || (filters && filters.length > 0);
+  // Total column count including the trailing actions column (if any).
+  const colCount = columns.length + (rowActions ? 1 : 0);
+
   return (
     <div className="space-y-4">
-      {onSearch && (
-        <div className="flex gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              placeholder={searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="pl-9"
-            />
-          </div>
-          <Button variant="outline" onClick={handleSearch}>
-            Search
-          </Button>
+      {hasToolbar && (
+        <div className="flex flex-wrap items-center gap-2">
+          {onSearch && (
+            <div className="flex gap-2">
+              <div className="relative flex-1 max-w-sm">
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  placeholder={searchPlaceholder}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  className="pl-9"
+                />
+              </div>
+              <Button variant="outline" onClick={handleSearch}>
+                Search
+              </Button>
+            </div>
+          )}
+
+          {filters?.map((filter, i) => (
+            <Select key={i} value={filter.value} onValueChange={filter.onChange}>
+              <SelectTrigger size="sm" className="w-auto min-w-32">
+                <SelectValue placeholder={filter.label} />
+              </SelectTrigger>
+              <SelectContent>
+                {filter.options.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ))}
         </div>
       )}
 
@@ -76,18 +145,19 @@ export function DataTable<T extends Record<string, any>>({
               {columns.map((col, i) => (
                 <TableHead key={i}>{col.header}</TableHead>
               ))}
+              {rowActions && <TableHead className="w-12" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={colCount} className="text-center py-8 text-muted-foreground">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={colCount} className="text-center py-8 text-muted-foreground">
                   No results found.
                 </TableCell>
               </TableRow>
@@ -103,6 +173,11 @@ export function DataTable<T extends Record<string, any>>({
                           : ""}
                     </TableCell>
                   ))}
+                  {rowActions && (
+                    <TableCell className="text-right">
+                      <RowActionsMenu actions={rowActions(row)} />
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
@@ -136,5 +211,36 @@ export function DataTable<T extends Record<string, any>>({
         </div>
       )}
     </div>
+  );
+}
+
+function RowActionsMenu({ actions }: { actions: RowAction[] }) {
+  if (!actions.length) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="size-8" aria-label="Row actions">
+          <MoreVerticalIcon className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {actions.map((action, i) => {
+          const Icon = action.icon;
+          return (
+            <div key={i}>
+              {action.separatorBefore && <DropdownMenuSeparator />}
+              <DropdownMenuItem
+                variant={action.variant}
+                disabled={action.disabled}
+                onClick={action.onClick}
+              >
+                {Icon && <Icon className="size-4" />}
+                {action.label}
+              </DropdownMenuItem>
+            </div>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

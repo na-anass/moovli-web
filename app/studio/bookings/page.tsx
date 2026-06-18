@@ -2,9 +2,8 @@
 
 import { BaseLayout } from "@/components/layout/base-layout";
 import { formatMoneyWhole } from "@/lib/money";
-import { DataTable, type Column } from "@/components/shared/data-table";
+import { DataTable, type Column, type RowAction } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { studioApi, type StudioBookingRow } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
 import {
@@ -194,51 +193,44 @@ export default function StudioBookingsPage() {
         </Badge>
       ),
     },
-    {
-      header: "Action",
-      cell: (b) => {
-        const isPendingDirect =
-          b.status === "pending" && b.channel?.type !== "marketplace";
-        const isConfirmedMarketplace =
-          b.status === "confirmed" && b.channel?.type === "marketplace";
-
-        if (isPendingDirect) {
-          return (
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                onClick={() => handleConfirm(b.id)}
-                disabled={actionLoading === b.id}
-              >
-                <CheckIcon className="size-3 mr-1" /> Confirm
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleDecline(b.id)}
-                disabled={actionLoading === b.id}
-              >
-                <XIcon className="size-3" />
-              </Button>
-            </div>
-          );
-        }
-        if (isConfirmedMarketplace) {
-          return (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleCheckin(b.id)}
-              disabled={actionLoading === b.id}
-            >
-              <ClipboardCheckIcon className="size-3 mr-1" /> Check in
-            </Button>
-          );
-        }
-        return null;
-      },
-    },
   ];
+
+  const rowActions = (b: StudioBookingRow): RowAction[] => {
+    const isPendingDirect =
+      b.status === "pending" && b.channel?.type !== "marketplace";
+    const isConfirmedMarketplace =
+      b.status === "confirmed" && b.channel?.type === "marketplace";
+    const busy = actionLoading === b.id;
+
+    if (isPendingDirect) {
+      return [
+        {
+          label: "Confirm",
+          icon: CheckIcon,
+          disabled: busy,
+          onClick: () => handleConfirm(b.id),
+        },
+        {
+          label: "Decline",
+          icon: XIcon,
+          variant: "destructive",
+          disabled: busy,
+          onClick: () => handleDecline(b.id),
+        },
+      ];
+    }
+    if (isConfirmedMarketplace) {
+      return [
+        {
+          label: "Check in",
+          icon: ClipboardCheckIcon,
+          disabled: busy,
+          onClick: () => handleCheckin(b.id),
+        },
+      ];
+    }
+    return [];
+  };
 
   if (!entityId) {
     return <div className="p-8 text-muted-foreground">No studio access found.</div>;
@@ -284,6 +276,7 @@ export default function StudioBookingsPage() {
         page={page}
         pageSize={pageSize}
         onPageChange={setPage}
+        rowActions={rowActions}
         isLoading={loading}
       />
     </BaseLayout>

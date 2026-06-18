@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { studioApi, type AcquisitionSource, type EntityCustomer } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { EyeIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 const SOURCE_LABEL: Record<AcquisitionSource, { label: string; variant: "default" | "secondary" | "outline" }> = {
@@ -33,6 +35,7 @@ const formatDate = (iso: string | null) => {
 
 export default function StudioCustomersPage() {
   const { roles } = useAuth();
+  const router = useRouter();
   const currency = roles?.ownedEntities?.[0]?.currencyCode ?? "MAD";
   const entityId = roles?.ownedEntities?.[0]?.entityId;
 
@@ -132,25 +135,6 @@ export default function StudioCustomersPage() {
       title="Customers"
       subtitle={`Everyone who has booked a session with you. ${total} total.`}
     >
-      {/* Source filter chips */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setSourceFilter("")}
-          className={`px-3 py-1 rounded-full text-xs border ${sourceFilter === "" ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
-        >
-          All
-        </button>
-        {VISIBLE_FILTER_SOURCES.map((src) => (
-          <button
-            key={src}
-            onClick={() => setSourceFilter(sourceFilter === src ? "" : src)}
-            className={`px-3 py-1 rounded-full text-xs border ${sourceFilter === src ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
-          >
-            {SOURCE_LABEL[src].label}
-          </button>
-        ))}
-      </div>
-
       <DataTable
         columns={columns}
         data={customers}
@@ -163,6 +147,30 @@ export default function StudioCustomersPage() {
           setSearch(q);
           setPage(1);
         }}
+        filters={[
+          {
+            label: "Source",
+            value: sourceFilter || "all",
+            onChange: (v) => {
+              setSourceFilter(v === "all" ? "" : (v as AcquisitionSource));
+              setPage(1);
+            },
+            options: [
+              { label: "All sources", value: "all" },
+              ...VISIBLE_FILTER_SOURCES.map((src) => ({
+                label: SOURCE_LABEL[src].label,
+                value: src,
+              })),
+            ],
+          },
+        ]}
+        rowActions={(c) => [
+          {
+            label: "View customer",
+            icon: EyeIcon,
+            onClick: () => router.push(`/studio/customers/${c.id}`),
+          },
+        ]}
         isLoading={loading}
       />
     </BaseLayout>

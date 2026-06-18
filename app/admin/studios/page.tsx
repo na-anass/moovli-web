@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { adminApi } from "@/lib/api/admin";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { EyeIcon } from "lucide-react";
 
 interface Entity {
   id: string;
@@ -32,12 +32,18 @@ export default function StudiosPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(true);
 
   const fetchEntities = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getEntities({ page, limit: 20, search: search || undefined });
+      const res = await adminApi.getEntities({
+        page,
+        limit: 20,
+        search: search || undefined,
+        status: status === "all" ? undefined : status,
+      });
       setData(res.data);
       setTotal(res.pagination.total);
     } catch (e) {
@@ -45,7 +51,7 @@ export default function StudiosPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, status]);
 
   useEffect(() => {
     fetchEntities();
@@ -75,18 +81,6 @@ export default function StudiosPage() {
       header: "Reviews",
       cell: (row) => <span>{row.total_reviews}</span>,
     },
-    {
-      header: "",
-      cell: (row) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push(`/admin/studios/${row.id}`)}
-        >
-          View
-        </Button>
-      ),
-    },
   ];
 
   return (
@@ -105,7 +99,32 @@ export default function StudiosPage() {
         onPageChange={setPage}
         onSearch={setSearch}
         searchPlaceholder="Search by name or city..."
+        filters={[
+          {
+            label: "Status",
+            value: status,
+            onChange: (v) => {
+              setStatus(v);
+              setPage(1);
+            },
+            options: [
+              { label: "All statuses", value: "all" },
+              { label: "Active", value: "active" },
+              { label: "Draft", value: "draft" },
+              { label: "Pending review", value: "pending_review" },
+              { label: "Suspended", value: "suspended" },
+              { label: "Inactive", value: "inactive" },
+            ],
+          },
+        ]}
         isLoading={loading}
+        rowActions={(row) => [
+          {
+            label: "View studio",
+            icon: EyeIcon,
+            onClick: () => router.push(`/admin/studios/${row.id}`),
+          },
+        ]}
       />
     </div>
   );

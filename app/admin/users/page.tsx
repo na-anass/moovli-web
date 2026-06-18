@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { adminApi } from "@/lib/api/admin";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { EyeIcon } from "lucide-react";
 
 interface User {
   id: string;
@@ -28,12 +28,18 @@ export default function UsersPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(true);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getUsers({ page, limit: 20, search: search || undefined });
+      const res = await adminApi.getUsers({
+        page,
+        limit: 20,
+        search: search || undefined,
+        status: status === "all" ? undefined : status,
+      });
       setData(res.data);
       setTotal(res.pagination.total);
     } catch (e) {
@@ -41,7 +47,7 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, status]);
 
   useEffect(() => {
     fetchUsers();
@@ -66,18 +72,6 @@ export default function UsersPage() {
       header: "Joined",
       cell: (row) => new Date(row.created_at).toLocaleDateString(),
     },
-    {
-      header: "",
-      cell: (row) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push(`/admin/users/${row.id}`)}
-        >
-          View
-        </Button>
-      ),
-    },
   ];
 
   return (
@@ -96,7 +90,30 @@ export default function UsersPage() {
         onPageChange={setPage}
         onSearch={setSearch}
         searchPlaceholder="Search by name or email..."
+        filters={[
+          {
+            label: "Status",
+            value: status,
+            onChange: (v) => {
+              setStatus(v);
+              setPage(1);
+            },
+            options: [
+              { label: "All statuses", value: "all" },
+              { label: "Active", value: "active" },
+              { label: "Suspended", value: "suspended" },
+              { label: "Pending verification", value: "pending_verification" },
+            ],
+          },
+        ]}
         isLoading={loading}
+        rowActions={(row) => [
+          {
+            label: "View profile",
+            icon: EyeIcon,
+            onClick: () => router.push(`/admin/users/${row.id}`),
+          },
+        ]}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import { DataTable, type Column } from "@/components/shared/data-table";
 import { FormSheet } from "@/components/shared/form-sheet";
 import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
@@ -14,20 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { catalogApi, type Category } from "@/lib/api/catalog";
 import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
@@ -262,6 +249,67 @@ export default function ServicesPage() {
   // ── Render ───────────────────────────────────────────────────────────────
   const subtitle = `${activeCount} active · ${services.length - activeCount} inactive`;
 
+  const serviceColumns: Column<Service>[] = [
+    {
+      header: "Name",
+      cell: (s) => (
+        <div className={!s.is_active ? "opacity-60" : ""}>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="truncate font-medium">{s.name}</span>
+            {s.is_featured && (
+              <StarIcon className="size-3.5 fill-amber-400 text-amber-400 shrink-0" />
+            )}
+          </div>
+          {s.short_description && (
+            <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-md">
+              {s.short_description}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: "Category",
+      cell: (s) => {
+        const cat = s.category_id ? categoryById.get(s.category_id) : null;
+        return cat ? (
+          <Badge variant="outline" className="text-[10px]">
+            {cat.icon ? `${cat.icon} ` : ""}
+            {cat.name}
+          </Badge>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        );
+      },
+    },
+    {
+      header: "Duration",
+      cell: (s) => <span className="text-sm tabular-nums">{s.duration_minutes} min</span>,
+    },
+    {
+      header: "Capacity",
+      cell: (s) => <span className="text-sm tabular-nums">{s.capacity}</span>,
+    },
+    {
+      header: "Price",
+      cell: (s) => (
+        <span className="text-sm font-medium tabular-nums">
+          {formatMoneyWhole(s.base_price, currency)}
+        </span>
+      ),
+    },
+    {
+      header: "Active",
+      cell: (s) => (
+        <Switch
+          checked={s.is_active}
+          disabled={!canManage}
+          onCheckedChange={() => handleToggleActive(s)}
+        />
+      ),
+    },
+  ];
+
   return (
     <BaseLayout
       maxWidth="xl"
@@ -341,127 +389,43 @@ export default function ServicesPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead className="text-right">Duration</TableHead>
-              <TableHead className="text-right">Capacity</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-              <TableHead className="text-center">Active</TableHead>
-              <TableHead className="w-[100px] text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                  Loading services…
-                </TableCell>
-              </TableRow>
-            ) : filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="py-12">
-                  <EmptyState
-                    hasServices={services.length > 0}
-                    canManage={!!canManage}
-                    onCreate={openCreate}
-                    onClear={clearFilters}
-                  />
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((s) => {
-                const cat = s.category_id ? categoryById.get(s.category_id) : null;
-                return (
-                  <TableRow key={s.id} className={!s.is_active ? "opacity-60" : ""}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="truncate">{s.name}</span>
-                        {s.is_featured && (
-                          <StarIcon className="size-3.5 fill-amber-400 text-amber-400 shrink-0" />
-                        )}
-                      </div>
-                      {s.short_description && (
-                        <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-md">
-                          {s.short_description}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {cat ? (
-                        <Badge variant="outline" className="text-[10px]">
-                          {cat.icon ? `${cat.icon} ` : ""}
-                          {cat.name}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      <span className="text-sm">{s.duration_minutes} min</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      <span className="text-sm">{s.capacity}</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      <span className="text-sm font-medium">
-                        {formatMoneyWhole(s.base_price, currency)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={s.is_active}
-                        disabled={!canManage}
-                        onCheckedChange={() => handleToggleActive(s)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        {canManage && (
-                          <TooltipProvider delayDuration={300}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8"
-                                  onClick={() => openEdit(s)}
-                                >
-                                  <PencilIcon className="size-3.5" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Edit</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8 text-muted-foreground hover:text-destructive"
-                                  onClick={() => {
-                                    setDeletingService(s);
-                                    setDeleteError(null);
-                                  }}
-                                >
-                                  <Trash2Icon className="size-3.5" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Delete</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      {!loading && filtered.length === 0 ? (
+        <div className="rounded-lg border border-border py-12">
+          <EmptyState
+            hasServices={services.length > 0}
+            canManage={!!canManage}
+            onCreate={openCreate}
+            onClear={clearFilters}
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={serviceColumns}
+          data={filtered}
+          isLoading={loading}
+          rowActions={
+            canManage
+              ? (s) => [
+                  {
+                    label: "Edit",
+                    icon: PencilIcon,
+                    onClick: () => openEdit(s),
+                  },
+                  {
+                    label: "Delete",
+                    icon: Trash2Icon,
+                    variant: "destructive",
+                    separatorBefore: true,
+                    onClick: () => {
+                      setDeletingService(s);
+                      setDeleteError(null);
+                    },
+                  },
+                ]
+              : undefined
+          }
+        />
+      )}
 
       {/* Create / Edit sheet */}
       <FormSheet
