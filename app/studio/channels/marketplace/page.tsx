@@ -5,6 +5,7 @@ import { ChannelDeactivateSheet } from "@/components/studio/channel-deactivate-s
 import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { entityPlansApi, type EntityPlan } from "@/lib/api/entityPlans";
 import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
@@ -31,9 +32,8 @@ export default function StudioChannelMarketplacePage() {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
 
-  // Studio-set markup slider state.
+  // Studio-set markup. Floor 20%, no upper cap.
   const MARKUP_FLOOR = 20;
-  const MARKUP_CEILING = 50;
   const [markup, setMarkup] = useState<number>(MARKUP_FLOOR);
   const [savingMarkup, setSavingMarkup] = useState(false);
   const [markupSaved, setMarkupSaved] = useState(false);
@@ -52,7 +52,7 @@ export default function StudioChannelMarketplacePage() {
       // the plan's baseline (clamped to the allowed range).
       const saved = prefRes.data.marketplace_markup_pct;
       const baseline = Math.round(Number(subRes.data.plan?.base_markup_pct ?? MARKUP_FLOOR));
-      setMarkup(Math.max(MARKUP_FLOOR, Math.min(MARKUP_CEILING, saved ?? baseline)));
+      setMarkup(Math.max(MARKUP_FLOOR, saved ?? baseline));
     } catch (e) {
       console.error(e);
     } finally {
@@ -62,10 +62,12 @@ export default function StudioChannelMarketplacePage() {
 
   const saveMarkup = async () => {
     if (!entityId) return;
+    const value = Math.max(MARKUP_FLOOR, Math.round(markup) || MARKUP_FLOOR);
     setSavingMarkup(true);
     setMarkupSaved(false);
     try {
-      const res = await studioApi.updateChannelPrefs(entityId, { marketplace_markup_pct: markup });
+      const res = await studioApi.updateChannelPrefs(entityId, { marketplace_markup_pct: value });
+      setMarkup(value);
       setPrefs(res.data);
       setMarkupSaved(true);
       setTimeout(() => setMarkupSaved(false), 3000);
@@ -249,28 +251,29 @@ export default function StudioChannelMarketplacePage() {
             </div>
           </div>
 
-          {/* Markup slider — studios set their own markup (min 20%). */}
+          {/* Studio sets its own markup — minimum 20%, no upper cap. */}
           {canManage ? (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium">Your marketplace markup</label>
-                <span className="text-sm font-semibold tabular-nums">{markup}%</span>
-              </div>
-              <input
-                type="range"
-                min={MARKUP_FLOOR}
-                max={MARKUP_CEILING}
-                step={1}
-                value={markup}
-                onChange={(e) => setMarkup(Number(e.target.value))}
-                className="w-full accent-primary"
-                aria-label="Marketplace markup percentage"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>Min {MARKUP_FLOOR}%</span>
-                <span>Max {MARKUP_CEILING}%</span>
-              </div>
+              <label className="text-xs font-medium" htmlFor="markup-input">
+                Your marketplace markup
+              </label>
               <div className="flex items-center gap-2">
+                <div className="relative w-32">
+                  <Input
+                    id="markup-input"
+                    type="number"
+                    min={MARKUP_FLOOR}
+                    step={1}
+                    value={markup}
+                    onChange={(e) => setMarkup(Number(e.target.value))}
+                    onBlur={() => setMarkup((m) => Math.max(MARKUP_FLOOR, Math.round(m) || MARKUP_FLOOR))}
+                    className="pr-7"
+                    aria-label="Marketplace markup percentage"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                    %
+                  </span>
+                </div>
                 <Button size="sm" onClick={saveMarkup} disabled={savingMarkup || markup === (prefs?.marketplace_markup_pct ?? -1)}>
                   {savingMarkup ? "Saving…" : "Save markup"}
                 </Button>
@@ -280,15 +283,18 @@ export default function StudioChannelMarketplacePage() {
                   </Badge>
                 )}
               </div>
+              <p className="text-[10px] text-muted-foreground">
+                Minimum {MARKUP_FLOOR}% — no maximum.
+              </p>
             </div>
           ) : null}
 
           <div className="space-y-2 text-xs text-muted-foreground">
             <p>
               <span className="font-medium text-foreground">How markup works:</span> You choose the
-              markup Moovli adds on top of your session price (minimum {MARKUP_FLOOR}%, up to{" "}
-              {MARKUP_CEILING}%). A higher markup means bookers pay more — your recommended baseline
-              is {baseMarkup}%.
+              markup Moovli adds on top of your session price (minimum {MARKUP_FLOOR}%, no upper
+              limit). A higher markup means bookers pay more — your recommended baseline is{" "}
+              {baseMarkup}%.
             </p>
             <p>
               <span className="font-medium text-foreground">Your earnings:</span> You always
