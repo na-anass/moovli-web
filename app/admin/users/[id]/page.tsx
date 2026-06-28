@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDate } from "@/lib/datetime";
 import { useParams, useRouter } from "next/navigation";
 import { adminApi } from "@/lib/api/admin";
 import { Button } from "@/components/ui/button";
@@ -106,7 +107,7 @@ export default function UserDetailPage() {
           <div>
             <p className="text-muted-foreground">Joined</p>
             <p className="font-medium">
-              {new Date(user.created_at).toLocaleDateString()}
+              {formatDate(user.created_at)}
             </p>
           </div>
           <div>

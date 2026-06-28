@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
+import { formatTime, formatWeekdayShort, localDateStr } from "@/lib/datetime";
 import { ClockIcon, UsersIcon } from "lucide-react";
 import { notFound } from "next/navigation";
 
@@ -17,12 +18,6 @@ interface SessionRow {
   service: { name: string; duration_minutes: number } | null;
   provider: { name: string } | null;
 }
-
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-
-const formatDateHeader = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
 export default async function EmbedWidgetPage({ params }: PageProps) {
   const { embedSlug } = await params;
@@ -71,7 +66,7 @@ export default async function EmbedWidgetPage({ params }: PageProps) {
 
   // Group by date
   const sessionsByDate = sessions.reduce<Record<string, SessionRow[]>>((acc, s) => {
-    const day = s.start_time.slice(0, 10);
+    const day = localDateStr(new Date(s.start_time));
     if (!acc[day]) acc[day] = [];
     acc[day].push(s);
     return acc;
@@ -90,7 +85,7 @@ export default async function EmbedWidgetPage({ params }: PageProps) {
           {Object.entries(sessionsByDate).map(([day, daySessions]) => (
             <section key={day}>
               <h3 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">
-                {formatDateHeader(daySessions[0].start_time)}
+                {formatWeekdayShort(daySessions[0].start_time)}
               </h3>
               <div className="space-y-1">
                 {daySessions.map((s) => {

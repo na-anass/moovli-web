@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDateTime } from "@/lib/datetime";
 import { instructorApi } from "@/lib/api/instructor";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +49,7 @@ export default function InstructorDashboardPage() {
     },
     {
       header: "Time",
-      cell: (row) => new Date(row.start_time).toLocaleString(),
+      cell: (row) => formatDateTime(row.start_time),
     },
     {
       header: "Capacity",

@@ -166,8 +166,8 @@ export default function StudioChannelMarketplacePage() {
               <p className="text-xs text-muted-foreground mt-1">
                 Your current plan ({plan?.name ?? "Standard"}) doesn&apos;t include marketplace
                 distribution. Upgrade to Marketplace to start receiving bookings from Moovli
-                app users — you keep 100% of your session price and Moovli adds a small
-                platform margin on top.
+                app users — you set a list price and a small commission, and receive the net
+                on every marketplace booking.
               </p>
               <Button asChild size="sm" className="mt-3">
                 <Link href="/studio/billing">
@@ -219,43 +219,43 @@ export default function StudioChannelMarketplacePage() {
             <div className="flex items-baseline justify-between gap-4">
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Your session price
+                  Your list price
                 </div>
                 <div className="text-xl font-semibold mt-0.5">{formatMoneyWhole(100, currency)}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  You always receive this amount
+                  You set this
                 </div>
               </div>
-              <div className="text-muted-foreground">+</div>
+              <div className="text-muted-foreground">−</div>
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Marketplace markup
+                  Commission to Moovli
                 </div>
                 <div className="text-xl font-semibold mt-0.5">{markup}%</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  You set this
+                  Your wholesale discount
                 </div>
               </div>
               <div className="text-muted-foreground">=</div>
               <div className="text-right">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Booker pays
+                  You receive
                 </div>
                 <div className="text-xl font-semibold mt-0.5 text-primary">
-                  {formatMoneyWhole(Math.round(100 * (1 + markup / 100)), currency)}
+                  {formatMoneyWhole(Math.round(100 * (1 - markup / 100)), currency)}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Example for a {formatMoneyWhole(100, currency)} session
+                  Net, for a {formatMoneyWhole(100, currency)} session
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Studio sets its own markup — minimum 20%, no upper cap. */}
+          {/* Studio sets its own commission — minimum 20%, no upper cap. */}
           {canManage ? (
             <div className="space-y-3">
               <label className="text-xs font-medium" htmlFor="markup-input">
-                Your marketplace markup
+                Your commission to Moovli
               </label>
               <div className="flex items-center gap-2">
                 <div className="relative w-32">
@@ -268,14 +268,14 @@ export default function StudioChannelMarketplacePage() {
                     onChange={(e) => setMarkup(Number(e.target.value))}
                     onBlur={() => setMarkup((m) => Math.max(MARKUP_FLOOR, Math.round(m) || MARKUP_FLOOR))}
                     className="pr-7"
-                    aria-label="Marketplace markup percentage"
+                    aria-label="Marketplace commission percentage"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
                     %
                   </span>
                 </div>
                 <Button size="sm" onClick={saveMarkup} disabled={savingMarkup || markup === (prefs?.marketplace_markup_pct ?? -1)}>
-                  {savingMarkup ? "Saving…" : "Save markup"}
+                  {savingMarkup ? "Saving…" : "Save commission"}
                 </Button>
                 {markupSaved && (
                   <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">
@@ -291,15 +291,16 @@ export default function StudioChannelMarketplacePage() {
 
           <div className="space-y-2 text-xs text-muted-foreground">
             <p>
-              <span className="font-medium text-foreground">How markup works:</span> You choose the
-              markup Moovli adds on top of your session price (minimum {MARKUP_FLOOR}%, no upper
-              limit). A higher markup means bookers pay more — your recommended baseline is{" "}
-              {baseMarkup}%.
+              <span className="font-medium text-foreground">How it works:</span> Your commission is
+              the wholesale discount you give Moovli (minimum {MARKUP_FLOOR}%). Moovli lists your
+              session on the marketplace at its own price — set dynamically by timing and demand —
+              and keeps the difference. Recommended baseline: {baseMarkup}%.
             </p>
             <p>
-              <span className="font-medium text-foreground">Your earnings:</span> You always
-              receive your full posted price in MAD. The markup is what Moovli keeps for
-              providing customer acquisition, payment processing, and discovery.
+              <span className="font-medium text-foreground">Your earnings:</span> You always receive
+              your <span className="font-medium text-foreground">net</span> — your list price minus
+              your commission — no matter what Moovli sells it for. The commission covers customer
+              acquisition, payment processing, and discovery.
             </p>
           </div>
         </section>

@@ -2,6 +2,7 @@
 
 import { BaseLayout } from "@/components/layout/base-layout";
 import { formatMoneyWhole } from "@/lib/money";
+import { formatDateTime } from "@/lib/datetime";
 import { DataTable, type Column, type RowAction } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { studioApi, type StudioBookingRow } from "@/lib/api/studio";
@@ -29,16 +30,6 @@ const STATUS_VARIANT: Record<
   no_show: { label: "No-show", variant: "destructive" },
 };
 
-const formatDateTime = (iso: string | null) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 export default function StudioBookingsPage() {
   const activeEntity = useActiveEntity();

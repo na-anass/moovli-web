@@ -28,6 +28,9 @@ import {
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  ChevronsUpDownIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
   MoreVerticalIcon,
   SearchIcon,
 } from "lucide-react";
@@ -36,6 +39,8 @@ export interface Column<T> {
   header: string;
   accessorKey?: keyof T;
   cell?: (row: T) => React.ReactNode;
+  /** When set (and onSortChange is provided), the header becomes a sort toggle. */
+  sortKey?: string;
 }
 
 export interface FilterOption {
@@ -73,6 +78,11 @@ interface DataTableProps<T> {
   filters?: FilterConfig[];
   rowActions?: (row: T) => RowAction[];
   isLoading?: boolean;
+  /** Active sort column key + direction (controlled by the parent). */
+  sortKey?: string;
+  sortDir?: "asc" | "desc";
+  /** Called with a column's sortKey when its header is clicked. */
+  onSortChange?: (key: string) => void;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -87,6 +97,9 @@ export function DataTable<T extends Record<string, any>>({
   filters,
   rowActions,
   isLoading,
+  sortKey,
+  sortDir,
+  onSortChange,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState("");
   const totalPages = Math.ceil(total / pageSize);
@@ -142,9 +155,24 @@ export function DataTable<T extends Record<string, any>>({
         <Table>
           <TableHeader>
             <TableRow>
-              {columns.map((col, i) => (
-                <TableHead key={i}>{col.header}</TableHead>
-              ))}
+              {columns.map((col, i) => {
+                const sortable = col.sortKey && onSortChange;
+                if (!sortable) return <TableHead key={i}>{col.header}</TableHead>;
+                const active = sortKey === col.sortKey;
+                const Arrow = !active ? ChevronsUpDownIcon : sortDir === "asc" ? ChevronUpIcon : ChevronDownIcon;
+                return (
+                  <TableHead key={i}>
+                    <button
+                      type="button"
+                      onClick={() => onSortChange!(col.sortKey!)}
+                      className={`inline-flex items-center gap-1 hover:text-foreground ${active ? "text-foreground" : ""}`}
+                    >
+                      {col.header}
+                      <Arrow className={`size-3.5 ${active ? "" : "opacity-50"}`} />
+                    </button>
+                  </TableHead>
+                );
+              })}
               {rowActions && <TableHead className="w-12" />}
             </TableRow>
           </TableHeader>
@@ -175,7 +203,7 @@ export function DataTable<T extends Record<string, any>>({
                   ))}
                   {rowActions && (
                     <TableCell className="text-right">
-                      <RowActionsMenu actions={rowActions(row)} />
+                      {rowActions(row).length > 0 && <RowActionsMenu actions={rowActions(row)} />}
                     </TableCell>
                   )}
                 </TableRow>

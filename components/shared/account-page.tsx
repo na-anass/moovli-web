@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDate } from "@/lib/datetime";
 import { useAuth } from "@/lib/auth/provider";
 import { apiClient } from "@/lib/api/client";
 import { BaseLayout } from "@/components/layout/base-layout";
@@ -207,7 +208,7 @@ export function AccountPage() {
                     <Badge variant="outline">Studio {roles!.ownedEntities[0].role}</Badge>
                   )}
                   <span className="text-xs text-muted-foreground">
-                    Joined {new Date(profile.created_at).toLocaleDateString()}
+                    Joined {formatDate(profile.created_at)}
                   </span>
                 </div>
               </div>
@@ -242,7 +243,7 @@ export function AccountPage() {
                 </div>
               ) : (
                 <FormField label="Date of Birth" editing={false}
-                  value={profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : null}
+                  value={profile.date_of_birth ? formatDate(profile.date_of_birth) : null}
                   formValue="" onChange={() => {}} />
               )}
               {editing ? (

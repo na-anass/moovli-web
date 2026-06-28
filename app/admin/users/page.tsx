@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatDate } from "@/lib/datetime";
 import { useRouter } from "next/navigation";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { adminApi } from "@/lib/api/admin";
@@ -70,7 +71,7 @@ export default function UsersPage() {
     },
     {
       header: "Joined",
-      cell: (row) => new Date(row.created_at).toLocaleDateString(),
+      cell: (row) => formatDate(row.created_at),
     },
   ];
 

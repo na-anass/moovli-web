@@ -1,6 +1,14 @@
 import { apiClient } from "./client";
 import type { PaginatedResponse } from "./admin";
 
+/**
+ * Recurring action scope (Google-Calendar style):
+ * - single    → just this occurrence
+ * - following → this occurrence + later ones in the series
+ * - series    → every occurrence in the series
+ */
+export type SessionScope = "single" | "following" | "series";
+
 export interface StudioDashboardMetrics {
   bookingsThisWeek: number;
   bookingsLastWeek: number;
@@ -52,13 +60,20 @@ export const studioApi = {
 
   getSessions: (
     entityId: string,
-    params?: { page?: number; limit?: number; status?: string; lifecycle_status?: string },
+    params?: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      lifecycle_status?: string;
+      include_archived?: boolean;
+    },
   ) => {
     const query = new URLSearchParams();
     if (params?.page) query.set("page", String(params.page));
     if (params?.limit) query.set("limit", String(params.limit));
     if (params?.status) query.set("status", params.status);
     if (params?.lifecycle_status) query.set("lifecycle_status", params.lifecycle_status);
+    if (params?.include_archived) query.set("include_archived", "true");
     return apiClient<PaginatedResponse<any>>(`/api/studio/${entityId}/sessions?${query}`);
   },
 
@@ -68,11 +83,18 @@ export const studioApi = {
       body: JSON.stringify(data),
     }),
 
-  updateSession: (entityId: string, sessionId: string, data: Record<string, any>) =>
-    apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/sessions/${sessionId}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
+  // Update a session. scope controls how a recurring series is affected:
+  // "single" (this one) · "following" (this + later) · "series" (all).
+  updateSession: (
+    entityId: string,
+    sessionId: string,
+    data: Record<string, any>,
+    scope: SessionScope = "single",
+  ) =>
+    apiClient<{ success: boolean; updated: number; session?: any }>(
+      `/api/studio/${entityId}/sessions/${sessionId}?scope=${scope}`,
+      { method: "PUT", body: JSON.stringify(data) },
+    ),
 
   // Publish a draft session — goes live on its channels. Optionally pass the
   // same channel-publish options used at create time.
@@ -82,17 +104,30 @@ export const studioApi = {
       { method: "POST", body: JSON.stringify(data) },
     ),
 
-  // Cancel a published session. scope="series" cancels the whole recurring series.
-  cancelSession: (entityId: string, sessionId: string, scope: "single" | "series" = "single") =>
+  // Cancel a published session. scope selects the slice of a recurring series.
+  cancelSession: (entityId: string, sessionId: string, scope: SessionScope = "single") =>
     apiClient<{ success: boolean; message: string; cancelled: number }>(
       `/api/studio/${entityId}/sessions/${sessionId}/cancel?scope=${scope}`,
       { method: "POST" },
     ),
 
-  deleteSession: (entityId: string, sessionId: string) =>
-    apiClient<{ success: boolean }>(`/api/studio/${entityId}/sessions/${sessionId}`, {
-      method: "DELETE",
-    }),
+  // Delete draft session(s). Published occurrences in a series are skipped.
+  deleteSession: (entityId: string, sessionId: string, scope: SessionScope = "single") =>
+    apiClient<{ success: boolean; deleted: number; skipped_published: number; message: string }>(
+      `/api/studio/${entityId}/sessions/${sessionId}?scope=${scope}`,
+      { method: "DELETE" },
+    ),
+
+  // Archive / unarchive session(s). Only cancelled/completed sessions can be archived.
+  archiveSession: (
+    entityId: string,
+    sessionId: string,
+    opts: { archived: boolean; scope?: SessionScope },
+  ) =>
+    apiClient<{ success: boolean; count: number; message: string }>(
+      `/api/studio/${entityId}/sessions/${sessionId}/archive`,
+      { method: "POST", body: JSON.stringify({ archived: opts.archived, scope: opts.scope ?? "single" }) },
+    ),
 
   getBookings: (
     entityId: string,
@@ -211,8 +246,28 @@ export const studioApi = {
       body: JSON.stringify(data),
     }),
 
-  getProviders: (entityId: string) =>
-    apiClient<{ success: boolean; data: any[] }>(`/api/studio/${entityId}/providers`),
+  // `all` includes inactive instructors (studio management table).
+  getProviders: (entityId: string, all?: boolean) =>
+    apiClient<{ success: boolean; data: any[] }>(
+      `/api/studio/${entityId}/providers${all ? "?all=true" : ""}`,
+    ),
+
+  createProvider: (entityId: string, data: Record<string, any>) =>
+    apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/providers`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateProvider: (entityId: string, providerId: string, data: Record<string, any>) =>
+    apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/providers/${providerId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  deleteProvider: (entityId: string, providerId: string) =>
+    apiClient<{ success: boolean; message: string }>(`/api/studio/${entityId}/providers/${providerId}`, {
+      method: "DELETE",
+    }),
 
   inviteProvider: (entityId: string, data: { name: string; email?: string }) =>
     apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/providers/invite`, {

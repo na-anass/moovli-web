@@ -28,19 +28,7 @@ import {
   InfoIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-const formatDate = (iso: string | null) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-};
+import { formatDateLong } from "@/lib/datetime";
 
 const daysBetween = (from: Date, to: Date) =>
   Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
@@ -167,7 +155,7 @@ export default function StudioBillingPage() {
             Your trial ends in {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"}
           </AlertTitle>
           <AlertDescription>
-            Add a payment method by {formatDate(subscription?.trial_end ?? null)} to keep your
+            Add a payment method by {formatDateLong(subscription?.trial_end ?? null)} to keep your
             subscription active.
           </AlertDescription>
         </Alert>
@@ -191,7 +179,7 @@ export default function StudioBillingPage() {
           <InfoIcon className="size-4" />
           <AlertTitle>Subscription scheduled to cancel</AlertTitle>
           <AlertDescription>
-            Your subscription will end on {formatDate(subscription.current_period_end)}. You can
+            Your subscription will end on {formatDateLong(subscription.current_period_end)}. You can
             reactivate any time before then in the billing portal.
           </AlertDescription>
         </Alert>
@@ -222,13 +210,13 @@ export default function StudioBillingPage() {
               {subscription.current_period_end && (
                 <div>
                   <dt className="text-muted-foreground">Next bill</dt>
-                  <dd>{formatDate(subscription.current_period_end)}</dd>
+                  <dd>{formatDateLong(subscription.current_period_end)}</dd>
                 </div>
               )}
               {subscription.trial_end && isTrialing && (
                 <div>
                   <dt className="text-muted-foreground">Trial ends</dt>
-                  <dd>{formatDate(subscription.trial_end)}</dd>
+                  <dd>{formatDateLong(subscription.trial_end)}</dd>
                 </div>
               )}
               {subscription.payment_attempt_count != null && subscription.payment_attempt_count > 0 && (
@@ -348,7 +336,7 @@ export default function StudioBillingPage() {
               <tbody>
                 {invoices.map((inv) => (
                   <tr key={inv.id} className="border-b last:border-b-0">
-                    <td className="py-2">{formatDate(inv.paid_at ?? inv.created_at)}</td>
+                    <td className="py-2">{formatDateLong(inv.paid_at ?? inv.created_at)}</td>
                     <td className="py-2 font-medium">
                       {inv.amount_mad} {inv.currency}
                     </td>

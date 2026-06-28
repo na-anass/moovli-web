@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatTime, formatDateFull } from "@/lib/datetime";
 import { instructorApi } from "@/lib/api/instructor";
 
 interface ScheduleItem {
@@ -63,11 +64,7 @@ export default function InstructorSchedulePage() {
           {Object.entries(grouped).map(([date, items]) => (
             <div key={date}>
               <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                {new Date(date).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
+                {formatDateFull(items[0].start_time)}
               </h3>
               <div className="space-y-2">
                 {items.map((item) => (
@@ -78,10 +75,7 @@ export default function InstructorSchedulePage() {
                     <div className="flex items-center gap-4">
                       <div className="text-center min-w-[60px]">
                         <p className="text-sm font-bold">
-                          {new Date(item.start_time).toLocaleTimeString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatTime(item.start_time)}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {item.service?.duration_minutes || "?"}min

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { formatMoneyWhole } from "@/lib/money";
+import { formatDateFull, formatTimeRange } from "@/lib/datetime";
 import { ArrowUpRightIcon, CalendarIcon, ClockIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { GuestBookingForm } from "./session/[sessionId]/guest-booking-form";
@@ -35,16 +36,6 @@ interface Props {
   currency: string;
 }
 
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
 export function BookingSheet({
   open,
@@ -77,11 +68,11 @@ export function BookingSheet({
               <SheetDescription className="space-y-1">
                 <span className="flex items-center gap-1.5 text-sm">
                   <CalendarIcon className="size-3.5" />
-                  {formatDate(session.start_time)}
+                  {formatDateFull(session.start_time)}
                 </span>
                 <span className="flex items-center gap-1.5 text-sm">
                   <ClockIcon className="size-3.5" />
-                  {formatTime(session.start_time)} – {formatTime(session.end_time)}
+                  {formatTimeRange(session.start_time, session.end_time)}
                   {session.service?.duration_minutes && (
                     <span className="text-muted-foreground">
                       {" "}

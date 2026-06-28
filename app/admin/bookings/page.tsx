@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { adminApi } from "@/lib/api/admin";
 import { Badge } from "@/components/ui/badge";
@@ -79,12 +80,12 @@ export default function BookingsPage() {
       header: "Session Time",
       cell: (row) =>
         row.session?.start_time
-          ? new Date(row.session.start_time).toLocaleString()
+          ? formatDateTime(row.session.start_time)
           : "N/A",
     },
     {
       header: "Booked",
-      cell: (row) => new Date(row.created_at).toLocaleDateString(),
+      cell: (row) => formatDate(row.created_at),
     },
   ];
 

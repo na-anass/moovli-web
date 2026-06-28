@@ -2,6 +2,7 @@
 
 import { BaseLayout } from "@/components/layout/base-layout";
 import { formatMoneyWhole } from "@/lib/money";
+import { formatDate } from "@/lib/datetime";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { studioApi, type AcquisitionSource, type EntityCustomer } from "@/lib/api/studio";
@@ -28,10 +29,6 @@ const SOURCE_LABEL: Record<AcquisitionSource, { label: string; variant: "default
 // on the two channels studios actually configure today.
 const VISIBLE_FILTER_SOURCES: AcquisitionSource[] = ["marketplace", "direct_hosted"];
 
-const formatDate = (iso: string | null) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-};
 
 export default function StudioCustomersPage() {
   const activeEntity = useActiveEntity();

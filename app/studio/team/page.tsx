@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { formatDate } from "@/lib/datetime";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
@@ -216,7 +217,7 @@ export default function TeamPage() {
       header: "Joined",
       cell: (member) => (
         <span className="text-sm text-muted-foreground">
-          {new Date(member.created_at).toLocaleDateString()}
+          {formatDate(member.created_at)}
         </span>
       ),
     },

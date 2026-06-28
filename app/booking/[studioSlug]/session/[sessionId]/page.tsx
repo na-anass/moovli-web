@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatMoneyWhole } from "@/lib/money";
+import { formatDateFull, formatTimeRange, isPast as isPastInstant } from "@/lib/datetime";
 import { ArrowLeftIcon, CalendarIcon, ClockIcon, MapPinIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,17 +9,6 @@ import { GuestBookingForm } from "./guest-booking-form";
 interface PageProps {
   params: Promise<{ studioSlug: string; sessionId: string }>;
 }
-
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
 export default async function SessionDetailPage({ params }: PageProps) {
   const { studioSlug, sessionId } = await params;
@@ -74,8 +64,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
   const spotsLeft = session.capacity - session.booked_count;
   const isFull = spotsLeft <= 0;
-  const sessionStart = new Date(session.start_time);
-  const isPast = sessionStart <= new Date();
+  const isPast = isPastInstant(session.start_time);
 
   // Service & provider can be returned as arrays from PostgREST joins
   const service = (Array.isArray(session.service) ? session.service[0] : session.service) as {
@@ -110,7 +99,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
             <CalendarIcon className="size-4 text-muted-foreground" />
             <div>
               <dt className="text-xs text-muted-foreground">Date</dt>
-              <dd className="font-medium">{formatDate(session.start_time)}</dd>
+              <dd className="font-medium">{formatDateFull(session.start_time)}</dd>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -118,7 +107,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
             <div>
               <dt className="text-xs text-muted-foreground">Time</dt>
               <dd className="font-medium">
-                {formatTime(session.start_time)} – {formatTime(session.end_time)}
+                {formatTimeRange(session.start_time, session.end_time)}
                 {service?.duration_minutes != null && (
                   <span className="text-muted-foreground"> ({service.duration_minutes} min)</span>
                 )}

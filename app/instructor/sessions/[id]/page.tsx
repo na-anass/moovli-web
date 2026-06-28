@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDate } from "@/lib/datetime";
 import { useParams, useRouter } from "next/navigation";
 import { instructorApi } from "@/lib/api/instructor";
 import { Button } from "@/components/ui/button";
@@ -106,7 +107,7 @@ export default function SessionAttendeesPage() {
                 <div>
                   <p className="text-sm font-medium">User {attendee.user_id.substring(0, 8)}...</p>
                   <p className="text-xs text-muted-foreground">
-                    Booked {new Date(attendee.created_at).toLocaleDateString()}
+                    Booked {formatDate(attendee.created_at)}
                     {attendee.credits_cost > 0 && ` — ${attendee.credits_cost} credits`}
                   </p>
                 </div>

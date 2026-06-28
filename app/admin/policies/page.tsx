@@ -21,6 +21,7 @@ import {
   TrendingUpIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatDateCustom } from "@/lib/datetime";
 
 // ============================================================================
 // Category styling — icon + accent per group of settings
@@ -232,13 +233,7 @@ function SettingRow({
         )}
         <p className="text-[10px] text-muted-foreground mt-1.5">
           Last updated{" "}
-          {new Date(setting.updated_at).toLocaleString(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {formatDateCustom(setting.updated_at, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
         </p>
       </div>
 

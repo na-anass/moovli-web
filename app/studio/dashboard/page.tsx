@@ -6,6 +6,7 @@ import { StatsCard } from "@/components/shared/stats-card";
 import { studioApi, type StudioDashboardMetrics } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
 import { formatMoneyWhole } from "@/lib/money";
+import { formatTime, formatDateCustom } from "@/lib/datetime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -178,18 +179,18 @@ export default function StudioDashboardPage() {
                     <div className="flex items-center gap-4 min-w-0">
                       <div className="text-center min-w-12 shrink-0">
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          {isToday ? "Today" : start.toLocaleDateString("en-US", { weekday: "short" })}
+                          {isToday ? "Today" : formatDateCustom(start, { weekday: "short" })}
                         </p>
                         <p className="text-lg font-bold leading-tight">
-                          {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {formatTime(start)}
                         </p>
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium truncate">{s.service?.name ?? "Session"}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {formatTime(start)}
                           {" — "}
-                          {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {formatTime(end)}
                           {s.provider?.name ? ` · ${s.provider.name}` : ""}
                         </p>
                       </div>

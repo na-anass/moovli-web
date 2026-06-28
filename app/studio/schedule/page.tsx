@@ -14,10 +14,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { entityPlansApi } from "@/lib/api/entityPlans";
-import { studioApi } from "@/lib/api/studio";
+import { studioApi, type SessionScope } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
 import { formatMoneyWhole } from "@/lib/money";
+import {
+  formatTime,
+  formatDate,
+  formatDateTime,
+  formatDateCustom,
+  localDateStr,
+  localInputsToISO,
+  toDateInput,
+  toTimeInput,
+  addMinutesToTime,
+  minutesBetweenTimes,
+} from "@/lib/datetime";
 import Link from "next/link";
 import {
   CalendarIcon,
@@ -28,6 +48,7 @@ import {
   ListIcon,
   PencilIcon,
   PlusIcon,
+  SearchIcon,
   SendIcon,
   Trash2Icon,
   UsersIcon,
@@ -49,8 +70,12 @@ interface Session {
   status: string;
   /** Publication lifecycle: 'draft' (studio-only, deletable) or 'published' (live, cancel-only). */
   lifecycle_status?: string;
-  /** Shared id across a recurring series — enables "cancel whole series". */
+  /** Shared id across a recurring series — enables scoped series actions. */
   recurrence_group_id?: string | null;
+  /** Housekeeping visibility: null = active, timestamp = archived (hidden by default). */
+  archived_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
   // MAD-based pricing (spec A)
   price_mad?: number;
   marketplace_price_mad?: number;
@@ -97,22 +122,36 @@ type ViewMode = "week" | "day" | "list";
 // Must match moovli-api's CREDIT_VALUE_MAD env (default 10).
 const CREDIT_VALUE_MAD = 10;
 
-const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  available: { bg: "bg-emerald-50 dark:bg-emerald-950/40", border: "border-l-emerald-500", text: "text-emerald-700 dark:text-emerald-300" },
-  full: { bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-l-amber-500", text: "text-amber-700 dark:text-amber-300" },
-  cancelled: { bg: "bg-red-50 dark:bg-red-950/40", border: "border-l-red-500", text: "text-red-700 dark:text-red-300 line-through opacity-60" },
-  completed: { bg: "bg-gray-50 dark:bg-gray-900/40", border: "border-l-gray-400", text: "text-gray-500 dark:text-gray-400" },
-};
-
-// Old / due sessions (already ended) render in a muted gray treatment in every
-// view, regardless of their status — so the calendar reads "past = done".
-const PAST_COLORS = {
-  bg: "bg-gray-50 dark:bg-gray-900/40",
-  border: "border-l-gray-300 dark:border-l-gray-700",
-  text: "text-gray-400 dark:text-gray-500",
-};
-
 const isPastSession = (s: { end_time: string }) => new Date(s.end_time) < new Date();
+
+// ONE user-facing status per session, derived from the two underlying columns
+// (`lifecycle_status` + `status`) plus time. Every surface — the list badge, the
+// calendar card, and the filter dropdown — reads this, so the raw DB terms
+// ("available" / "published") never reach the UI and can't confuse anyone.
+type DisplayStatus = "draft" | "scheduled" | "full" | "cancelled" | "completed";
+
+const displayStatus = (s: {
+  lifecycle_status?: string;
+  status: string;
+  end_time: string;
+}): DisplayStatus => {
+  if ((s.lifecycle_status ?? "published") === "draft") return "draft";
+  if (s.status === "cancelled") return "cancelled";
+  if (isPastSession(s)) return "completed";
+  if (s.status === "full") return "full";
+  return "scheduled";
+};
+
+const DISPLAY_STATUS: Record<
+  DisplayStatus,
+  { label: string; bg: string; border: string; text: string }
+> = {
+  draft: { label: "Draft", bg: "bg-muted", border: "border-l-gray-400 dark:border-l-gray-600", text: "text-muted-foreground" },
+  scheduled: { label: "Scheduled", bg: "bg-emerald-50 dark:bg-emerald-950/40", border: "border-l-emerald-500", text: "text-emerald-700 dark:text-emerald-300" },
+  full: { bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-l-amber-500", text: "text-amber-700 dark:text-amber-300", label: "Full" },
+  cancelled: { label: "Cancelled", bg: "bg-red-50 dark:bg-red-950/40", border: "border-l-red-500", text: "text-red-700 dark:text-red-300 line-through opacity-70" },
+  completed: { label: "Completed", bg: "bg-gray-50 dark:bg-gray-900/40", border: "border-l-gray-400", text: "text-gray-500 dark:text-gray-400" },
+};
 
 // Group sessions whose time ranges overlap into clusters, so the calendar can
 // lay them out side-by-side (Google-Calendar style) instead of stacking them.
@@ -137,13 +176,13 @@ const clusterByOverlap = <T extends { start_time: string; end_time: string }>(it
   return clusters;
 };
 
-// Max columns rendered side-by-side before collapsing the rest into "+N more".
-const MAX_OVERLAP_COLUMNS = 3;
+// Height (px) of one stacked overlap line (sessions sharing the same start).
+const OVERLAP_LINE_H = 22;
 
 // Resolve the visual palette for a session: past sessions are always grayed out,
 // otherwise we use the status palette.
-const sessionColors = (s: { end_time: string; status: string }) =>
-  isPastSession(s) ? PAST_COLORS : STATUS_COLORS[s.status] || STATUS_COLORS.available;
+const sessionColors = (s: { lifecycle_status?: string; end_time: string; status: string }) =>
+  DISPLAY_STATUS[displayStatus(s)];
 
 // ============================================================================
 // HOURS CONFIG (for calendar time grid)
@@ -162,13 +201,53 @@ export default function SchedulePage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  // List-view sort (default: soonest first).
+  const [sortKey, setSortKey] = useState<"start_time" | "price_mad" | "booked_count" | "updated_at">("start_time");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const PAGE_SIZE = 50;
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewMode>("week");
 
   // Filters — applied client-side over the fetched window so all three views
-  // stay in sync without refetching.
-  const [lifecycleFilter, setLifecycleFilter] = useState<"all" | "draft" | "published">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  // stay in sync without refetching. Two clear axes, both derived from
+  // displayStatus(): Visibility = is it public (draft vs published); Status =
+  // the session's state (scheduled/full/cancelled/completed).
+  type VisibilityFilter = "all" | "draft" | "published";
+  type StateFilter = "all" | "scheduled" | "full" | "cancelled" | "completed";
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
+  const [stateFilter, setStateFilter] = useState<StateFilter>("all");
+  // Free-text search over service + instructor name (shared across all views).
+  const [search, setSearch] = useState("");
+
+  // Google-Calendar-style detail popover — opened by clicking a session.
+  const [detailSession, setDetailSession] = useState<Session | null>(null);
+  // Id of the session currently being dragged to a new time slot (calendar).
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+
+  // Recurring action scope prompt (Google-Calendar style). When set, a modal
+  // asks whether the action applies to this event / this & following / all.
+  const [scopePrompt, setScopePrompt] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    destructive?: boolean;
+    run: (scope: SessionScope) => void | Promise<void>;
+  } | null>(null);
+  const [scopeChoice, setScopeChoice] = useState<SessionScope>("single");
+  const [scopeBusy, setScopeBusy] = useState(false);
+
+  // Confirmation modal (replaces native confirm) for non-recurring destructive
+  // actions, and a simple alert modal (replaces native alert) for errors.
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    destructive?: boolean;
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [alertMsg, setAlertMsg] = useState<{ title: string; description: string } | null>(null);
+  const showAlert = (title: string, description: string) => setAlertMsg({ title, description });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
@@ -237,18 +316,57 @@ export default function SchedulePage() {
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
-  // Apply lifecycle + status filters client-side (shared across all views).
-  // "active" = available/full; "inactive" = cancelled/completed.
+  // Apply the two filters + free-text search client-side (shared across all
+  // views). Both filters read the same `displayStatus()` the badges show, so
+  // "what you filter by" always equals "what the badge says".
   const filteredSessions = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return sessions.filter((s) => {
-      if (lifecycleFilter !== "all" && (s.lifecycle_status ?? "published") !== lifecycleFilter) {
-        return false;
+      if (q) {
+        const hay = `${s.service?.name ?? ""} ${s.provider?.name ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
       }
-      if (statusFilter === "active" && !["available", "full"].includes(s.status)) return false;
-      if (statusFilter === "inactive" && !["cancelled", "completed"].includes(s.status)) return false;
+      const ds = displayStatus(s);
+      // Visibility: draft (private) vs published (public — everything not draft).
+      if (visibilityFilter === "draft" && ds !== "draft") return false;
+      if (visibilityFilter === "published" && ds === "draft") return false;
+      // Status: the session's state.
+      if (stateFilter !== "all" && ds !== stateFilter) return false;
       return true;
     });
-  }, [sessions, lifecycleFilter, statusFilter]);
+  }, [sessions, visibilityFilter, stateFilter, search]);
+
+  // List view: sort the full filtered set, then slice to the current page.
+  const sortedSessions = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    const val = (s: Session): string | number => {
+      switch (sortKey) {
+        case "price_mad": return s.price_mad ?? 0;
+        case "booked_count": return s.booked_count;
+        case "updated_at": return s.updated_at ?? "";
+        default: return s.start_time;
+      }
+    };
+    return [...filteredSessions].sort((a, b) => {
+      const av = val(a), bv = val(b);
+      return av < bv ? -dir : av > bv ? dir : 0;
+    });
+  }, [filteredSessions, sortKey, sortDir]);
+
+  const pagedSessions = useMemo(
+    () => sortedSessions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [sortedSessions, page],
+  );
+
+  // Toggle sort (same key flips direction, new key starts asc); reset to page 1.
+  const handleSort = (key: string) => {
+    if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key as typeof sortKey); setSortDir("asc"); }
+    setPage(1);
+  };
+
+  // Keep the page in range when filters/search shrink the result set.
+  useEffect(() => { setPage(1); }, [search, visibilityFilter, stateFilter]);
 
   useEffect(() => {
     if (!entityId) return;
@@ -313,7 +431,7 @@ export default function SchedulePage() {
   const openCreate = (date?: Date, startMinutes?: number, endMinutes?: number) => {
     setEditingSession(null);
     const d = date || new Date();
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = localDateStr(d);
     const fmt = (mins: number) =>
       `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
     const startStr = startMinutes != null ? fmt(startMinutes) : "";
@@ -323,7 +441,7 @@ export default function SchedulePage() {
       provider_id: "",
       date: dateStr,
       start_time: startStr,
-      end_time: fixedEnd || (startStr && services[0] ? addMinutes(startStr, services[0].duration_minutes) : ""),
+      end_time: fixedEnd || (startStr && services[0] ? addMinutesToTime(startStr, services[0].duration_minutes) : ""),
       capacity: services[0] ? String(services[0].capacity) : "12",
       price_mad: services[0] ? String(serviceDefaultPriceMad(services[0])) : "50",
       notes: "",
@@ -353,16 +471,15 @@ export default function SchedulePage() {
 
   const openEdit = (s: Session) => {
     setEditingSession(s);
-    const d = new Date(s.start_time);
     const svc = services.find((sv) => sv.id === s.service?.id);
     const serviceDefaultMad = serviceDefaultPriceMad(svc);
     const hasOverride = svc ? (s.price_mad || 0) !== serviceDefaultMad : false;
     setForm({
       service_id: s.service?.id || "",
       provider_id: s.provider?.id || "",
-      date: d.toISOString().split("T")[0],
-      start_time: d.toTimeString().slice(0, 5),
-      end_time: new Date(s.end_time).toTimeString().slice(0, 5),
+      date: toDateInput(s.start_time),
+      start_time: toTimeInput(s.start_time),
+      end_time: toTimeInput(s.end_time),
       capacity: String(s.capacity),
       price_mad: String(s.price_mad || ""),
       override_pricing: hasOverride,
@@ -389,7 +506,8 @@ export default function SchedulePage() {
 
   // `publish` only matters when creating: true → goes live immediately,
   // false → saved as a draft. Ignored on edit (use the Publish action instead).
-  const handleSave = async (publish = false) => {
+  // `scope` only matters when editing a recurring session.
+  const handleSave = async (publish = false, scope: SessionScope = "single") => {
     if (!entityId) return;
     setSaving(true);
     try {
@@ -467,8 +585,8 @@ export default function SchedulePage() {
       const payload = {
         service_id: form.service_id,
         provider_id: form.provider_id || null,
-        start_time: `${form.date}T${form.start_time}:00Z`,
-        end_time: `${form.date}T${form.end_time}:00Z`,
+        start_time: localInputsToISO(form.date, form.start_time),
+        end_time: localInputsToISO(form.date, form.end_time),
         capacity: parseInt(form.capacity),
         price_mad: priceMad,
         notes: form.notes || null,
@@ -481,7 +599,7 @@ export default function SchedulePage() {
         ...(recurrence ? { recurrence } : {}),
       };
       if (editingSession) {
-        await studioApi.updateSession(entityId, editingSession.id, payload);
+        await studioApi.updateSession(entityId, editingSession.id, payload, scope);
       } else {
         await studioApi.createSession(entityId, payload);
       }
@@ -489,21 +607,65 @@ export default function SchedulePage() {
       fetchSessions();
     } catch (e) {
       console.error(e);
+      // Surface the failure instead of silently swallowing it — otherwise a
+      // rejected create/update just looks like "nothing happened".
+      showAlert(
+        editingSession ? "Couldn't save session" : "Couldn't create session",
+        (e as Error).message || "Please check the details and try again.",
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  // Draft only — hard delete. The backend rejects deleting published sessions.
-  const handleDelete = async (session: Session) => {
-    if (!entityId || !confirm("Delete this draft session? This cannot be undone.")) return;
-    try {
-      await studioApi.deleteSession(entityId, session.id);
-      fetchSessions();
-    } catch (e) {
-      console.error(e);
-      alert((e as Error).message || "Failed to delete session");
+  // Run a lifecycle action with a recurring scope. For a one-off session, run
+  // immediately as "single"; for a recurring one, open the scope picker first
+  // (the modal doubles as the confirmation step).
+  const withScope = (
+    session: Session,
+    opts: { title: string; description: string; confirmLabel: string; destructive?: boolean },
+    run: (scope: SessionScope) => void | Promise<void>,
+  ) => {
+    if (session.recurrence_group_id) {
+      // Recurring → the scope picker modal doubles as the confirmation.
+      setScopeChoice("single");
+      setScopePrompt({ ...opts, run });
+    } else {
+      // One-off → a plain confirmation modal.
+      setConfirmDialog({
+        title: opts.title,
+        description: opts.description,
+        confirmLabel: opts.confirmLabel,
+        destructive: opts.destructive,
+        onConfirm: () => run("single"),
+      });
     }
+  };
+
+  // Draft only — hard delete. The backend rejects deleting published sessions.
+  const handleDelete = (session: Session) => {
+    withScope(
+      session,
+      {
+        title: "Delete draft session",
+        description: "This permanently deletes the draft. This can't be undone.",
+        confirmLabel: "Delete",
+        destructive: true,
+      },
+      async (scope) => {
+        if (!entityId) return;
+        try {
+          const res = await studioApi.deleteSession(entityId, session.id, scope);
+          if (res.skipped_published > 0) {
+            showAlert("Some sessions skipped", res.message);
+          }
+          fetchSessions();
+        } catch (e) {
+          console.error(e);
+          showAlert("Couldn't delete session", (e as Error).message || "Please try again.");
+        }
+      },
+    );
   };
 
   // Draft → published (goes live on its channels).
@@ -519,30 +681,31 @@ export default function SchedulePage() {
       fetchSessions();
     } catch (e) {
       console.error(e);
-      alert((e as Error).message || "Failed to publish session");
+      showAlert("Couldn't publish session", (e as Error).message || "Please try again.");
     }
   };
 
-  // Published → cancelled. Recurring sessions offer to cancel the whole series.
-  const handleCancel = async (session: Session) => {
-    if (!entityId) return;
-    let scope: "single" | "series" = "single";
-    if (session.recurrence_group_id) {
-      scope = confirm(
-        "This session is part of a recurring series.\n\nOK = cancel the ENTIRE series.\nCancel = cancel only this one session.",
-      )
-        ? "series"
-        : "single";
-    } else if (!confirm("Cancel this session?")) {
-      return;
-    }
-    try {
-      await studioApi.cancelSession(entityId, session.id, scope);
-      fetchSessions();
-    } catch (e) {
-      console.error(e);
-      alert((e as Error).message || "Failed to cancel session");
-    }
+  // Published → cancelled. Recurring sessions open the scope picker.
+  const handleCancel = (session: Session) => {
+    withScope(
+      session,
+      {
+        title: "Cancel session",
+        description: "Attendees keep their booking history. This can't be undone.",
+        confirmLabel: "Cancel session",
+        destructive: true,
+      },
+      async (scope) => {
+        if (!entityId) return;
+        try {
+          await studioApi.cancelSession(entityId, session.id, scope);
+          fetchSessions();
+        } catch (e) {
+          console.error(e);
+          showAlert("Couldn't cancel session", (e as Error).message || "Please try again.");
+        }
+      },
+    );
   };
 
   const handleServiceChange = (serviceId: string) => {
@@ -552,15 +715,51 @@ export default function SchedulePage() {
       service_id: serviceId,
       capacity: service ? String(service.capacity) : prev.capacity,
       price_mad: service ? String(serviceDefaultPriceMad(service)) : prev.price_mad,
-      end_time: service && prev.start_time ? addMinutes(prev.start_time, service.duration_minutes) : prev.end_time,
+      end_time: service && prev.start_time ? addMinutesToTime(prev.start_time, service.duration_minutes) : prev.end_time,
     }));
+  };
+
+  // Drag-and-drop reschedule: drop a session onto `day` at `startMinutes`
+  // (minutes since local midnight). Keeps the original duration; recurring
+  // sessions move just the dropped occurrence (scope "single").
+  const rescheduleSession = async (session: Session, day: Date, startMinutes: number) => {
+    if (!entityId) return;
+    // Work in wall-clock minutes (the column is naive — never apply an offset).
+    const durationMin = minutesBetweenTimes(toTimeInput(session.start_time), toTimeInput(session.end_time));
+    const endMinutes = Math.min(startMinutes + durationMin, 24 * 60 - 1);
+    const fmtMin = (m: number) =>
+      `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    const dateStr = localDateStr(day);
+    // Nothing changed → skip the round-trip.
+    if (dateStr === toDateInput(session.start_time) && fmtMin(startMinutes) === toTimeInput(session.start_time)) {
+      return;
+    }
+    try {
+      await studioApi.updateSession(
+        entityId,
+        session.id,
+        {
+          start_time: localInputsToISO(dateStr, fmtMin(startMinutes)),
+          end_time: localInputsToISO(dateStr, fmtMin(endMinutes)),
+        },
+        "single",
+      );
+      fetchSessions();
+    } catch (e) {
+      console.error(e);
+      showAlert("Couldn't move session", (e as Error).message || "Please try again.");
+    }
   };
 
   // ============================================================================
   // CALENDAR DATA
   // ============================================================================
 
-  const weekStart = getWeekStart(calendarDate);
+  // Rolling 7-day window anchored on the selected day (today by default) — the
+  // first column is the current/selected day and the next 6 follow it, so the
+  // studio always looks forward instead of at past days of a Mon–Sun week.
+  const weekStart = new Date(calendarDate);
+  weekStart.setHours(0, 0, 0, 0);
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + i);
@@ -570,9 +769,12 @@ export default function SchedulePage() {
   const dayForView = view === "day" ? calendarDate : null;
 
   const getSessionsForDay = (day: Date) => {
-    const dayStr = day.toISOString().split("T")[0];
+    // Group by the session's LOCAL calendar day (start_time is a true UTC
+    // instant; compare local dates so a session shows on the day the studio
+    // sees it, consistent with how times render).
+    const dayStr = localDateStr(day);
     return filteredSessions
-      .filter((s) => s.start_time.startsWith(dayStr))
+      .filter((s) => localDateStr(new Date(s.start_time)) === dayStr)
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
   };
 
@@ -601,9 +803,9 @@ export default function SchedulePage() {
 
   const headerLabel = useMemo(() => {
     if (view === "day") {
-      return calendarDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      return formatDateCustom(calendarDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
     }
-    return `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} — ${weekDays[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    return `${formatDateCustom(weekDays[0], { month: "short", day: "numeric" })} — ${formatDateCustom(weekDays[6], { month: "short", day: "numeric", year: "numeric" })}`;
   }, [calendarDate, view, weekDays]);
 
   // ============================================================================
@@ -611,50 +813,78 @@ export default function SchedulePage() {
   // ============================================================================
 
   const columns: Column<Session>[] = [
-    { header: "Service", cell: (r) => <span className="font-medium">{r.service?.name || "N/A"}</span> },
+    {
+      header: "Service",
+      cell: (r) => (
+        <button
+          className="font-medium text-left hover:underline"
+          onClick={() => setDetailSession(r)}
+        >
+          {r.service?.name || "N/A"}
+        </button>
+      ),
+    },
     { header: "Instructor", cell: (r) => <span>{r.provider?.name || "—"}</span> },
     {
       header: "Date & Time",
+      sortKey: "start_time",
       cell: (r) => (
         <div className="text-sm">
-          <p>{new Date(r.start_time).toLocaleDateString()}</p>
+          <p>{formatDate(r.start_time)}</p>
           <p className="text-muted-foreground">{formatTime(r.start_time)} — {formatTime(r.end_time)}</p>
         </div>
       ),
     },
-    { header: "Spots", cell: (r) => <span>{r.booked_count}/{r.capacity}{r.waitlist_count > 0 ? ` +${r.waitlist_count} wl` : ""}</span> },
-    { header: "Price", cell: (r) => <span>{r.price_mad != null ? formatMoneyWhole(r.price_mad, currency) : "—"}</span> },
+    { header: "Spots", sortKey: "booked_count", cell: (r) => <span>{r.booked_count}/{r.capacity}{r.waitlist_count > 0 ? ` +${r.waitlist_count} wl` : ""}</span> },
+    { header: "Price", sortKey: "price_mad", cell: (r) => <span>{r.price_mad != null ? formatMoneyWhole(r.price_mad, currency) : "—"}</span> },
     {
       header: "Status",
-      cell: (r) => (
-        <div className="flex items-center gap-1.5">
-          {(r.lifecycle_status ?? "published") === "draft" && (
-            <Badge variant="outline" className="text-[10px] border-dashed">Draft</Badge>
-          )}
-          <Badge variant="outline" className={`${STATUS_COLORS[r.status]?.bg || ""} ${STATUS_COLORS[r.status]?.text || ""}`}>
-            {r.status}
+      cell: (r) => {
+        const ds = DISPLAY_STATUS[displayStatus(r)];
+        return (
+          <Badge variant="outline" className={`${ds.bg} ${ds.text}`}>
+            {ds.label}
           </Badge>
-        </div>
+        );
+      },
+    },
+    {
+      header: "Updated",
+      sortKey: "updated_at",
+      cell: (r) => (
+        <span className="text-sm text-muted-foreground">
+          {r.updated_at ? formatDateTime(r.updated_at) : "—"}
+        </span>
       ),
     },
   ];
 
-  // Lifecycle-aware row actions shared by the list view kebab.
+  // Lifecycle-aware row actions shared by the list view kebab. Follows the
+  // session state machine: draft → edit/publish/delete; published active →
+  // edit/cancel. Cancelled/completed sessions are read-only (no actions).
   const sessionRowActions = (s: Session): RowAction[] => {
-    const isDraft = (s.lifecycle_status ?? "published") === "draft";
-    const actions: RowAction[] = [
-      { label: "Edit", icon: PencilIcon, onClick: () => openEdit(s) },
-    ];
+    // Base actions on the DERIVED status (not raw `s.status`) so a past session
+    // — which stays `status='available'` in the DB — is treated as completed
+    // (read-only), matching its badge.
+    const ds = displayStatus(s);
+    const isDraft = ds === "draft";
+    const isTerminal = ds === "cancelled" || ds === "completed";
+
+    const actions: RowAction[] = [];
+    if (!isTerminal) {
+      actions.push({ label: "Edit", icon: PencilIcon, onClick: () => openEdit(s) });
+    }
+
     if (isDraft) {
       actions.push({ label: "Publish", icon: SendIcon, onClick: () => handlePublish(s) });
       actions.push({
-        label: "Delete",
+        label: s.recurrence_group_id ? "Delete…" : "Delete",
         icon: Trash2Icon,
         variant: "destructive",
         separatorBefore: true,
         onClick: () => handleDelete(s),
       });
-    } else {
+    } else if (!isTerminal) {
       actions.push({
         label: s.recurrence_group_id ? "Cancel…" : "Cancel session",
         icon: XCircleIcon,
@@ -670,13 +900,69 @@ export default function SchedulePage() {
   // RENDER: SESSION CARD (for calendar)
   // ============================================================================
 
-  const SessionCard = ({ session, compact }: { session: Session; compact?: boolean }) => {
+  // `line` renders a thin single-row block (time + name) used when several
+  // sessions share a square and are stacked vertically — minimal detail, full
+  // width, so each stays readable. `compact` hides the secondary detail rows.
+  const SessionCard = ({
+    session,
+    compact,
+    line,
+  }: {
+    session: Session;
+    compact?: boolean;
+    line?: boolean;
+  }) => {
     const colors = sessionColors(session);
     const isDraft = (session.lifecycle_status ?? "published") === "draft";
+    // Stop the event reaching the day column's drag-to-create handlers —
+    // otherwise clicking a card both opens the detail popover AND fires
+    // "new session".
+    const handlers = {
+      onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
+      onClick: (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDetailSession(session);
+      },
+    };
+    // Drag-to-reschedule (calendar only) — disabled for read-only sessions.
+    const canDrag = canManage && !["cancelled", "completed"].includes(displayStatus(session));
+    const dragProps = canDrag
+      ? {
+          draggable: true,
+          onDragStart: (e: React.DragEvent) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", session.id);
+            setDraggingId(session.id);
+          },
+          onDragEnd: () => setDraggingId(null),
+        }
+      : {};
+    const dragClass = draggingId === session.id ? "opacity-40" : "";
+
+    if (line) {
+      return (
+        <button
+          {...handlers}
+          {...dragProps}
+          title={session.service?.name || "Session"}
+          className={`flex w-full h-full items-center gap-1.5 text-left rounded border-l-[3px] px-1.5 transition-all hover:shadow-sm cursor-pointer overflow-hidden ${colors.bg} ${colors.border} ${isDraft ? "border border-dashed" : ""} ${dragClass}`}
+        >
+          <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">
+            {formatTime(session.start_time)}
+          </span>
+          <span className={`text-[11px] font-medium truncate ${colors.text}`}>
+            {isDraft && "[Draft] "}
+            {session.service?.name || "Session"}
+          </span>
+        </button>
+      );
+    }
+
     return (
       <button
-        onClick={() => canManage ? openEdit(session) : undefined}
-        className={`w-full text-left rounded-md border-l-[3px] px-2 py-1 transition-all hover:shadow-sm ${colors.bg} ${colors.border} ${isDraft ? "border border-dashed" : ""} ${canManage ? "cursor-pointer" : ""}`}
+        {...handlers}
+        {...dragProps}
+        className={`w-full text-left rounded-md border-l-[3px] px-2 py-1 transition-all hover:shadow-sm cursor-pointer ${colors.bg} ${colors.border} ${isDraft ? "border border-dashed" : ""} ${dragClass}`}
       >
         <p className={`text-xs font-medium truncate ${colors.text}`}>
           {isDraft && <span className="font-semibold">[Draft] </span>}
@@ -789,12 +1075,24 @@ export default function SchedulePage() {
     return (
       <div
         ref={containerRef}
-        className={`relative flex-1 min-w-0 ${!isOnly ? "border-r border-border last:border-r-0" : ""} ${canManage ? "cursor-cell select-none" : ""
-          }`}
+        className={`relative flex-1 min-w-0 ${!isOnly ? "border-r border-border last:border-r-0" : ""} ${canManage ? "cursor-cell select-none" : ""} ${draggingId ? "bg-primary/5" : ""}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        // Drag-and-drop reschedule: accept a dragged session at the drop time.
+        onDragOver={(e) => {
+          if (!draggingId) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const id = e.dataTransfer.getData("text/plain");
+          const s = sessions.find((x) => x.id === id);
+          setDraggingId(null);
+          if (s) rescheduleSession(s, day, yToMinutes(e.clientY));
+        }}
       >
         {/* Hour grid lines — purely visual now; click/drag is handled by the container. */}
         {HOURS.map((h) => (
@@ -828,54 +1126,45 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* Sessions — overlapping ones are laid out in up to 3 side-by-side
-            columns (Google-Calendar style); any beyond that collapse into a
-            "+N more" chip that opens the day view. */}
+        {/* Sessions — a lone session fills its time block. When sessions overlap,
+            each renders at ITS OWN start time as a compact line; only sessions
+            sharing the EXACT same start stack vertically (offset by index, with
+            "+N more" beyond what fits) — so e.g. a 07:00 session never gets
+            hidden under a 06:00 one. */}
         {clusterByOverlap(daySessions).flatMap((cluster) => {
-          const size = cluster.length;
-          const colCount = Math.min(size, MAX_OVERLAP_COLUMNS);
-          const widthPct = 100 / colCount;
-          const overflow = size > MAX_OVERLAP_COLUMNS;
-          const visible = overflow ? cluster.slice(0, MAX_OVERLAP_COLUMNS - 1) : cluster;
-
-          const nodes = visible.map((s, i) => {
+          // No overlap → normal time-sized block, full column width.
+          if (cluster.length === 1) {
+            const s = cluster[0];
             const { top, height } = getSessionPosition(s);
-            return (
-              <div
-                key={s.id}
-                className="absolute z-[5]"
-                style={{
-                  top,
-                  height: Math.max(height - 2, 22),
-                  left: `calc(${i * widthPct}% + 2px)`,
-                  width: `calc(${widthPct}% - 4px)`,
-                }}
-              >
-                <SessionCard session={s} compact={height < 40 || colCount > 1} />
-              </div>
-            );
-          });
-
-          if (overflow) {
-            const top = Math.min(...cluster.map((s) => getSessionPosition(s).top));
-            const lastCol = MAX_OVERLAP_COLUMNS - 1;
-            nodes.push(
-              <div
-                key={`more-${cluster[0].id}`}
-                className="absolute z-[6]"
-                style={{ top, left: `calc(${lastCol * widthPct}% + 2px)`, width: `calc(${widthPct}% - 4px)` }}
-              >
-                <button
-                  onClick={() => { setCalendarDate(new Date(cluster[0].start_time)); setView("day"); }}
-                  className="w-full rounded-md border border-dashed border-border bg-muted/60 px-1 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted"
-                >
-                  +{size - (MAX_OVERLAP_COLUMNS - 1)} more
-                </button>
+            return [
+              <div key={s.id} className="absolute z-[5] left-1 right-1" style={{ top, height: Math.max(height - 2, 22) }}>
+                <SessionCard session={s} compact={height < 40} />
               </div>,
-            );
+            ];
           }
 
-          return nodes;
+          // Overlapping → group by exact start time; each group sits at its own
+          // vertical position, members stacked within it.
+          const byStart = new Map<string, Session[]>();
+          for (const s of cluster) {
+            const arr = byStart.get(s.start_time) ?? [];
+            arr.push(s);
+            byStart.set(s.start_time, arr);
+          }
+
+          // Sessions sharing the exact same start stack as lines (all shown).
+          return [...byStart.values()].flatMap((group) => {
+            const top = getSessionPosition(group[0]).top;
+            return group.map((s, i) => (
+              <div
+                key={s.id}
+                className="absolute z-[5] left-1 right-1"
+                style={{ top: top + i * OVERLAP_LINE_H, height: OVERLAP_LINE_H - 2 }}
+              >
+                <SessionCard session={s} line />
+              </div>
+            ));
+          });
         })}
       </div>
     );
@@ -918,26 +1207,39 @@ export default function SchedulePage() {
         </>
       }
     >
-      {/* Filters — lifecycle (draft/published) + status (active/inactive) */}
+      {/* Filters — search + a single plain-language status + archived toggle */}
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={lifecycleFilter} onValueChange={(v) => setLifecycleFilter(v as typeof lifecycleFilter)}>
+        <div className="relative w-full sm:w-56">
+          <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search service or instructor…"
+            className="h-8 pl-8 text-sm"
+          />
+        </div>
+        {/* Visibility — is it public yet (draft vs published) */}
+        <Select value={visibilityFilter} onValueChange={(v) => setVisibilityFilter(v as VisibilityFilter)}>
           <SelectTrigger size="sm" className="w-auto min-w-32">
-            <SelectValue placeholder="Lifecycle" />
+            <SelectValue placeholder="Visibility" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All sessions</SelectItem>
+            <SelectItem value="all">All visibility</SelectItem>
             <SelectItem value="draft">Draft</SelectItem>
             <SelectItem value="published">Published</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+        {/* Status — the session's state */}
+        <Select value={stateFilter} onValueChange={(v) => setStateFilter(v as StateFilter)}>
           <SelectTrigger size="sm" className="w-auto min-w-32">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="full">Full</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground">
@@ -974,7 +1276,7 @@ export default function SchedulePage() {
                   className={`flex-1 text-center py-2 border-r border-border last:border-r-0 cursor-pointer hover:bg-muted/50 ${isToday ? "bg-primary/5" : ""}`}
                   onClick={() => { setCalendarDate(day); setView("day"); }}
                 >
-                  <p className="text-[10px] text-muted-foreground uppercase">{day.toLocaleDateString("en-US", { weekday: "short" })}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">{formatDateCustom(day, { weekday: "short" })}</p>
                   <p className={`text-sm font-semibold ${isToday ? "text-primary" : ""}`}>{day.getDate()}</p>
                   {daySessionCount > 0 && (
                     <p className="text-[10px] text-muted-foreground">{daySessionCount} session{daySessionCount > 1 ? "s" : ""}</p>
@@ -1007,10 +1309,14 @@ export default function SchedulePage() {
       {view === "list" && (
         <DataTable
           columns={columns}
-          data={filteredSessions}
+          data={pagedSessions}
+          total={sortedSessions.length}
           page={page}
-          pageSize={50}
+          pageSize={PAGE_SIZE}
           onPageChange={setPage}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSortChange={handleSort}
           rowActions={canManage ? sessionRowActions : undefined}
           isLoading={loading}
         />
@@ -1078,7 +1384,22 @@ export default function SchedulePage() {
                       <SendIcon className="size-4 mr-1.5" /> Publish
                     </Button>
                   )}
-                  <Button onClick={() => handleSave(false)} disabled={formInvalid}>
+                  <Button
+                    onClick={() =>
+                      editingSession.recurrence_group_id
+                        ? withScope(
+                            editingSession,
+                            {
+                              title: "Update session",
+                              description: "Apply these changes to…",
+                              confirmLabel: "Update",
+                            },
+                            (scope) => handleSave(false, scope),
+                          )
+                        : handleSave(false)
+                    }
+                    disabled={formInvalid}
+                  >
                     {saving ? "Saving…" : "Update"}
                   </Button>
                 </>
@@ -1144,7 +1465,7 @@ export default function SchedulePage() {
                     onChange={(e) => {
                       const newStart = e.target.value;
                       const service = services.find((s) => s.id === form.service_id);
-                      setForm({ ...form, start_time: newStart, end_time: service ? addMinutes(newStart, service.duration_minutes) : form.end_time });
+                      setForm({ ...form, start_time: newStart, end_time: service ? addMinutesToTime(newStart, service.duration_minutes) : form.end_time });
                     }} />
                 </div>
                 <div>
@@ -1156,10 +1477,10 @@ export default function SchedulePage() {
               {form.start_time && form.end_time && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <ClockIcon className="size-3" />
-                  Duration: {calcDuration(form.start_time, form.end_time)} min
+                  Duration: {minutesBetweenTimes(form.start_time, form.end_time)} min
                   {form.service_id && (() => {
                     const svc = services.find(s => s.id === form.service_id);
-                    const dur = calcDuration(form.start_time, form.end_time);
+                    const dur = minutesBetweenTimes(form.start_time, form.end_time);
                     return svc && dur !== svc.duration_minutes
                       ? <span className="text-amber-600 ml-1">(service default: {svc.duration_minutes} min)</span>
                       : null;
@@ -1658,36 +1979,193 @@ export default function SchedulePage() {
 
         </div>
       </FormSheet>
+
+      {/* Recurring action scope picker (Google-Calendar style) */}
+      <Dialog open={!!scopePrompt} onOpenChange={(open) => { if (!open) setScopePrompt(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{scopePrompt?.title}</DialogTitle>
+            <DialogDescription>{scopePrompt?.description}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            {([
+              { value: "single", label: "This event" },
+              { value: "following", label: "This and following events" },
+              { value: "series", label: "All events" },
+            ] as const).map((opt) => (
+              <label
+                key={opt.value}
+                className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent/40"
+              >
+                <input
+                  type="radio"
+                  name="recurring_scope"
+                  className="size-4"
+                  checked={scopeChoice === opt.value}
+                  onChange={() => setScopeChoice(opt.value)}
+                />
+                <span className="text-sm font-medium">{opt.label}</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setScopePrompt(null)} disabled={scopeBusy}>
+              Close
+            </Button>
+            <Button
+              variant={scopePrompt?.destructive ? "destructive" : "default"}
+              disabled={scopeBusy}
+              onClick={async () => {
+                if (!scopePrompt) return;
+                setScopeBusy(true);
+                try {
+                  await scopePrompt.run(scopeChoice);
+                } finally {
+                  setScopeBusy(false);
+                  setScopePrompt(null);
+                }
+              }}
+            >
+              {scopeBusy ? "Working…" : scopePrompt?.confirmLabel}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Session detail popover (Google-Calendar style) — opened by clicking a
+          session card; shows the key details + lifecycle-aware actions. */}
+      <Dialog open={!!detailSession} onOpenChange={(open) => { if (!open) setDetailSession(null); }}>
+        <DialogContent className="sm:max-w-md">
+          {detailSession && (() => {
+            const s = detailSession;
+            const ds = DISPLAY_STATUS[displayStatus(s)];
+            const isDraft = displayStatus(s) === "draft";
+            const isTerminal = ["cancelled", "completed"].includes(displayStatus(s));
+            const close = () => setDetailSession(null);
+            const run = (fn: (s: Session) => void) => { close(); fn(s); };
+            return (
+              <>
+                <DialogHeader>
+                  <div className="flex items-start justify-between gap-3">
+                    <DialogTitle className="text-base">{s.service?.name || "Session"}</DialogTitle>
+                    <Badge variant="outline" className={`${ds.bg} ${ds.text} shrink-0`}>{ds.label}</Badge>
+                  </div>
+                  <DialogDescription className="sr-only">Session details</DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-3 py-1 text-sm">
+                  <div className="flex items-start gap-2.5">
+                    <CalendarIcon className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div>
+                      <p>{formatDateCustom(s.start_time, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {formatTime(s.start_time)} — {formatTime(s.end_time)} · {minutesBetweenTimes(toTimeInput(s.start_time), toTimeInput(s.end_time))} min
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <UsersIcon className="size-4 text-muted-foreground shrink-0" />
+                    <span>
+                      {s.provider?.name || "No instructor assigned"}
+                      {s.provider?.tier ? ` · ${s.provider.tier}` : ""}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <UsersIcon className="size-4 text-muted-foreground shrink-0" />
+                    <span>
+                      {s.booked_count}/{s.capacity} booked
+                      {s.waitlist_count > 0 ? ` · ${s.waitlist_count} waitlisted` : ""}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <CoinsIcon className="size-4 text-muted-foreground shrink-0" />
+                    <span>{s.price_mad != null ? formatMoneyWhole(s.price_mad, currency) : "—"}</span>
+                  </div>
+                  {s.is_recurring && (
+                    <div className="flex items-center gap-2.5">
+                      <ClockIcon className="size-4 text-muted-foreground shrink-0" />
+                      <span className="text-muted-foreground">Part of a recurring series</span>
+                    </div>
+                  )}
+                  {s.notes && (
+                    <p className="text-xs text-muted-foreground border-t pt-2 whitespace-pre-wrap">{s.notes}</p>
+                  )}
+                </div>
+
+                <DialogFooter>
+                  {canManage && isDraft && (
+                    <Button variant="ghost" size="sm" className="mr-auto text-destructive hover:text-destructive" onClick={() => run(handleDelete)}>
+                      <Trash2Icon className="size-3.5 mr-1.5" /> Delete
+                    </Button>
+                  )}
+                  {canManage && !isDraft && !isTerminal && (
+                    <Button variant="ghost" size="sm" className="mr-auto text-destructive hover:text-destructive" onClick={() => run(handleCancel)}>
+                      <XCircleIcon className="size-3.5 mr-1.5" /> Cancel
+                    </Button>
+                  )}
+                  <Button variant="ghost" onClick={close}>Close</Button>
+                  {canManage && isDraft && (
+                    <Button variant="outline" onClick={() => run(handlePublish)}>
+                      <SendIcon className="size-4 mr-1.5" /> Publish
+                    </Button>
+                  )}
+                  {canManage && !isTerminal && (
+                    <Button onClick={() => run(openEdit)}>
+                      <PencilIcon className="size-4 mr-1.5" /> Edit
+                    </Button>
+                  )}
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation modal (replaces native confirm) for one-off actions */}
+      <Dialog open={!!confirmDialog} onOpenChange={(open) => { if (!open) setConfirmDialog(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{confirmDialog?.title}</DialogTitle>
+            <DialogDescription>{confirmDialog?.description}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmDialog(null)} disabled={confirmBusy}>
+              Close
+            </Button>
+            <Button
+              variant={confirmDialog?.destructive ? "destructive" : "default"}
+              disabled={confirmBusy}
+              onClick={async () => {
+                if (!confirmDialog) return;
+                setConfirmBusy(true);
+                try {
+                  await confirmDialog.onConfirm();
+                } finally {
+                  setConfirmBusy(false);
+                  setConfirmDialog(null);
+                }
+              }}
+            >
+              {confirmBusy ? "Working…" : confirmDialog?.confirmLabel}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert modal (replaces native alert) for errors / notices */}
+      <Dialog open={!!alertMsg} onOpenChange={(open) => { if (!open) setAlertMsg(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{alertMsg?.title}</DialogTitle>
+            <DialogDescription>{alertMsg?.description}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setAlertMsg(null)}>OK</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </BaseLayout>
   );
-}
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function addMinutes(time: string, minutes: number): string {
-  const [h, m] = time.split(":").map(Number);
-  const total = h * 60 + m + minutes;
-  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
-
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function calcDuration(start: string, end: string): number {
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  return (eh * 60 + em) - (sh * 60 + sm);
 }
 
 // ============================================================================

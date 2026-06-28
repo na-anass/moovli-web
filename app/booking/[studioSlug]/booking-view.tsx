@@ -22,6 +22,15 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BookingSheet } from "./booking-sheet";
+import {
+  formatTime,
+  formatDateFull,
+  formatDateCustom,
+  startOfWeekLocal,
+  localDateStr,
+  localMinutesOfDay,
+  isPast as isPastInstant,
+} from "@/lib/datetime";
 
 export interface SessionRow {
   id: string;
@@ -49,24 +58,6 @@ type ViewMode = "calendar" | "list";
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 06:00 → 22:00
 const HOUR_HEIGHT = 60; // px
 
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-
-const formatDate = (d: Date) =>
-  d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-
-const formatDateLong = (d: Date) =>
-  d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-
-const getWeekStart = (d: Date) => {
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday as week start
-  const result = new Date(d);
-  result.setDate(diff);
-  result.setHours(0, 0, 0, 0);
-  return result;
-};
-
 const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
@@ -86,10 +77,10 @@ const inDateBucket = (iso: string, bucket: string) => {
   if (bucket === "today") return day === today;
   if (bucket === "tomorrow") return day === today + 86_400_000;
   if (bucket === "week") {
-    const ws = getWeekStart(new Date()).getTime();
+    const ws = startOfWeekLocal(new Date()).getTime();
     return day >= ws && day < ws + 7 * 86_400_000;
   }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(bucket)) return iso.slice(0, 10) === bucket;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(bucket)) return localDateStr(new Date(iso)) === bucket;
   return true;
 };
 
@@ -121,7 +112,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
   const [timeFilter, setTimeFilter] = useState<string>("any");
   const [availableOnly, setAvailableOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [calendarDate, setCalendarDate] = useState(getWeekStart(new Date()));
+  const [calendarDate, setCalendarDate] = useState(startOfWeekLocal(new Date()));
 
   const hasActiveFilters =
     serviceFilter !== "all" ||
@@ -203,8 +194,8 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
         const haystack = [
           s.service?.name ?? "",
           s.provider?.name ?? "",
-          new Date(s.start_time).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }),
-          new Date(s.start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+          formatDateFull(s.start_time),
+          formatTime(s.start_time),
         ]
           .join(" ")
           .toLowerCase();
@@ -226,7 +217,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
   const sessionsByDay = useMemo(() => {
     const map = new Map<string, SessionRow[]>();
     filtered.forEach((s) => {
-      const dayKey = s.start_time.slice(0, 10);
+      const dayKey = localDateStr(new Date(s.start_time));
       if (!map.has(dayKey)) map.set(dayKey, []);
       map.get(dayKey)!.push(s);
     });
@@ -243,7 +234,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
     d.setDate(d.getDate() + 7);
     setCalendarDate(d);
   };
-  const goThisWeek = () => setCalendarDate(getWeekStart(new Date()));
+  const goThisWeek = () => setCalendarDate(startOfWeekLocal(new Date()));
 
   const accent = brandColor || "var(--primary)";
 
@@ -455,8 +446,8 @@ function CalendarView({
           </button>
         </div>
         <div className="text-sm font-semibold">
-          {weekDays[0].toLocaleDateString("en-GB", { day: "numeric", month: "long" })} —{" "}
-          {weekDays[6].toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+          {formatDateCustom(weekDays[0], { day: "numeric", month: "long" })} —{" "}
+          {formatDateCustom(weekDays[6], { day: "numeric", month: "long", year: "numeric" })}
         </div>
         <div className="w-[120px]" />
       </div>
@@ -472,7 +463,7 @@ function CalendarView({
               className={`p-2 text-center border-r last:border-r-0 ${isToday ? "bg-muted/50" : ""}`}
             >
               <div className="text-muted-foreground uppercase tracking-wider">
-                {d.toLocaleDateString("en-GB", { weekday: "short" })}
+                {formatDateCustom(d, { weekday: "short" })}
               </div>
               <div
                 className={`text-base font-semibold mt-0.5 ${isToday ? "text-foreground" : ""}`}
@@ -502,7 +493,7 @@ function CalendarView({
 
         {/* Day columns */}
         {weekDays.map((d) => {
-          const dayKey = d.toISOString().slice(0, 10);
+          const dayKey = localDateStr(d);
           const daySessions = sessionsByDay.get(dayKey) ?? [];
           return (
             <div
@@ -521,16 +512,14 @@ function CalendarView({
 
               {/* Sessions */}
               {daySessions.map((s) => {
-                const start = new Date(s.start_time);
-                const end = new Date(s.end_time);
-                const startMins = start.getHours() * 60 + start.getMinutes();
-                const endMins = end.getHours() * 60 + end.getMinutes();
+                const startMins = localMinutesOfDay(s.start_time);
+                const endMins = localMinutesOfDay(s.end_time);
                 const baseMin = HOURS[0] * 60;
                 const top = ((startMins - baseMin) / 60) * HOUR_HEIGHT;
                 const height = Math.max(28, ((endMins - startMins) / 60) * HOUR_HEIGHT - 2);
                 const spotsLeft = s.capacity - s.booked_count;
                 const isFull = spotsLeft <= 0;
-                const isPast = end <= new Date();
+                const isPast = isPastInstant(s.end_time);
 
                 return (
                   <button
@@ -596,7 +585,7 @@ function ListView({
       .slice()
       .sort((a, b) => a.start_time.localeCompare(b.start_time))
       .forEach((s) => {
-        const day = s.start_time.slice(0, 10);
+        const day = localDateStr(new Date(s.start_time));
         if (!m.has(day)) m.set(day, []);
         m.get(day)!.push(s);
       });
@@ -616,7 +605,7 @@ function ListView({
       {Array.from(sessionsByDate.entries()).map(([day, daySessions]) => (
         <section key={day}>
           <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
-            {formatDateLong(new Date(day))}
+            {formatDateFull(daySessions[0].start_time)}
           </h2>
           <div className="space-y-2">
             {daySessions.map((s) => {
