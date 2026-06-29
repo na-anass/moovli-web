@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useEditMode } from "@/components/layout/topbar";
 
 /**
@@ -25,20 +25,32 @@ export function useEditModeSync({
 }) {
   const { setEditMode } = useEditMode();
 
+  // Keep the latest callbacks in refs so the sync effect can depend only on
+  // primitive state. Page callbacks (onSave/onCancel) are recreated on every
+  // render; if they were in the dep array, each setEditMode call would re-render
+  // the context consumer, produce new callbacks, and re-fire the effect — an
+  // infinite update loop that crashes the page the moment edit mode turns on.
+  const onSaveRef = useRef(onSave);
+  const onCancelRef = useRef(onCancel);
+  useEffect(() => {
+    onSaveRef.current = onSave;
+    onCancelRef.current = onCancel;
+  });
+
   useEffect(() => {
     if (editing) {
       setEditMode({
         editing: true,
         saving,
         title: `Editing ${title}`,
-        onSave,
-        onCancel,
+        onSave: () => onSaveRef.current(),
+        onCancel: () => onCancelRef.current(),
       });
     } else {
       setEditMode(null);
     }
     return () => setEditMode(null);
-  }, [editing, saving, title, onSave, onCancel, setEditMode]);
+  }, [editing, saving, title, setEditMode]);
 }
 
 /** Reusable section card for grouping form fields */

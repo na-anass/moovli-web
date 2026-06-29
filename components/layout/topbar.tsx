@@ -81,6 +81,11 @@ const LABELS: Record<string, string> = {
   settings: "Settings",
   profile: "Profile",
   sessions: "Sessions",
+  general: "General",
+  branding: "Branding",
+  hours: "Hours",
+  policies: "Policies",
+  payouts: "Payouts",
 };
 
 export function TopBar() {
