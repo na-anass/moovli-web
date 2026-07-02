@@ -66,6 +66,8 @@ export const studioApi = {
       status?: string;
       lifecycle_status?: string;
       include_archived?: boolean;
+      date_from?: string;
+      date_to?: string;
     },
   ) => {
     const query = new URLSearchParams();
@@ -74,6 +76,8 @@ export const studioApi = {
     if (params?.status) query.set("status", params.status);
     if (params?.lifecycle_status) query.set("lifecycle_status", params.lifecycle_status);
     if (params?.include_archived) query.set("include_archived", "true");
+    if (params?.date_from) query.set("date_from", params.date_from);
+    if (params?.date_to) query.set("date_to", params.date_to);
     return apiClient<PaginatedResponse<any>>(`/api/studio/${entityId}/sessions?${query}`);
   },
 

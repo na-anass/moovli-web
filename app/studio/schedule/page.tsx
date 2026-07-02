@@ -41,10 +41,12 @@ import {
 import Link from "next/link";
 import {
   CalendarIcon,
+  CheckCircle2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ClockIcon,
   CoinsIcon,
+  InfoIcon,
   ListIcon,
   PencilIcon,
   PlusIcon,
@@ -53,6 +55,7 @@ import {
   Trash2Icon,
   UsersIcon,
   XCircleIcon,
+  XIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -249,6 +252,17 @@ export default function SchedulePage() {
   const [alertMsg, setAlertMsg] = useState<{ title: string; description: string } | null>(null);
   const showAlert = (title: string, description: string) => setAlertMsg({ title, description });
 
+  // Lightweight success/info toast — gives explicit confirmation after an action
+  // so a saved draft never feels like "nothing happened". Auto-dismisses.
+  const [toast, setToast] = useState<{ variant: "success" | "info"; message: string } | null>(null);
+  const showToast = (message: string, variant: "success" | "info" = "success") =>
+    setToast({ variant, message });
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [saving, setSaving] = useState(false);
@@ -300,11 +314,39 @@ export default function SchedulePage() {
   // DATA FETCHING
   // ============================================================================
 
+  // The visible fetch window, derived from the current view + anchor date.
+  // Fetching a bounded window (instead of "page 1 of everything") is what makes
+  // newly created future sessions show up: the API orders by start_time asc, so
+  // without a window a studio with 200+ sessions only ever gets its oldest 200
+  // and never sees anything new. Day/week fetch their exact span; list fetches a
+  // wide window centered on the anchor so the table still browses broadly.
+  const [rangeFrom, rangeTo] = useMemo(() => {
+    const anchor = new Date(calendarDate);
+    anchor.setHours(0, 0, 0, 0);
+    const from = new Date(anchor);
+    const to = new Date(anchor);
+    if (view === "day") {
+      to.setDate(to.getDate() + 1);
+    } else if (view === "week") {
+      to.setDate(to.getDate() + 7);
+    } else {
+      // list: a generous window around the anchor.
+      from.setMonth(from.getMonth() - 6);
+      to.setMonth(to.getMonth() + 12);
+    }
+    return [from.toISOString(), to.toISOString()];
+  }, [calendarDate, view]);
+
   const fetchSessions = useCallback(async () => {
     if (!entityId) return;
     setLoading(true);
     try {
-      const res = await studioApi.getSessions(entityId, { page: 1, limit: 200 });
+      const res = await studioApi.getSessions(entityId, {
+        page: 1,
+        limit: 200,
+        date_from: rangeFrom,
+        date_to: rangeTo,
+      });
       setSessions(res.data);
       setTotal(res.pagination.total);
     } catch (e) {
@@ -312,7 +354,7 @@ export default function SchedulePage() {
     } finally {
       setLoading(false);
     }
-  }, [entityId]);
+  }, [entityId, rangeFrom, rangeTo]);
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
@@ -605,6 +647,13 @@ export default function SchedulePage() {
       }
       setDialogOpen(false);
       fetchSessions();
+      if (editingSession) {
+        showToast("Session updated.");
+      } else if (publish) {
+        showToast("Session published — now live on your channels.");
+      } else {
+        showToast("Draft saved — not visible to customers until you publish it.", "info");
+      }
     } catch (e) {
       console.error(e);
       // Surface the failure instead of silently swallowing it — otherwise a
@@ -658,6 +707,8 @@ export default function SchedulePage() {
           const res = await studioApi.deleteSession(entityId, session.id, scope);
           if (res.skipped_published > 0) {
             showAlert("Some sessions skipped", res.message);
+          } else {
+            showToast("Draft deleted.", "info");
           }
           fetchSessions();
         } catch (e) {
@@ -679,6 +730,7 @@ export default function SchedulePage() {
         ],
       });
       fetchSessions();
+      showToast("Session published — now live on your channels.");
     } catch (e) {
       console.error(e);
       showAlert("Couldn't publish session", (e as Error).message || "Please try again.");
@@ -700,6 +752,7 @@ export default function SchedulePage() {
         try {
           await studioApi.cancelSession(entityId, session.id, scope);
           fetchSessions();
+          showToast("Session cancelled.", "info");
         } catch (e) {
           console.error(e);
           showAlert("Couldn't cancel session", (e as Error).message || "Please try again.");
@@ -2164,6 +2217,25 @@ export default function SchedulePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Success/info toast — explicit confirmation after an action. */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 flex max-w-sm items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-lg">
+          {toast.variant === "success" ? (
+            <CheckCircle2Icon className="mt-0.5 size-5 shrink-0 text-green-600 dark:text-green-500" />
+          ) : (
+            <InfoIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+          )}
+          <p className="text-sm text-foreground">{toast.message}</p>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-1 shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label="Dismiss"
+          >
+            <XIcon className="size-4" />
+          </button>
+        </div>
+      )}
     </BaseLayout>
   );
 }
