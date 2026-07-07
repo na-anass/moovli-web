@@ -58,15 +58,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser && session?.access_token) {
+        // On a fresh sign-in we don't yet have roles for this identity. Hold
+        // `loading` until they resolve so route guards don't evaluate against
+        // empty roles and bounce the user to /no-access before the fetch lands
+        // (the bug where you'd hit /no-access on login but a refresh worked).
+        // Token refreshes keep the existing roles, so we skip the loader flash.
+        if (event === "SIGNED_IN") setLoading(true);
         try {
           const userRoles = await getUserRoles(session.access_token);
           setRoles(userRoles);
         } catch (err) {
           console.error("Role fetch error:", err);
+        } finally {
+          if (event === "SIGNED_IN") setLoading(false);
         }
       } else {
         setRoles(null);
