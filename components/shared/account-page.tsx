@@ -1,23 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatDate } from "@/lib/datetime";
 import { useAuth } from "@/lib/auth/provider";
 import { apiClient } from "@/lib/api/client";
+import { createClient } from "@/lib/supabase/client";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   FormSection,
   FormField,
   useEditModeSync,
 } from "@/components/shared/form-layout";
 import {
-  BellIcon,
+  AlertCircleIcon,
+  CameraIcon,
   CheckIcon,
   GlobeIcon,
+  KeyIcon,
+  Loader2Icon,
   MailIcon,
   MapPinIcon,
   PencilIcon,
@@ -47,10 +50,6 @@ interface UserProfile {
   region: string | null;
   country: string | null;
   preferred_language: string | null;
-  notification_preferences: Record<string, boolean>;
-  credit_balance: number;
-  total_credits_purchased: number;
-  total_credits_spent: number;
   is_admin: boolean;
   status: string;
   created_at: string;
@@ -63,6 +62,9 @@ export function AccountPage() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  // Surfaced page-level error for save / avatar / password failures (previously
+  // these were only console.error'd, so a failure looked like "nothing happened").
+  const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -76,7 +78,15 @@ export function AccountPage() {
     preferred_language: "",
   });
 
-  const [notifications, setNotifications] = useState<Record<string, boolean>>({});
+  // Avatar upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Password change (independent of the profile Edit/Save flow)
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwSuccess, setPwSuccess] = useState(false);
 
   useEffect(() => {
     apiClient<{ success: boolean; data: UserProfile }>("/api/users/me")
@@ -100,23 +110,23 @@ export function AccountPage() {
       country: p.country || "MA",
       preferred_language: p.preferred_language || "en",
     });
-    setNotifications(p.notification_preferences || {});
   };
 
   const handleSave = async () => {
     setSaving(true);
     setSuccess(false);
+    setError(null);
     try {
       const res = await apiClient<{ success: boolean; data: UserProfile }>("/api/users/me", {
         method: "PUT",
-        body: JSON.stringify({ ...form, notification_preferences: notifications }),
+        body: JSON.stringify(form),
       });
       setProfile({ ...profile!, ...res.data });
       setEditing(false);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (e) {
-      console.error(e);
+      setError((e as Error).message || "Couldn't save your changes. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -125,6 +135,52 @@ export function AccountPage() {
   const handleCancel = () => {
     if (profile) syncForm(profile);
     setEditing(false);
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+    setUploadingAvatar(true);
+    setError(null);
+    try {
+      const res = await apiClient<{ success: boolean; data: { path: string; url: string } }>(
+        "/api/users/me/avatar",
+        { method: "POST", body: file, headers: { "Content-Type": file.type } },
+      );
+      setProfile((p) => (p ? { ...p, avatar_url: res.data.url } : p));
+    } catch (err) {
+      setError((err as Error).message || "Couldn't upload your photo. Please try again.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setError(null);
+    setPwSuccess(false);
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+    setPwSaving(true);
+    try {
+      const supabase = createClient();
+      const { error: pwError } = await supabase.auth.updateUser({ password: newPassword });
+      if (pwError) throw new Error(pwError.message);
+      setNewPassword("");
+      setConfirmPassword("");
+      setPwSuccess(true);
+      setTimeout(() => setPwSuccess(false), 3000);
+    } catch (err) {
+      setError((err as Error).message || "Couldn't update your password. Please try again.");
+    } finally {
+      setPwSaving(false);
+    }
   };
 
   // Sync edit state to top bar (must run on every render path, before any early return).
@@ -146,16 +202,6 @@ export function AccountPage() {
   }
 
   if (!profile) return <p className="text-muted-foreground">Failed to load profile.</p>;
-
-  const notifLabels: Record<string, string> = {
-    push: "Push notifications",
-    bookingUpdates: "Booking updates",
-    checkInReminders: "Check-in reminders",
-    paymentConfirmations: "Payment confirmations",
-    reviewRequests: "Review requests",
-    specialOffers: "Special offers",
-    marketingEmails: "Marketing emails",
-  };
 
   return (
     <BaseLayout
@@ -183,17 +229,54 @@ export function AccountPage() {
       }
     >
         <div className="space-y-6">
+          {/* Page-level error banner (save / avatar / password failures) */}
+          {error && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3">
+              <AlertCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
+              <p className="flex-1 text-sm text-destructive">{error}</p>
+              <button
+                onClick={() => setError(null)}
+                className="text-xs text-destructive/80 hover:text-destructive"
+                aria-label="Dismiss"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {/* Profile header */}
           <div className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center gap-5">
-              {profile.avatar_url ? (
-                <Image src={profile.avatar_url} alt={profile.name} width={72} height={72}
-                  className="rounded-full object-cover size-[72px]" />
-              ) : (
-                <div className="size-[72px] rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
-                  {profile.name.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <div className="relative shrink-0">
+                {profile.avatar_url ? (
+                  <Image src={profile.avatar_url} alt={profile.name} width={72} height={72}
+                    className="rounded-full object-cover size-[72px]" />
+                ) : (
+                  <div className="size-[72px] rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
+                    {profile.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  aria-label="Change photo"
+                  className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-muted disabled:opacity-60"
+                >
+                  {uploadingAvatar ? (
+                    <Loader2Icon className="size-3.5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <CameraIcon className="size-3.5 text-muted-foreground" />
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </div>
               <div className="flex-1">
                 <h2 className="text-xl font-bold">{editing ? form.name : profile.name}</h2>
                 <p className="text-sm text-muted-foreground">{profile.email}</p>
@@ -211,10 +294,6 @@ export function AccountPage() {
                     Joined {formatDate(profile.created_at)}
                   </span>
                 </div>
-              </div>
-              <div className="text-right hidden sm:block">
-                <p className="text-2xl font-bold text-primary">{profile.credit_balance}</p>
-                <p className="text-xs text-muted-foreground">credits</p>
               </div>
             </div>
           </div>
@@ -263,6 +342,10 @@ export function AccountPage() {
                   value={profile.gender === "unspecified" ? "Prefer not to say" : profile.gender}
                   formValue="" onChange={() => {}} />
               )}
+              <FormField label="Bio" span={2} multiline
+                placeholder="Tell us a little about yourself"
+                editing={editing} value={profile.bio} formValue={form.bio}
+                onChange={(v) => setForm({ ...form, bio: v })} />
             </div>
           </FormSection>
 
@@ -310,43 +393,35 @@ export function AccountPage() {
             </div>
           </FormSection>
 
-          {/* Notifications */}
-          <FormSection title="Notifications" icon={<BellIcon className="size-5" />}>
-            <div className="space-y-3">
-              {Object.entries(notifLabels).map(([key, label]) => (
-                <div key={key} className="flex items-center justify-between py-1">
-                  <span className="text-sm">{label}</span>
-                  {editing ? (
-                    <Switch checked={notifications[key] ?? false}
-                      onCheckedChange={(v) => setNotifications({ ...notifications, [key]: v })} />
-                  ) : (
-                    <span className={`text-xs ${notifications[key] ? "text-green-600" : "text-muted-foreground"}`}>
-                      {notifications[key] ? "On" : "Off"}
-                    </span>
-                  )}
-                </div>
-              ))}
+          {/* Security — password change (independent of the profile Edit/Save flow) */}
+          <FormSection title="Security" icon={<ShieldIcon className="size-5" />}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                  <KeyIcon className="size-3.5" /> New password
+                </label>
+                <Input type="password" className="mt-1.5" value={newPassword}
+                  autoComplete="new-password" placeholder="At least 8 characters"
+                  onChange={(e) => setNewPassword(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Confirm password</label>
+                <Input type="password" className="mt-1.5" value={confirmPassword}
+                  autoComplete="new-password" placeholder="Re-enter new password"
+                  onChange={(e) => setConfirmPassword(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button onClick={handleChangePassword} disabled={pwSaving || !newPassword || !confirmPassword}>
+                {pwSaving ? "Updating…" : "Update password"}
+              </Button>
+              {pwSuccess && (
+                <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 gap-1">
+                  <CheckIcon className="size-3" /> Password updated
+                </Badge>
+              )}
             </div>
           </FormSection>
-
-          {/* Credits */}
-          <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Credits</h2>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold text-primary">{profile.credit_balance}</p>
-                <p className="text-xs text-muted-foreground">Balance</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{profile.total_credits_purchased}</p>
-                <p className="text-xs text-muted-foreground">Purchased</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{profile.total_credits_spent}</p>
-                <p className="text-xs text-muted-foreground">Spent</p>
-              </div>
-            </div>
-          </div>
         </div>
     </BaseLayout>
   );
