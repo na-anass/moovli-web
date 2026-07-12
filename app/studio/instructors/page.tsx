@@ -4,6 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { DataTable, type Column, type RowAction } from "@/components/shared/data-table";
 import { FormSheet } from "@/components/shared/form-sheet";
+import {
+  ProviderForm,
+  EMPTY_PROVIDER_FORM,
+  providerToForm,
+  providerFormToPayload,
+  type ProviderFormValues,
+} from "@/components/studio/provider-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,25 +67,6 @@ const tierColors: Record<string, string> = {
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
-const EMPTY_FORM = {
-  name: "",
-  title: "",
-  email: "",
-  phone: "",
-  tier: "standard",
-  experience_years: "",
-  base_rate: "",
-  specializations: "",
-  short_bio: "",
-  bio: "",
-  avatar_url: "",
-  is_active: true,
-  is_featured: false,
-  display_order: "0",
-  instagram: "",
-  facebook: "",
-};
-
 const PAGE_SIZE = 20;
 
 export default function InstructorsPage() {
@@ -100,7 +88,7 @@ export default function InstructorsPage() {
   // Create / edit form.
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Provider | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState<ProviderFormValues>(EMPTY_PROVIDER_FORM);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -169,60 +157,16 @@ export default function InstructorsPage() {
   // ── create / edit ──────────────────────────────────────────────────────────
   const openCreate = () => {
     setEditing(null);
-    setForm(EMPTY_FORM);
+    setForm(EMPTY_PROVIDER_FORM);
     setSaveError(null);
     setDialogOpen(true);
   };
 
   const openEdit = (p: Provider) => {
     setEditing(p);
-    setForm({
-      name: p.name,
-      title: p.title ?? "",
-      email: p.email ?? "",
-      phone: p.phone ?? "",
-      tier: p.tier ?? "standard",
-      experience_years: p.experience_years != null ? String(p.experience_years) : "",
-      base_rate: p.base_rate != null ? String(p.base_rate) : "",
-      specializations: (p.specializations ?? []).join(", "),
-      short_bio: p.short_bio ?? "",
-      bio: p.bio ?? "",
-      avatar_url: p.avatar_url ?? "",
-      is_active: p.is_active,
-      is_featured: !!p.is_featured,
-      display_order: String(p.display_order ?? 0),
-      instagram: p.social_links?.instagram ?? "",
-      facebook: p.social_links?.facebook ?? "",
-    });
+    setForm(providerToForm(p));
     setSaveError(null);
     setDialogOpen(true);
-  };
-
-  const buildPayload = () => {
-    const specializations = form.specializations
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const social: Record<string, string> = {};
-    if (form.instagram.trim()) social.instagram = form.instagram.trim();
-    if (form.facebook.trim()) social.facebook = form.facebook.trim();
-    return {
-      name: form.name.trim(),
-      title: form.title.trim() || null,
-      email: form.email.trim() || null,
-      phone: form.phone.trim() || null,
-      tier: form.tier,
-      experience_years: form.experience_years ? parseInt(form.experience_years) : null,
-      base_rate: form.base_rate ? parseFloat(form.base_rate) : null,
-      specializations: specializations.length ? specializations : null,
-      short_bio: form.short_bio.trim() || null,
-      bio: form.bio.trim() || null,
-      avatar_url: form.avatar_url.trim() || null,
-      is_active: form.is_active,
-      is_featured: form.is_featured,
-      display_order: form.display_order ? parseInt(form.display_order) : 0,
-      social_links: Object.keys(social).length ? social : null,
-    };
   };
 
   const handleSave = async () => {
@@ -230,7 +174,7 @@ export default function InstructorsPage() {
     setSaving(true);
     setSaveError(null);
     try {
-      const payload = buildPayload();
+      const payload = providerFormToPayload(form);
       if (editing) await studioApi.updateProvider(entityId, editing.id, payload);
       else await studioApi.createProvider(entityId, payload);
       setDialogOpen(false);
@@ -424,91 +368,7 @@ export default function InstructorsPage() {
           {saveError && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{saveError}</div>
           )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium">Name *</label>
-              <Input className="mt-1.5" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Instructor name" />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Title</label>
-              <Input className="mt-1.5" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Senior Pilates Coach" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium">Email</label>
-              <Input className="mt-1.5" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" />
-              <p className="text-[10px] text-muted-foreground mt-1">Adding an email provisions an instructor login.</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Phone</label>
-              <Input className="mt-1.5" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+212…" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium">Experience (yrs)</label>
-              <Input className="mt-1.5" type="number" min="0" value={form.experience_years} onChange={(e) => setForm({ ...form, experience_years: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Rate ({currency})</label>
-              <Input className="mt-1.5" type="number" min="0" step="0.01" value={form.base_rate} onChange={(e) => setForm({ ...form, base_rate: e.target.value })} />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Specializations</label>
-            <Input className="mt-1.5" value={form.specializations} onChange={(e) => setForm({ ...form, specializations: e.target.value })} placeholder="Pilates, Yoga, HIIT (comma-separated)" />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Short bio</label>
-            <Input className="mt-1.5" value={form.short_bio} onChange={(e) => setForm({ ...form, short_bio: e.target.value })} placeholder="One-line summary" maxLength={500} />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Bio</label>
-            <textarea
-              className="mt-1.5 w-full rounded-lg border border-border bg-background p-3 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring resize-y"
-              value={form.bio}
-              onChange={(e) => setForm({ ...form, bio: e.target.value })}
-              placeholder="Detailed bio…"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Avatar URL</label>
-            <Input className="mt-1.5" value={form.avatar_url} onChange={(e) => setForm({ ...form, avatar_url: e.target.value })} placeholder="https://…" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium">Instagram</label>
-              <Input className="mt-1.5" value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} placeholder="@handle or URL" />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Facebook</label>
-              <Input className="mt-1.5" value={form.facebook} onChange={(e) => setForm({ ...form, facebook: e.target.value })} placeholder="profile or URL" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 items-end">
-            <div>
-              <label className="text-sm font-medium">Display order</label>
-              <Input className="mt-1.5" type="number" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: e.target.value })} />
-            </div>
-            <div className="flex items-center gap-2 pb-2">
-              <Switch checked={form.is_featured} onCheckedChange={(v) => setForm({ ...form, is_featured: v })} />
-              <label className="text-sm font-medium flex items-center gap-1"><StarIcon className="size-3" /> Featured</label>
-            </div>
-            <div className="flex items-center gap-2 pb-2">
-              <Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
-              <label className="text-sm font-medium">Active</label>
-            </div>
-          </div>
+          <ProviderForm form={form} setForm={setForm} currency={currency} />
         </div>
       </FormSheet>
 
@@ -535,7 +395,7 @@ export default function InstructorsPage() {
             Permanently delete <span className="font-semibold">{deleting?.name}</span>?
           </p>
           <p className="text-xs text-muted-foreground">
-            If they're assigned to any sessions, the delete is blocked — deactivate them instead
+            If they&apos;re assigned to any sessions, the delete is blocked — deactivate them instead
             (toggle Active off), which hides them without breaking existing bookings.
           </p>
           {deleteError && (
