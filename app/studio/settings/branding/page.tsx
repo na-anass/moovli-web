@@ -127,10 +127,10 @@ export default function BrandingSettingsPage() {
                 alt={entity.name}
                 width={80}
                 height={80}
-                className="rounded-xl border-4 border-background shadow-md object-cover"
+                className="rounded-xl border-4 border-background object-cover"
               />
             ) : (
-              <div className="size-20 rounded-xl border-4 border-background bg-primary/10 flex items-center justify-center shadow-md">
+              <div className="size-20 rounded-xl border-4 border-background bg-primary/10 flex items-center justify-center">
                 <BuildingIcon className="size-8 text-primary" />
               </div>
             )}

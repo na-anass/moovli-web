@@ -66,11 +66,11 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen">
       {/* Left side — Brand */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #f26c2c 0%, #dd510e 50%, #480193 100%)" }}>
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary">
         <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="size-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center p-1.5">
+            <div className="size-12 rounded-xl bg-white flex items-center justify-center p-1.5">
               <Image src="/img/moovli-logo.png" alt="Moovli" width={36} height={36} />
             </div>
             <div>
@@ -113,7 +113,9 @@ function LoginForm() {
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile logo */}
           <div className="lg:hidden flex justify-center">
-            <Image src="/img/moovli-icon.png" alt="Moovli" width={56} height={56} className="rounded-xl" />
+            <div className="flex size-16 items-center justify-center rounded-xl bg-primary-50 p-2">
+              <Image src="/img/moovli-icon.png" alt="Moovli" width={48} height={48} />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -162,7 +164,6 @@ function LoginForm() {
               type="submit"
               className="w-full h-11 text-sm font-medium"
               disabled={loading}
-              style={{ backgroundColor: "#f26c2c" }}
             >
               {loading ? "Signing in..." : "Sign In"}
             </Button>

@@ -21,10 +21,10 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-const DEFAULT_COLOR = "#f26c2c";
+const DEFAULT_COLOR = "#7c3aed";
 
 const PRESETS = [
-  { label: "Moovli orange", value: "#f26c2c" },
+  { label: "Moovli violet", value: "#7c3aed" },
   { label: "Magenta", value: "#d946ef" },
   { label: "Teal", value: "#14b8a6" },
   { label: "Indigo", value: "#6366f1" },
@@ -293,7 +293,7 @@ export default function StudioChannelDirectPage() {
             value={color}
             onChange={(e) => setColor(e.target.value.toLowerCase())}
             disabled={!canManage}
-            placeholder="#f26c2c"
+            placeholder="#7c3aed"
             className="w-32 h-12 font-mono text-sm"
           />
           <span className="text-xs text-muted-foreground">

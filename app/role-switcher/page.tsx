@@ -81,10 +81,10 @@ export default function RoleSwitcherPage() {
             <button
               key={card.href}
               onClick={() => router.push(card.href)}
-              className="group flex items-center gap-6 rounded-2xl border border-border bg-card p-6 text-left transition-all hover:shadow-lg hover:border-primary/30 hover:scale-[1.01]"
+              className="group flex items-center gap-6 rounded-2xl border border-border bg-card p-6 text-left transition-all hover:border-primary/30 hover:scale-[1.01]"
             >
               <div
-                className={`flex size-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${card.color} text-white shadow-md`}
+                className={`flex size-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${card.color} text-white`}
               >
                 {card.icon}
               </div>

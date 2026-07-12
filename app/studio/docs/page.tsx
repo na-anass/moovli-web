@@ -105,7 +105,7 @@ export default function StudioDocsPage() {
             <Link
               key={t.href}
               href={t.href}
-              className="group rounded-xl border bg-card p-5 hover:border-primary/40 hover:shadow-sm transition-all"
+              className="group rounded-xl border bg-card p-5 hover:border-primary/40 transition-all"
             >
               <div className="flex items-start gap-3">
                 <div

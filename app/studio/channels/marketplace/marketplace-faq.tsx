@@ -16,7 +16,7 @@ function FaqCard({ item, defaultOpen }: { item: FaqItem; defaultOpen?: boolean }
     <Collapsible open={open} onOpenChange={setOpen}>
       <div
         className={cn(
-          "rounded-xl border bg-card px-4 py-3.5 shadow-sm transition-colors",
+          "rounded-xl border bg-card px-4 py-3.5 transition-colors",
           open && "border-primary/40",
         )}
       >

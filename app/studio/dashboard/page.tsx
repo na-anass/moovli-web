@@ -294,21 +294,21 @@ export default function StudioDashboardPage() {
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link href="/studio/bookings" className="group">
-          <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 hover:shadow-sm transition-all">
+          <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 transition-all">
             <BookOpenIcon className="size-5 text-primary mb-3" />
             <h3 className="font-semibold group-hover:text-primary transition-colors">Manage bookings</h3>
             <p className="text-sm text-muted-foreground mt-1">Check in attendees, confirm pending direct bookings</p>
           </div>
         </Link>
         <Link href="/studio/services" className="group">
-          <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 hover:shadow-sm transition-all">
+          <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 transition-all">
             <ClockIcon className="size-5 text-primary mb-3" />
             <h3 className="font-semibold group-hover:text-primary transition-colors">Services & pricing</h3>
             <p className="text-sm text-muted-foreground mt-1">Edit duration, capacity, and price defaults</p>
           </div>
         </Link>
         <Link href="/studio/customers" className="group">
-          <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 hover:shadow-sm transition-all">
+          <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 transition-all">
             <UsersIcon className="size-5 text-primary mb-3" />
             <h3 className="font-semibold group-hover:text-primary transition-colors">Customers</h3>
             <p className="text-sm text-muted-foreground mt-1">See who has booked with you and their history</p>

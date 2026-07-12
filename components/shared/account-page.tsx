@@ -261,7 +261,7 @@ export function AccountPage() {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar}
                   aria-label="Change photo"
-                  className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-muted disabled:opacity-60"
+                  className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border border-border bg-background hover:bg-muted disabled:opacity-60"
                 >
                   {uploadingAvatar ? (
                     <Loader2Icon className="size-3.5 animate-spin text-muted-foreground" />

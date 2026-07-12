@@ -72,7 +72,7 @@ export interface ExistingSession {
   price_mad: number;
 }
 
-export const DEFAULT_COLOR = "#f26c2c";
+export const DEFAULT_COLOR = "#7c3aed";
 
 const EMPTY_PROFILE: ProfileState = {
   name: "",

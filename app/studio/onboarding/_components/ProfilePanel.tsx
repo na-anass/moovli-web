@@ -10,7 +10,7 @@ import { PanelHeading } from "./PanelHeading";
 import { DEFAULT_COLOR, type OnboardingData } from "../_lib/useOnboarding";
 
 const BRAND_PRESETS = [
-  { label: "Moovli orange", value: "#f26c2c" },
+  { label: "Moovli violet", value: "#7c3aed" },
   { label: "Magenta", value: "#d946ef" },
   { label: "Teal", value: "#14b8a6" },
   { label: "Indigo", value: "#6366f1" },

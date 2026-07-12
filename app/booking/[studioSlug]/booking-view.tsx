@@ -530,7 +530,7 @@ function CalendarView({
                     className={`absolute left-0.5 right-0.5 rounded-md border px-2 py-1 overflow-hidden text-[11px] leading-tight text-left transition ${
                       isFull || isPast
                         ? "opacity-50 cursor-not-allowed bg-muted"
-                        : "hover:shadow-sm hover:z-10 cursor-pointer"
+                        : "hover:z-10 cursor-pointer"
                     }`}
                     style={{
                       top,
@@ -614,7 +614,7 @@ function ListView({
               return (
                 <div
                   key={s.id}
-                  className={`rounded-lg border p-4 transition ${isFull ? "opacity-50" : "hover:shadow-sm"}`}
+                  className={`rounded-lg border p-4 transition ${isFull ? "opacity-50" : ""}`}
                   style={{ borderLeftColor: accent, borderLeftWidth: 3 }}
                 >
                   <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
@@ -654,7 +654,7 @@ function ListView({
                         <button
                           type="button"
                           onClick={() => onBook(s.id)}
-                          className="inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-semibold text-white shadow-sm transition hover:opacity-90 active:scale-[0.98]"
+                          className="inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 active:scale-[0.98]"
                           style={{ backgroundColor: accent }}
                         >
                           Book

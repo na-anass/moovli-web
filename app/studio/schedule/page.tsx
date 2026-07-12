@@ -1051,7 +1051,7 @@ export default function SchedulePage() {
         {...handlers}
         {...dragProps}
         title={tooltip}
-        className={`flex h-full w-full flex-col overflow-hidden text-left rounded-md border-l-[3px] px-2 py-1 transition-all hover:shadow-sm cursor-pointer ${colors.bg} ${colors.border} ${isDraft ? "border border-dashed" : ""} ${dragClass}`}
+        className={`flex h-full w-full flex-col overflow-hidden text-left rounded-md border-l-[3px] px-2 py-1 transition-all cursor-pointer ${colors.bg} ${colors.border} ${isDraft ? "border border-dashed" : ""} ${dragClass}`}
       >
         {/* Always: class name + fill count (the key studio metric). */}
         <div className="flex items-start justify-between gap-1">
@@ -2403,7 +2403,7 @@ export default function SchedulePage() {
 
       {/* Success/info toast — explicit confirmation after an action. */}
       {toast && (
-        <div className="fixed bottom-4 right-4 z-50 flex max-w-sm items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-lg">
+        <div className="fixed bottom-4 right-4 z-50 flex max-w-sm items-start gap-3 rounded-lg border border-border bg-card px-4 py-3">
           {toast.variant === "success" ? (
             <CheckCircle2Icon className="mt-0.5 size-5 shrink-0 text-green-600 dark:text-green-500" />
           ) : (

@@ -116,12 +116,12 @@ export function Sidebar({
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start mb-0.5 rounded-lg",
+            "relative w-full justify-start mb-0.5 rounded-lg",
             collapsed ? "px-0 justify-center h-9" : isChild ? "h-8 px-3 pl-10" : "h-9 px-3",
             active
               ? isChild
                 ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-medium"
-                : "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+                : "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-0.5 before:rounded-full before:bg-primary"
               : isChild
                 ? "text-muted-foreground/80 hover:text-foreground"
                 : "text-muted-foreground hover:text-foreground",
@@ -201,7 +201,7 @@ export function Sidebar({
       <Button
         variant="ghost"
         size="icon"
-        className="md:hidden fixed z-[999] right-3 bottom-3 size-12 bg-foreground rounded-full shadow-lg"
+        className="md:hidden fixed z-[999] right-3 bottom-3 size-12 bg-foreground rounded-full"
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       >
         {isMobileMenuOpen ? (
@@ -228,11 +228,13 @@ export function Sidebar({
                 animate={{ x: 0 }}
                 exit={{ x: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="fixed right-0 top-0 h-full w-72 bg-background shadow-xl z-[101] md:hidden"
+                className="fixed right-0 top-0 h-full w-72 bg-background z-[101] md:hidden"
               >
                 <div className="flex h-full flex-col">
                   <div className="flex h-14 items-center gap-2.5 px-4 border-b border-border">
-                    <Image src="/img/moovli-icon.png" alt="Moovli" width={28} height={28} className="rounded-md" />
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-primary-50 p-1 shrink-0">
+                      <Image src="/img/moovli-icon.png" alt="Moovli" width={24} height={24} />
+                    </div>
                     <span className="text-sm font-semibold">{title}</span>
                     {subtitle && (
                       <span className="text-xs text-muted-foreground truncate">{subtitle}</span>
@@ -271,7 +273,7 @@ export function Sidebar({
         {/* Desktop sidebar */}
         <div
           className={cn(
-            "hidden md:flex flex-col sticky top-0 h-screen border-r border-border bg-background transition-all duration-300",
+            "hidden md:flex flex-col sticky top-0 h-screen border-r border-border bg-background transition-all duration-300 z-40",
             isCollapsed ? "w-16" : "w-56",
             className,
           )}
@@ -280,7 +282,9 @@ export function Sidebar({
           <div className="flex h-14 items-center justify-between px-3 border-b border-border relative shrink-0">
             {!isCollapsed ? (
               <div className="flex items-center gap-2.5">
-                <Image src="/img/moovli-icon.png" alt="Moovli" width={28} height={28} className="rounded-lg shrink-0" />
+                <div className="flex size-8 items-center justify-center rounded-lg bg-primary-50 p-1 shrink-0">
+                  <Image src="/img/moovli-icon.png" alt="Moovli" width={24} height={24} />
+                </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-sm font-semibold leading-tight">{title}</span>
                   {subtitle && (
@@ -291,13 +295,15 @@ export function Sidebar({
                 </div>
               </div>
             ) : (
-              <Image src="/img/moovli-icon.png" alt="Moovli" width={24} height={24} className="rounded-lg mx-auto" />
+              <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-primary-50 p-1">
+                <Image src="/img/moovli-icon.png" alt="Moovli" width={24} height={24} />
+              </div>
             )}
             <Button
               variant="ghost"
               size="icon"
               className={cn(
-                "h-6 w-6 rounded-full border border-border bg-background shadow-sm absolute -right-3",
+                "h-6 w-6 rounded-full border border-border bg-background absolute -right-3 z-40",
               )}
               onClick={() => setIsCollapsed(!isCollapsed)}
             >

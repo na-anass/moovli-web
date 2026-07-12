@@ -209,7 +209,7 @@ function OnboardingInner() {
       {/* Body (only this scrolls) */}
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
+          <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
             {data.loading ? (
               <div className="space-y-4">
                 <div className="h-8 w-1/2 animate-pulse rounded bg-muted" />

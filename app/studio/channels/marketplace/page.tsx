@@ -445,7 +445,7 @@ function PriceTile({
     <div
       className={cn(
         "flex flex-1 flex-col items-center gap-1.5 rounded-xl border bg-background px-3 py-4 text-center",
-        highlight && "border-primary/40 bg-primary/5 shadow-sm",
+        highlight && "border-primary/40 bg-primary/5",
       )}
     >
       <span className={cn("flex size-8 items-center justify-center rounded-full", tint)}>

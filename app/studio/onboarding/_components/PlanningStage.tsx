@@ -263,7 +263,7 @@ export function PlanningStage({
                       key={c.tempId}
                       type="button"
                       onClick={() => setEditing(c)}
-                      className="w-full rounded-md border-l-2 border-l-primary bg-card p-2 text-left shadow-sm transition hover:shadow"
+                      className="w-full rounded-md border-l-2 border-l-primary bg-card p-2 text-left transition"
                     >
                       <div className="text-xs font-bold">{c.time}</div>
                       <div className="truncate text-xs font-medium">{svc?.name}</div>
