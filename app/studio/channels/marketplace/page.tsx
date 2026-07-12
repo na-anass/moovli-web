@@ -5,8 +5,10 @@ import { ChannelDeactivateSheet } from "@/components/studio/channel-deactivate-s
 import { formatMoneyWhole } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { MarketplaceFaq, type FaqItem } from "./marketplace-faq";
 import { entityPlansApi, type EntityPlan } from "@/lib/api/entityPlans";
 import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
@@ -32,11 +34,13 @@ export default function StudioChannelMarketplacePage() {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
 
-  // Studio-set markup. Floor 20%, no upper cap.
-  const MARKUP_FLOOR = 20;
-  const [markup, setMarkup] = useState<number>(MARKUP_FLOOR);
+  // Studio-set discount to Moovli. Floor 20%, no upper cap.
+  const DISCOUNT_FLOOR = 20;
+  const [markup, setMarkup] = useState<number>(DISCOUNT_FLOOR);
   const [savingMarkup, setSavingMarkup] = useState(false);
   const [markupSaved, setMarkupSaved] = useState(false);
+  // Inline validation: below the floor is not allowed (no silent clamping).
+  const belowFloor = markup < DISCOUNT_FLOOR;
 
   const fetchAll = useCallback(async () => {
     if (!entityId) return;
@@ -48,11 +52,11 @@ export default function StudioChannelMarketplacePage() {
       ]);
       setPlan(subRes.data.plan);
       setPrefs(prefRes.data);
-      // Initialize the slider from the studio's saved markup, falling back to
-      // the plan's baseline (clamped to the allowed range).
+      // Initialize from the studio's saved discount, falling back to the plan's
+      // baseline (clamped to the allowed floor).
       const saved = prefRes.data.marketplace_markup_pct;
-      const baseline = Math.round(Number(subRes.data.plan?.base_markup_pct ?? MARKUP_FLOOR));
-      setMarkup(Math.max(MARKUP_FLOOR, saved ?? baseline));
+      const baseline = Math.round(Number(subRes.data.plan?.base_markup_pct ?? DISCOUNT_FLOOR));
+      setMarkup(Math.max(DISCOUNT_FLOOR, saved ?? baseline));
     } catch (e) {
       console.error(e);
     } finally {
@@ -62,7 +66,9 @@ export default function StudioChannelMarketplacePage() {
 
   const saveMarkup = async () => {
     if (!entityId) return;
-    const value = Math.max(MARKUP_FLOOR, Math.round(markup) || MARKUP_FLOOR);
+    const value = Math.round(markup);
+    // Guard: never submit a value below the floor (button is also disabled).
+    if (!value || value < DISCOUNT_FLOOR) return;
     setSavingMarkup(true);
     setMarkupSaved(false);
     try {
@@ -124,6 +130,32 @@ export default function StudioChannelMarketplacePage() {
   const isLive = planAllows && marketplaceOn;
   const baseMarkup = Math.round(Number(plan?.base_markup_pct ?? 0));
 
+  const faqItems: FaqItem[] = [
+    {
+      question: `Pourquoi un discount de ${DISCOUNT_FLOOR}% ?`,
+      answer:
+        "C'est ce qui rend l'offre attractive pour les clients abonnés. En échange, vous touchez de nouveaux clients sans effort marketing.",
+    },
+    {
+      question: "Est-ce que mes clients actuels vont passer par le marketplace ?",
+      answer:
+        "Non. Vos clients réguliers continuent de réserver via votre lien direct au prix normal.",
+    },
+    {
+      question: "Je peux retirer un cours du marketplace à tout moment ?",
+      answer: "Oui. Vous gardez le contrôle total.",
+    },
+    {
+      question: "Comment ça marche ?",
+      answer: `Votre discount est la remise en gros que vous accordez à Moovli (minimum ${DISCOUNT_FLOOR}%). Moovli affiche votre session sur le marketplace à son propre prix — fixé dynamiquement selon le moment et la demande — et garde la différence. Base recommandée : ${baseMarkup}%.`,
+    },
+    {
+      question: "Combien je touche ?",
+      answer:
+        "Vous recevez toujours votre net — votre prix de vente moins votre discount — quel que soit le prix auquel Moovli le vend. Le discount couvre l'acquisition client, le traitement des paiements et la découverte.",
+    },
+  ];
+
   return (
     <BaseLayout
       icon={ShoppingBagIcon}
@@ -166,7 +198,7 @@ export default function StudioChannelMarketplacePage() {
               <p className="text-xs text-muted-foreground mt-1">
                 Your current plan ({plan?.name ?? "Standard"}) doesn&apos;t include marketplace
                 distribution. Upgrade to Marketplace to start receiving bookings from Moovli
-                app users — you set a list price and a small commission, and receive the net
+                app users — you set a list price and a wholesale discount, and receive the net
                 on every marketplace booking.
               </p>
               <Button asChild size="sm" className="mt-3">
@@ -207,9 +239,9 @@ export default function StudioChannelMarketplacePage() {
         </section>
       )}
 
-      {/* Pricing & markup explainer */}
+      {/* Pricing on the marketplace — calculation + input on a card */}
       {planAllows && (
-        <section className="rounded-xl border bg-card p-5 space-y-4">
+        <Card className="gap-4 p-5">
           <div className="flex items-center gap-2">
             <CoinsIcon className="size-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold">Pricing on the marketplace</h2>
@@ -229,7 +261,7 @@ export default function StudioChannelMarketplacePage() {
               <div className="text-muted-foreground">−</div>
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Commission to Moovli
+                  Discount to Moovli
                 </div>
                 <div className="text-xl font-semibold mt-0.5">{markup}%</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
@@ -251,31 +283,39 @@ export default function StudioChannelMarketplacePage() {
             </div>
           </div>
 
-          {/* Studio sets its own commission — minimum 20%, no upper cap. */}
+          {/* Studio sets its own discount — minimum 20%, no upper cap. */}
           {canManage ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <label className="text-xs font-medium" htmlFor="markup-input">
-                Your commission to Moovli
+                Your discount to Moovli
               </label>
               <div className="flex items-center gap-2">
                 <div className="relative w-32">
                   <Input
                     id="markup-input"
                     type="number"
-                    min={MARKUP_FLOOR}
+                    min={DISCOUNT_FLOOR}
                     step={1}
                     value={markup}
                     onChange={(e) => setMarkup(Number(e.target.value))}
-                    onBlur={() => setMarkup((m) => Math.max(MARKUP_FLOOR, Math.round(m) || MARKUP_FLOOR))}
+                    aria-invalid={belowFloor}
                     className="pr-7"
-                    aria-label="Marketplace commission percentage"
+                    aria-label="Marketplace discount percentage"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
                     %
                   </span>
                 </div>
-                <Button size="sm" onClick={saveMarkup} disabled={savingMarkup || markup === (prefs?.marketplace_markup_pct ?? -1)}>
-                  {savingMarkup ? "Saving…" : "Save commission"}
+                <Button
+                  size="sm"
+                  onClick={saveMarkup}
+                  disabled={
+                    savingMarkup ||
+                    belowFloor ||
+                    markup === (prefs?.marketplace_markup_pct ?? -1)
+                  }
+                >
+                  {savingMarkup ? "Saving…" : "Save discount"}
                 </Button>
                 {markupSaved && (
                   <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">
@@ -283,26 +323,25 @@ export default function StudioChannelMarketplacePage() {
                   </Badge>
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                Minimum {MARKUP_FLOOR}% — no maximum.
-              </p>
+              {belowFloor ? (
+                <p className="text-[11px] font-medium text-destructive">
+                  Minimum discount is {DISCOUNT_FLOOR}%.
+                </p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground">
+                  Minimum {DISCOUNT_FLOOR}% — no maximum.
+                </p>
+              )}
             </div>
           ) : null}
+        </Card>
+      )}
 
-          <div className="space-y-2 text-xs text-muted-foreground">
-            <p>
-              <span className="font-medium text-foreground">How it works:</span> Your commission is
-              the wholesale discount you give Moovli (minimum {MARKUP_FLOOR}%). Moovli lists your
-              session on the marketplace at its own price — set dynamically by timing and demand —
-              and keeps the difference. Recommended baseline: {baseMarkup}%.
-            </p>
-            <p>
-              <span className="font-medium text-foreground">Your earnings:</span> You always receive
-              your <span className="font-medium text-foreground">net</span> — your list price minus
-              your commission — no matter what Moovli sells it for. The commission covers customer
-              acquisition, payment processing, and discovery.
-            </p>
-          </div>
+      {/* FAQ */}
+      {planAllows && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold">Questions fréquentes</h2>
+          <MarketplaceFaq items={faqItems} />
         </section>
       )}
 

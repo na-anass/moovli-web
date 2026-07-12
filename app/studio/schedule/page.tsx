@@ -1,7 +1,7 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
-import { DataTable, type Column, type RowAction } from "@/components/shared/data-table";
+import { type RowAction } from "@/components/shared/data-table";
 import { FormSheet } from "@/components/shared/form-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { entityPlansApi } from "@/lib/api/entityPlans";
 import { studioApi, type SessionScope } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
@@ -29,7 +36,6 @@ import { formatMoneyWhole } from "@/lib/money";
 import {
   formatTime,
   formatDate,
-  formatDateTime,
   formatDateCustom,
   localDateStr,
   localInputsToISO,
@@ -48,6 +54,7 @@ import {
   CoinsIcon,
   InfoIcon,
   ListIcon,
+  MoreVerticalIcon,
   PencilIcon,
   PlusIcon,
   SearchIcon,
@@ -156,6 +163,48 @@ const DISPLAY_STATUS: Record<
   completed: { label: "Completed", bg: "bg-gray-50 dark:bg-gray-900/40", border: "border-l-gray-400", text: "text-gray-500 dark:text-gray-400" },
 };
 
+// Kebab menu for a session card in the list view — mirrors the DataTable's row
+// menu so both surfaces share the same `sessionRowActions` action list.
+function SessionCardActions({ actions }: { actions: RowAction[] }) {
+  if (!actions.length) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Session actions">
+          <MoreVerticalIcon className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {actions.map((action, i) => {
+          const Icon = action.icon;
+          return (
+            <div key={i}>
+              {action.separatorBefore && <DropdownMenuSeparator />}
+              <DropdownMenuItem
+                variant={action.variant}
+                disabled={action.disabled}
+                onClick={action.onClick}
+              >
+                {Icon && <Icon className="size-4" />}
+                {action.label}
+              </DropdownMenuItem>
+            </div>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// Sort presets for the list view (the card layout has no sortable headers).
+const LIST_SORTS: { value: string; label: string; key: "start_time" | "price_mad" | "booked_count" | "updated_at"; dir: "asc" | "desc" }[] = [
+  { value: "start_time:asc", label: "Soonest first", key: "start_time", dir: "asc" },
+  { value: "start_time:desc", label: "Latest first", key: "start_time", dir: "desc" },
+  { value: "price_mad:desc", label: "Price: high to low", key: "price_mad", dir: "desc" },
+  { value: "booked_count:desc", label: "Most booked", key: "booked_count", dir: "desc" },
+  { value: "updated_at:desc", label: "Recently updated", key: "updated_at", dir: "desc" },
+];
+
 // Group sessions whose time ranges overlap into clusters, so the calendar can
 // lay them out side-by-side (Google-Calendar style) instead of stacking them.
 const clusterByOverlap = <T extends { start_time: string; end_time: string }>(items: T[]): T[][] => {
@@ -179,8 +228,31 @@ const clusterByOverlap = <T extends { start_time: string; end_time: string }>(it
   return clusters;
 };
 
-// Height (px) of one stacked overlap line (sessions sharing the same start).
-const OVERLAP_LINE_H = 22;
+// Google-Calendar overlap packing: assign each event in an overlapping cluster
+// to the first column that is free at its start, so concurrent sessions render
+// SIDE BY SIDE (each sized to its real duration) instead of stacked as lines.
+const packColumns = <T extends { start_time: string; end_time: string }>(
+  cluster: T[],
+): { item: T; col: number; cols: number }[] => {
+  const sorted = [...cluster].sort(
+    (a, b) => a.start_time.localeCompare(b.start_time) || a.end_time.localeCompare(b.end_time),
+  );
+  const colEnds: number[] = []; // end time (ms) of the last event placed in each column
+  const placed = sorted.map((s) => {
+    const start = new Date(s.start_time).getTime();
+    const end = new Date(s.end_time).getTime();
+    let col = colEnds.findIndex((e) => e <= start);
+    if (col === -1) {
+      col = colEnds.length;
+      colEnds.push(end);
+    } else {
+      colEnds[col] = end;
+    }
+    return { item: s, col };
+  });
+  const cols = colEnds.length || 1;
+  return placed.map((p) => ({ ...p, cols }));
+};
 
 // Resolve the visual palette for a session: past sessions are always grayed out,
 // otherwise we use the status palette.
@@ -194,6 +266,10 @@ const sessionColors = (s: { lifecycle_status?: string; end_time: string; status:
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6:00 — 22:00
 const HOUR_HEIGHT = 64; // px per hour
 
+// Max side-by-side columns before overlapping sessions collapse into a "+N more"
+// chip (Google-Calendar style) — keeps each block wide enough to stay readable.
+const MAX_CALENDAR_COLS = 3;
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -203,11 +279,12 @@ export default function SchedulePage() {
   const currency = activeEntity.currencyCode;
   const [sessions, setSessions] = useState<Session[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
   // List-view sort (default: soonest first).
   const [sortKey, setSortKey] = useState<"start_time" | "price_mad" | "booked_count" | "updated_at">("start_time");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const PAGE_SIZE = 50;
+  // List view shows sessions as horizontal cards, revealed in batches of 3.
+  const LIST_STEP = 3;
+  const [listVisible, setListVisible] = useState(LIST_STEP);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewMode>("week");
 
@@ -224,6 +301,8 @@ export default function SchedulePage() {
 
   // Google-Calendar-style detail popover — opened by clicking a session.
   const [detailSession, setDetailSession] = useState<Session | null>(null);
+  // Overflow sessions collapsed behind a calendar "+N more" chip.
+  const [moreSessions, setMoreSessions] = useState<Session[] | null>(null);
   // Id of the session currently being dragged to a new time slot (calendar).
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
@@ -395,20 +474,17 @@ export default function SchedulePage() {
     });
   }, [filteredSessions, sortKey, sortDir]);
 
-  const pagedSessions = useMemo(
-    () => sortedSessions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [sortedSessions, page],
+  // List view slice: reveal the first few cards, then "Show more".
+  const listSessions = useMemo(
+    () => sortedSessions.slice(0, listVisible),
+    [sortedSessions, listVisible],
   );
 
-  // Toggle sort (same key flips direction, new key starts asc); reset to page 1.
-  const handleSort = (key: string) => {
-    if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key as typeof sortKey); setSortDir("asc"); }
-    setPage(1);
-  };
-
-  // Keep the page in range when filters/search shrink the result set.
-  useEffect(() => { setPage(1); }, [search, visibilityFilter, stateFilter]);
+  // Collapse the list back to the first batch whenever the filter/sort inputs
+  // change, so "Show more" always starts from the top of a fresh result set.
+  useEffect(() => {
+    setListVisible(LIST_STEP);
+  }, [visibilityFilter, stateFilter, search, sortKey, sortDir]);
 
   useEffect(() => {
     if (!entityId) return;
@@ -691,13 +767,17 @@ export default function SchedulePage() {
     }
   };
 
-  // Draft only — hard delete. The backend rejects deleting published sessions.
+  // Hard delete. Backend allows this for drafts and for published sessions that
+  // have NO bookings; published sessions with attendees must be cancelled instead.
   const handleDelete = (session: Session) => {
+    const isDraft = (session.lifecycle_status ?? "published") === "draft";
     withScope(
       session,
       {
-        title: "Delete draft session",
-        description: "This permanently deletes the draft. This can't be undone.",
+        title: isDraft ? "Delete draft session" : "Delete session",
+        description: isDraft
+          ? "This permanently deletes the draft. This can't be undone."
+          : "This permanently removes the session from your schedule. This can't be undone.",
         confirmLabel: "Delete",
         destructive: true,
       },
@@ -708,7 +788,7 @@ export default function SchedulePage() {
           if (res.skipped_published > 0) {
             showAlert("Some sessions skipped", res.message);
           } else {
-            showToast("Draft deleted.", "info");
+            showToast("Session deleted.", "info");
           }
           fetchSessions();
         } catch (e) {
@@ -865,53 +945,6 @@ export default function SchedulePage() {
   // LIST COLUMNS
   // ============================================================================
 
-  const columns: Column<Session>[] = [
-    {
-      header: "Service",
-      cell: (r) => (
-        <button
-          className="font-medium text-left hover:underline"
-          onClick={() => setDetailSession(r)}
-        >
-          {r.service?.name || "N/A"}
-        </button>
-      ),
-    },
-    { header: "Instructor", cell: (r) => <span>{r.provider?.name || "—"}</span> },
-    {
-      header: "Date & Time",
-      sortKey: "start_time",
-      cell: (r) => (
-        <div className="text-sm">
-          <p>{formatDate(r.start_time)}</p>
-          <p className="text-muted-foreground">{formatTime(r.start_time)} — {formatTime(r.end_time)}</p>
-        </div>
-      ),
-    },
-    { header: "Spots", sortKey: "booked_count", cell: (r) => <span>{r.booked_count}/{r.capacity}{r.waitlist_count > 0 ? ` +${r.waitlist_count} wl` : ""}</span> },
-    { header: "Price", sortKey: "price_mad", cell: (r) => <span>{r.price_mad != null ? formatMoneyWhole(r.price_mad, currency) : "—"}</span> },
-    {
-      header: "Status",
-      cell: (r) => {
-        const ds = DISPLAY_STATUS[displayStatus(r)];
-        return (
-          <Badge variant="outline" className={`${ds.bg} ${ds.text}`}>
-            {ds.label}
-          </Badge>
-        );
-      },
-    },
-    {
-      header: "Updated",
-      sortKey: "updated_at",
-      cell: (r) => (
-        <span className="text-sm text-muted-foreground">
-          {r.updated_at ? formatDateTime(r.updated_at) : "—"}
-        </span>
-      ),
-    },
-  ];
-
   // Lifecycle-aware row actions shared by the list view kebab. Follows the
   // session state machine: draft → edit/publish/delete; published active →
   // edit/cancel. Cancelled/completed sessions are read-only (no actions).
@@ -945,6 +978,16 @@ export default function SchedulePage() {
         separatorBefore: true,
         onClick: () => handleCancel(s),
       });
+      // Unbooked published sessions carry no attendees, so they can be fully
+      // removed (not just cancelled) — handy for cleaning up mistakes.
+      if ((s.booked_count ?? 0) === 0) {
+        actions.push({
+          label: s.recurrence_group_id ? "Delete…" : "Delete",
+          icon: Trash2Icon,
+          variant: "destructive",
+          onClick: () => handleDelete(s),
+        });
+      }
     }
     return actions;
   };
@@ -953,17 +996,14 @@ export default function SchedulePage() {
   // RENDER: SESSION CARD (for calendar)
   // ============================================================================
 
-  // `line` renders a thin single-row block (time + name) used when several
-  // sessions share a square and are stacked vertically — minimal detail, full
-  // width, so each stays readable. `compact` hides the secondary detail rows.
+  // Fills its positioned time block (Google-Calendar event). `compact` hides the
+  // secondary detail rows when the block is short or the column is narrow.
   const SessionCard = ({
     session,
     compact,
-    line,
   }: {
     session: Session;
     compact?: boolean;
-    line?: boolean;
   }) => {
     const colors = sessionColors(session);
     const isDraft = (session.lifecycle_status ?? "published") === "draft";
@@ -992,48 +1032,49 @@ export default function SchedulePage() {
       : {};
     const dragClass = draggingId === session.id ? "opacity-40" : "";
 
-    if (line) {
-      return (
-        <button
-          {...handlers}
-          {...dragProps}
-          title={session.service?.name || "Session"}
-          className={`flex w-full h-full items-center gap-1.5 text-left rounded border-l-[3px] px-1.5 transition-all hover:shadow-sm cursor-pointer overflow-hidden ${colors.bg} ${colors.border} ${isDraft ? "border border-dashed" : ""} ${dragClass}`}
-        >
-          <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">
-            {formatTime(session.start_time)}
-          </span>
-          <span className={`text-[11px] font-medium truncate ${colors.text}`}>
-            {isDraft && "[Draft] "}
-            {session.service?.name || "Session"}
-          </span>
-        </button>
-      );
-    }
+    const name = session.service?.name || "Session";
+    const fill = `${session.booked_count}/${session.capacity}`;
+    const isFull = session.capacity > 0 && session.booked_count >= session.capacity;
+    // Full details live in the hover tooltip + click-through popover, so nothing
+    // is lost when the block is too small to show it all.
+    const tooltip = [
+      name,
+      `${formatTime(session.start_time)} — ${formatTime(session.end_time)}`,
+      `${fill} booked`,
+      session.provider?.name,
+    ]
+      .filter(Boolean)
+      .join(" · ");
 
     return (
       <button
         {...handlers}
         {...dragProps}
-        className={`w-full text-left rounded-md border-l-[3px] px-2 py-1 transition-all hover:shadow-sm cursor-pointer ${colors.bg} ${colors.border} ${isDraft ? "border border-dashed" : ""} ${dragClass}`}
+        title={tooltip}
+        className={`flex h-full w-full flex-col overflow-hidden text-left rounded-md border-l-[3px] px-2 py-1 transition-all hover:shadow-sm cursor-pointer ${colors.bg} ${colors.border} ${isDraft ? "border border-dashed" : ""} ${dragClass}`}
       >
-        <p className={`text-xs font-medium truncate ${colors.text}`}>
-          {isDraft && <span className="font-semibold">[Draft] </span>}
-          {session.service?.name || "Session"}
-        </p>
+        {/* Always: class name + fill count (the key studio metric). */}
+        <div className="flex items-start justify-between gap-1">
+          <p className={`min-w-0 flex-1 truncate text-xs font-medium ${colors.text}`}>
+            {isDraft && <span className="font-semibold">[Draft] </span>}
+            {name}
+          </p>
+          <span
+            className={`flex shrink-0 items-center gap-0.5 text-[10px] tabular-nums ${isFull ? "font-semibold text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
+          >
+            <UsersIcon className="size-2.5" />
+            {fill}
+          </span>
+        </div>
+        {/* When there's vertical room: time range, then instructor. */}
         {!compact && (
           <>
             <p className="text-[10px] text-muted-foreground">
               {formatTime(session.start_time)} — {formatTime(session.end_time)}
             </p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                <UsersIcon className="size-2.5" />{session.booked_count}/{session.capacity}
-              </span>
-              {session.provider?.name && (
-                <span className="text-[10px] text-muted-foreground truncate">{session.provider.name}</span>
-              )}
-            </div>
+            {session.provider?.name && (
+              <p className="truncate text-[10px] text-muted-foreground">{session.provider.name}</p>
+            )}
           </>
         )}
       </button>
@@ -1179,45 +1220,67 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* Sessions — a lone session fills its time block. When sessions overlap,
-            each renders at ITS OWN start time as a compact line; only sessions
-            sharing the EXACT same start stack vertically (offset by index, with
-            "+N more" beyond what fits) — so e.g. a 07:00 session never gets
-            hidden under a 06:00 one. */}
+        {/* Sessions — a lone session fills its time block. Overlapping sessions
+            are packed into side-by-side columns (Google-Calendar style): each is
+            sized to its real start/end and takes an equal share of the column
+            width, so concurrent classes sit next to each other instead of
+            stacking. */}
         {clusterByOverlap(daySessions).flatMap((cluster) => {
-          // No overlap → normal time-sized block, full column width.
-          if (cluster.length === 1) {
-            const s = cluster[0];
-            const { top, height } = getSessionPosition(s);
-            return [
-              <div key={s.id} className="absolute z-[5] left-1 right-1" style={{ top, height: Math.max(height - 2, 22) }}>
-                <SessionCard session={s} compact={height < 40} />
-              </div>,
-            ];
-          }
+          const placed = packColumns(cluster);
+          const totalCols = placed[0]?.cols ?? 1;
+          const overflow = totalCols > MAX_CALENDAR_COLS;
+          // When crowded, the last visible column is reserved for the "+N more"
+          // chip, so real events fill columns 0..(MAX-2).
+          const renderCols = overflow ? MAX_CALENDAR_COLS : totalCols;
+          const lastRealCol = overflow ? MAX_CALENDAR_COLS - 1 : totalCols;
+          const widthPct = 100 / renderCols;
 
-          // Overlapping → group by exact start time; each group sits at its own
-          // vertical position, members stacked within it.
-          const byStart = new Map<string, Session[]>();
-          for (const s of cluster) {
-            const arr = byStart.get(s.start_time) ?? [];
-            arr.push(s);
-            byStart.set(s.start_time, arr);
-          }
+          const nodes = placed
+            .filter((p) => p.col < lastRealCol)
+            .map(({ item: s, col }) => {
+              const { top, height } = getSessionPosition(s);
+              const leftPct = col * widthPct;
+              return (
+                <div
+                  key={s.id}
+                  className="absolute z-[5]"
+                  style={{
+                    top,
+                    height: Math.max(height - 2, 22),
+                    left: `calc(${leftPct}% + 2px)`,
+                    width: `calc(${widthPct}% - 4px)`,
+                  }}
+                >
+                  <SessionCard session={s} compact={height < 44 || renderCols > 2} />
+                </div>
+              );
+            });
 
-          // Sessions sharing the exact same start stack as lines (all shown).
-          return [...byStart.values()].flatMap((group) => {
-            const top = getSessionPosition(group[0]).top;
-            return group.map((s, i) => (
-              <div
-                key={s.id}
-                className="absolute z-[5] left-1 right-1"
-                style={{ top: top + i * OVERLAP_LINE_H, height: OVERLAP_LINE_H - 2 }}
+          if (overflow) {
+            const hidden = placed.filter((p) => p.col >= lastRealCol).map((p) => p.item);
+            const bounds = hidden.map(getSessionPosition);
+            const top = Math.min(...bounds.map((b) => b.top));
+            const bottom = Math.max(...bounds.map((b) => b.top + b.height));
+            const leftPct = lastRealCol * widthPct;
+            nodes.push(
+              <button
+                key={`more-${hidden[0].id}`}
+                onClick={(e) => { e.stopPropagation(); setMoreSessions(hidden); }}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="absolute z-[5] flex items-center justify-center rounded-md border border-dashed border-border bg-muted/60 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted"
+                style={{
+                  top,
+                  height: Math.max(bottom - top - 2, 22),
+                  left: `calc(${leftPct}% + 2px)`,
+                  width: `calc(${widthPct}% - 4px)`,
+                }}
               >
-                <SessionCard session={s} line />
-              </div>
-            ));
-          });
+                +{hidden.length} more
+              </button>,
+            );
+          }
+
+          return nodes;
         })}
       </div>
     );
@@ -1358,21 +1421,98 @@ export default function SchedulePage() {
         </div>
       )}
 
-      {/* List View */}
+      {/* List View — horizontal cards, revealed 3 at a time */}
       {view === "list" && (
-        <DataTable
-          columns={columns}
-          data={pagedSessions}
-          total={sortedSessions.length}
-          page={page}
-          pageSize={PAGE_SIZE}
-          onPageChange={setPage}
-          sortKey={sortKey}
-          sortDir={sortDir}
-          onSortChange={handleSort}
-          rowActions={canManage ? sessionRowActions : undefined}
-          isLoading={loading}
-        />
+        <div className="space-y-3">
+          {/* Sort control (the card layout has no sortable table headers) */}
+          <div className="flex items-center justify-end">
+            <Select
+              value={`${sortKey}:${sortDir}`}
+              onValueChange={(v) => {
+                const preset = LIST_SORTS.find((s) => s.value === v);
+                if (preset) {
+                  setSortKey(preset.key);
+                  setSortDir(preset.dir);
+                }
+              }}
+            >
+              <SelectTrigger size="sm" className="w-auto min-w-40">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                {LIST_SORTS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {loading ? (
+            <div className="rounded-xl border bg-card py-12 text-center text-sm text-muted-foreground">
+              Loading…
+            </div>
+          ) : listSessions.length === 0 ? (
+            <div className="rounded-xl border bg-card py-12 text-center text-sm text-muted-foreground">
+              No sessions match your filters.
+            </div>
+          ) : (
+            <>
+              {listSessions.map((s) => {
+                const ds = DISPLAY_STATUS[displayStatus(s)];
+                const actions = canManage ? sessionRowActions(s) : [];
+                return (
+                  <div
+                    key={s.id}
+                    className={`flex items-center gap-4 rounded-xl border border-l-4 bg-card p-4 ${ds.border}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <button
+                        className="block truncate text-left font-semibold hover:underline"
+                        onClick={() => setDetailSession(s)}
+                      >
+                        {s.service?.name || "N/A"}
+                      </button>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <CalendarIcon className="size-3.5" /> {formatDate(s.start_time)}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <ClockIcon className="size-3.5" /> {formatTime(s.start_time)} — {formatTime(s.end_time)}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <UsersIcon className="size-3.5" /> {s.booked_count}/{s.capacity}
+                          {s.waitlist_count > 0 ? ` +${s.waitlist_count} wl` : ""}
+                        </span>
+                        {s.provider?.name && <span>{s.provider.name}</span>}
+                        {s.price_mad != null && (
+                          <span className="inline-flex items-center gap-1">
+                            <CoinsIcon className="size-3.5" /> {formatMoneyWhole(s.price_mad, currency)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className={`${ds.bg} ${ds.text} shrink-0`}>
+                      {ds.label}
+                    </Badge>
+                    <SessionCardActions actions={actions} />
+                  </div>
+                );
+              })}
+
+              {listVisible < sortedSessions.length && (
+                <div className="flex justify-center pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setListVisible((n) => n + LIST_STEP)}
+                  >
+                    Show more ({sortedSessions.length - listVisible} more)
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {/* Create / Edit sheet */}
@@ -1462,7 +1602,11 @@ export default function SchedulePage() {
                     {saving ? "Saving…" : "Save as draft"}
                   </Button>
                   <Button onClick={() => handleSave(true)} disabled={formInvalid}>
-                    <SendIcon className="size-4 mr-1.5" /> Publish
+                    {saving ? (
+                      form.repeat_mode !== "none" ? "Creating sessions…" : "Publishing…"
+                    ) : (
+                      <><SendIcon className="size-4 mr-1.5" /> Publish</>
+                    )}
                   </Button>
                 </>
               )}
@@ -2171,6 +2315,45 @@ export default function SchedulePage() {
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* "+N more" overflow — sessions collapsed from a crowded calendar slot */}
+      <Dialog open={!!moreSessions} onOpenChange={(open) => { if (!open) setMoreSessions(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">More sessions</DialogTitle>
+            <DialogDescription className="sr-only">
+              Sessions that overlap this time slot
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            {(moreSessions ?? [])
+              .slice()
+              .sort((a, b) => a.start_time.localeCompare(b.start_time))
+              .map((s) => {
+                const ds = DISPLAY_STATUS[displayStatus(s)];
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => { setMoreSessions(null); setDetailSession(s); }}
+                    className={`flex w-full items-center gap-3 rounded-lg border border-l-4 bg-card p-3 text-left transition-colors hover:bg-muted/50 ${ds.border}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{s.service?.name || "Session"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatTime(s.start_time)} — {formatTime(s.end_time)}
+                        {s.provider?.name ? ` · ${s.provider.name}` : ""}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {s.booked_count}/{s.capacity}
+                    </span>
+                    <Badge variant="outline" className={`${ds.bg} ${ds.text} shrink-0`}>{ds.label}</Badge>
+                  </button>
+                );
+              })}
+          </div>
         </DialogContent>
       </Dialog>
 
