@@ -14,11 +14,18 @@ import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
 import {
   ArrowRightIcon,
+  CheckIcon,
   CoinsIcon,
+  InfoIcon,
   LockIcon,
+  PercentIcon,
   ShoppingBagIcon,
+  TagIcon,
+  TrendingDownIcon,
   TrendingUpIcon,
+  WalletIcon,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -41,6 +48,12 @@ export default function StudioChannelMarketplacePage() {
   const [markupSaved, setMarkupSaved] = useState(false);
   // Inline validation: below the floor is not allowed (no silent clamping).
   const belowFloor = markup < DISCOUNT_FLOOR;
+
+  // Worked example used to illustrate the payout math on the pricing card.
+  const EXAMPLE_PRICE = 100;
+  const exampleNet = Math.round(EXAMPLE_PRICE * (1 - markup / 100));
+  const youKeepPct = Math.max(0, 100 - markup);
+  const DISCOUNT_PRESETS = [20, 25, 30, 40];
 
   const fetchAll = useCallback(async () => {
     if (!entityId) return;
@@ -132,27 +145,27 @@ export default function StudioChannelMarketplacePage() {
 
   const faqItems: FaqItem[] = [
     {
-      question: `Pourquoi un discount de ${DISCOUNT_FLOOR}% ?`,
+      question: `Why a ${DISCOUNT_FLOOR}% discount?`,
       answer:
-        "C'est ce qui rend l'offre attractive pour les clients abonnés. En échange, vous touchez de nouveaux clients sans effort marketing.",
+        "It's what makes the offer attractive to subscribed members. In exchange, you reach new customers with no marketing effort.",
     },
     {
-      question: "Est-ce que mes clients actuels vont passer par le marketplace ?",
+      question: "Will my existing clients go through the marketplace?",
       answer:
-        "Non. Vos clients réguliers continuent de réserver via votre lien direct au prix normal.",
+        "No. Your regular clients keep booking through your direct link at your normal price.",
     },
     {
-      question: "Je peux retirer un cours du marketplace à tout moment ?",
-      answer: "Oui. Vous gardez le contrôle total.",
+      question: "Can I remove a class from the marketplace anytime?",
+      answer: "Yes. You stay in full control.",
     },
     {
-      question: "Comment ça marche ?",
-      answer: `Votre discount est la remise en gros que vous accordez à Moovli (minimum ${DISCOUNT_FLOOR}%). Moovli affiche votre session sur le marketplace à son propre prix — fixé dynamiquement selon le moment et la demande — et garde la différence. Base recommandée : ${baseMarkup}%.`,
+      question: "How does it work?",
+      answer: `Your discount is the wholesale rate you give Moovli (minimum ${DISCOUNT_FLOOR}%). Moovli lists your session on the marketplace at its own price — set dynamically based on timing and demand — and keeps the difference. Recommended baseline: ${baseMarkup}%.`,
     },
     {
-      question: "Combien je touche ?",
+      question: "How much do I earn?",
       answer:
-        "Vous recevez toujours votre net — votre prix de vente moins votre discount — quel que soit le prix auquel Moovli le vend. Le discount couvre l'acquisition client, le traitement des paiements et la découverte.",
+        "You always receive your net — your list price minus your discount — no matter what price Moovli sells it at. The discount covers customer acquisition, payment processing, and discovery.",
     },
   ];
 
@@ -162,6 +175,7 @@ export default function StudioChannelMarketplacePage() {
       iconAccent="violet"
       title="Marketplace"
       subtitle="Your sessions discoverable in the Moovli mobile app."
+      maxWidth="xl"
       action={
         planAllows && canManage ? (
           <>
@@ -212,9 +226,12 @@ export default function StudioChannelMarketplacePage() {
         </section>
       )}
 
-      {/* Status panel — only when plan allows */}
+      {/* Plan-allowed content: main column + FAQ sidebar on desktop */}
       {planAllows && (
-        <section className="rounded-xl border bg-card p-5 space-y-3">
+        <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+          {/* Main column */}
+          <div className="space-y-6 lg:col-span-2">
+            <section className="rounded-xl border bg-card p-5 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold">Listing status</h2>
             {isLive ? (
@@ -237,60 +254,100 @@ export default function StudioChannelMarketplacePage() {
               : "Your sessions are not visible in the Moovli app. Existing marketplace bookings remain valid and will be honored — only future discoverability is paused."}
           </p>
         </section>
-      )}
 
-      {/* Pricing on the marketplace — calculation + input on a card */}
-      {planAllows && (
-        <Card className="gap-4 p-5">
-          <div className="flex items-center gap-2">
-            <CoinsIcon className="size-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">Pricing on the marketplace</h2>
-          </div>
-
-          <div className="rounded-lg bg-muted/40 p-4">
-            <div className="flex items-baseline justify-between gap-4">
+            {/* Pricing on the marketplace — calculation + input on a card */}
+            <Card className="gap-0 overflow-hidden p-0">
+          {/* Header band */}
+          <div className="flex items-start justify-between gap-3 border-b bg-linear-to-r from-primary/5 to-transparent px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <CoinsIcon className="size-4" />
+              </span>
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Your list price
-                </div>
-                <div className="text-xl font-semibold mt-0.5">{formatMoneyWhole(100, currency)}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  You set this
-                </div>
-              </div>
-              <div className="text-muted-foreground">−</div>
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Discount to Moovli
-                </div>
-                <div className="text-xl font-semibold mt-0.5">{markup}%</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Your wholesale discount
-                </div>
-              </div>
-              <div className="text-muted-foreground">=</div>
-              <div className="text-right">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  You receive
-                </div>
-                <div className="text-xl font-semibold mt-0.5 text-primary">
-                  {formatMoneyWhole(Math.round(100 * (1 - markup / 100)), currency)}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Net, for a {formatMoneyWhole(100, currency)} session
-                </div>
+                <h2 className="text-sm font-semibold">Pricing on the marketplace</h2>
+                <p className="text-xs text-muted-foreground">
+                  You set your list price — Moovli takes a wholesale discount.
+                </p>
               </div>
             </div>
+            <Badge variant="outline" className="hidden shrink-0 items-center gap-1 sm:flex">
+              <TagIcon className="size-3" /> Wholesale
+            </Badge>
+          </div>
+
+          {/* Payout math — icon-driven flow */}
+          <div className="px-5 py-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <PriceTile
+                icon={<TagIcon className="size-4" />}
+                tint="bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+                label="Your list price"
+                value={formatMoneyWhole(EXAMPLE_PRICE, currency)}
+                sub="You set this"
+              />
+              <Operator symbol="−" />
+              <PriceTile
+                icon={<TrendingDownIcon className="size-4" />}
+                tint="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                label="Discount to Moovli"
+                value={`${markup}%`}
+                sub="Your wholesale rate"
+              />
+              <Operator symbol="=" />
+              <PriceTile
+                highlight
+                icon={<WalletIcon className="size-4" />}
+                tint="bg-primary/15 text-primary"
+                label="You receive"
+                value={formatMoneyWhole(exampleNet, currency)}
+                sub={`Net · you keep ${youKeepPct}%`}
+              />
+            </div>
+            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <InfoIcon className="size-3 shrink-0" />
+              Example for a {formatMoneyWhole(EXAMPLE_PRICE, currency)} session — your payout
+              scales with each price.
+            </p>
           </div>
 
           {/* Studio sets its own discount — minimum 20%, no upper cap. */}
-          {canManage ? (
-            <div className="space-y-2">
-              <label className="text-xs font-medium" htmlFor="markup-input">
-                Your discount to Moovli
-              </label>
+          {canManage && (
+            <div className="border-t bg-muted/20 px-5 py-4">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <label
+                  className="flex items-center gap-1.5 text-xs font-medium"
+                  htmlFor="markup-input"
+                >
+                  <PercentIcon className="size-3.5 text-muted-foreground" />
+                  Your discount to Moovli
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  You keep <strong className="text-foreground">{youKeepPct}%</strong>
+                </span>
+              </div>
+
+              {/* Quick presets */}
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {DISCOUNT_PRESETS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setMarkup(p)}
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-xs transition hover:bg-accent",
+                      markup === p
+                        ? "border-primary bg-primary/10 font-medium text-primary"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {p}%
+                  </button>
+                ))}
+              </div>
+
               <div className="flex items-center gap-2">
                 <div className="relative w-32">
+                  <PercentIcon className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="markup-input"
                     type="number"
@@ -299,10 +356,10 @@ export default function StudioChannelMarketplacePage() {
                     value={markup}
                     onChange={(e) => setMarkup(Number(e.target.value))}
                     aria-invalid={belowFloor}
-                    className="pr-7"
+                    className="pl-8 pr-7"
                     aria-label="Marketplace discount percentage"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                     %
                   </span>
                 </div>
@@ -315,34 +372,44 @@ export default function StudioChannelMarketplacePage() {
                     markup === (prefs?.marketplace_markup_pct ?? -1)
                   }
                 >
-                  {savingMarkup ? "Saving…" : "Save discount"}
+                  {savingMarkup ? (
+                    "Saving…"
+                  ) : (
+                    <>
+                      <CheckIcon className="mr-1 size-3.5" /> Save discount
+                    </>
+                  )}
                 </Button>
                 {markupSaved && (
-                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700"
+                  >
                     Saved
                   </Badge>
                 )}
               </div>
+
               {belowFloor ? (
-                <p className="text-[11px] font-medium text-destructive">
-                  Minimum discount is {DISCOUNT_FLOOR}%.
+                <p className="mt-2 flex items-center gap-1 text-[11px] font-medium text-destructive">
+                  <InfoIcon className="size-3" /> Minimum discount is {DISCOUNT_FLOOR}%.
                 </p>
               ) : (
-                <p className="text-[10px] text-muted-foreground">
+                <p className="mt-2 text-[10px] text-muted-foreground">
                   Minimum {DISCOUNT_FLOOR}% — no maximum.
                 </p>
               )}
             </div>
-          ) : null}
-        </Card>
-      )}
+          )}
+            </Card>
+          </div>
 
-      {/* FAQ */}
-      {planAllows && (
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold">Questions fréquentes</h2>
-          <MarketplaceFaq items={faqItems} />
-        </section>
+          {/* FAQ sidebar — right column on desktop */}
+          <aside className="space-y-3 lg:sticky lg:top-6">
+            <h2 className="text-sm font-semibold">FAQs</h2>
+            <MarketplaceFaq items={faqItems} />
+          </aside>
+        </div>
       )}
 
       <ChannelDeactivateSheet
@@ -353,5 +420,51 @@ export default function StudioChannelMarketplacePage() {
         onDeactivated={handleDeactivated}
       />
     </BaseLayout>
+  );
+}
+
+// ── Pricing card helpers ─────────────────────────────────────────────────────
+
+/** One tile in the payout-math flow (list price / discount / net). */
+function PriceTile({
+  icon,
+  tint,
+  label,
+  value,
+  sub,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  tint: string;
+  label: string;
+  value: string;
+  sub: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-1 flex-col items-center gap-1.5 rounded-xl border bg-background px-3 py-4 text-center",
+        highlight && "border-primary/40 bg-primary/5 shadow-sm",
+      )}
+    >
+      <span className={cn("flex size-8 items-center justify-center rounded-full", tint)}>
+        {icon}
+      </span>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className={cn("text-xl font-bold", highlight && "text-primary")}>{value}</div>
+      <div className="text-[11px] text-muted-foreground">{sub}</div>
+    </div>
+  );
+}
+
+/** The − / = glyph sitting between two price tiles. */
+function Operator({ symbol }: { symbol: string }) {
+  return (
+    <div className="flex items-center justify-center sm:px-0.5">
+      <span className="flex size-6 items-center justify-center rounded-full border bg-muted text-sm font-semibold text-muted-foreground">
+        {symbol}
+      </span>
+    </div>
   );
 }

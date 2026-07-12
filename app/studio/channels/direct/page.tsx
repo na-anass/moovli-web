@@ -185,6 +185,7 @@ export default function StudioChannelDirectPage() {
       iconAccent="emerald"
       title="Direct booking page"
       subtitle="Customize your studio's public hosted page."
+      maxWidth="xl"
       action={
         planAllowsDirect && canManage ? (
           <>
