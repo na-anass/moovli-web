@@ -20,7 +20,15 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  const roles = await getUserRoles(session.access_token);
+  let roles;
+  try {
+    roles = await getUserRoles(session.access_token);
+  } catch {
+    // /api/me couldn't be reached (fresh-login token/cookie lag or API hiccup).
+    // Bounce back to login to retry rather than mislabeling the user as having
+    // no roles and stranding them on /no-access.
+    redirect("/login");
+  }
 
   const roleCount =
     (roles.isAdmin ? 1 : 0) +

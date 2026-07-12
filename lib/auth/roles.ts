@@ -20,56 +20,89 @@ export interface UserRoles {
   instructorEntities: InstructorMembership[];
 }
 
+/** Raw shape of the /api/me payload (only the fields we map). */
+interface MeResponse {
+  isAdmin?: boolean;
+  ownedEntities?: Array<{
+    entityId?: string;
+    entity_id?: string;
+    role: EntityMembership["role"];
+    entity?: { name?: string; onboarded_at?: string | null; currency_code?: string };
+  }>;
+  instructorEntities?: Array<{
+    id: string;
+    primary_entity_id?: string;
+    entity?: { id?: string; name?: string };
+  }>;
+}
+
+/** Thrown when /api/me can't be reached / doesn't answer 2xx after retries. */
+export class RolesFetchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RolesFetchError";
+  }
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 /**
  * Fetch user roles via the moovli-api (which uses supabaseAdmin, bypassing RLS).
  * This avoids RLS issues with direct browser Supabase queries on entity_owners.
+ *
+ * Resilience: right after sign-in the fresh token / auth cookies can lag by a
+ * few hundred ms, so the first /api/me call may transiently fail. We RETRY a
+ * few times and only THROW on persistent failure. Crucially we never return an
+ * empty roles object on a transport failure — an empty result must mean the API
+ * genuinely reported no roles (a 200 with empty arrays), otherwise callers would
+ * mistake a hiccup for "no access" and bounce the user to /no-access.
  */
-export async function getUserRoles(
-  accessToken: string
-): Promise<UserRoles> {
-  const defaults: UserRoles = {
-    isAdmin: false,
-    ownedEntities: [],
-    instructorEntities: [],
-  };
+export async function getUserRoles(accessToken: string): Promise<UserRoles> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const MAX_ATTEMPTS = 3;
+  let lastDetail = "network";
 
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(`${apiUrl}/api/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+      });
 
-    // Single consolidated call — isAdmin is resolved server-side from req.user,
-    // so there's no extra (deliberately-failing) admin probe.
-    const me = await fetch(`${apiUrl}/api/me`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-      .then((r) => (r.ok ? r.json() : { data: {} }))
-      .catch(() => ({ data: {} }));
+      if (res.ok) {
+        const me = (await res.json()) as { data?: MeResponse };
+        const data = me.data || {};
 
-    const data = me.data || {};
-    const isAdmin = !!data.isAdmin;
+        const ownedEntities: EntityMembership[] = (data.ownedEntities || []).map((row) => ({
+          entityId: (row.entityId || row.entity_id) as string,
+          entityName: row.entity?.name || "Studio",
+          role: row.role,
+          onboardedAt: row.entity?.onboarded_at ?? null,
+          currencyCode: row.entity?.currency_code ?? "MAD",
+        }));
 
-    const ownedEntities: EntityMembership[] = ((data.ownedEntities as any[]) || []).map(
-      (row: any) => ({
-        entityId: row.entityId || row.entity_id,
-        entityName: row.entity?.name || "Studio",
-        role: row.role,
-        onboardedAt: row.entity?.onboarded_at ?? null,
-        currencyCode: row.entity?.currency_code ?? "MAD",
-      })
-    );
+        const instructorEntities: InstructorMembership[] = (data.instructorEntities || []).map(
+          (row) => ({
+            providerId: row.id,
+            entityId: (row.primary_entity_id || row.entity?.id) as string,
+            entityName: row.entity?.name || "Studio",
+          }),
+        );
 
-    const instructorEntities: InstructorMembership[] = ((data.instructorEntities as any[]) || []).map(
-      (row: any) => ({
-        providerId: row.id,
-        entityId: row.primary_entity_id || row.entity?.id,
-        entityName: row.entity?.name || "Studio",
-      })
-    );
+        return { isAdmin: !!data.isAdmin, ownedEntities, instructorEntities };
+      }
 
-    return { isAdmin, ownedEntities, instructorEntities };
-  } catch (err) {
-    console.error("Failed to fetch user roles:", err);
-    return defaults;
+      lastDetail = `HTTP ${res.status}`;
+      // Auth failures won't recover with the same token — stop retrying early.
+      if (res.status === 401 || res.status === 403) break;
+    } catch (err) {
+      lastDetail = err instanceof Error ? err.message : "fetch failed";
+    }
+
+    if (attempt < MAX_ATTEMPTS - 1) await sleep(250 * (attempt + 1));
   }
+
+  throw new RolesFetchError(`Failed to fetch user roles (${lastDetail})`);
 }
 
 /** Determine the best default redirect for a user based on their roles */
