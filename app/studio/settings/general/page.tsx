@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useSettings } from "@/lib/studio/settings-context";
 import { SettingsHeader } from "@/components/studio/settings-header";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,8 @@ import {
 } from "lucide-react";
 
 export default function GeneralSettingsPage() {
+  const t = useTranslations("studioSettings.general");
+  const tc = useTranslations("common");
   const { entity, loading, canEdit, updateProfile } = useSettings();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -92,18 +95,18 @@ export default function GeneralSettingsPage() {
   if (loading) {
     return <div className="h-96 rounded-xl border border-border bg-card animate-pulse" />;
   }
-  if (!entity) return <p className="text-muted-foreground">Entity not found.</p>;
+  if (!entity) return <p className="text-muted-foreground">{t("entityNotFound")}</p>;
 
   return (
     <div className="space-y-6">
       <SettingsHeader
-        title="General"
-        description="Your studio's name, contact details, and location."
+        title={t("title")}
+        description={t("description")}
         action={
           <>
             {success && (
               <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 gap-1">
-                <CheckIcon className="size-3" /> Saved
+                <CheckIcon className="size-3" /> {tc("success")}
               </Badge>
             )}
             {canEdit && !editing && (
@@ -114,55 +117,55 @@ export default function GeneralSettingsPage() {
                 className="gap-1.5 text-muted-foreground hover:text-foreground"
               >
                 <PencilIcon className="size-3.5" />
-                Edit
+                {tc("edit")}
               </Button>
             )}
           </>
         }
       />
 
-      <FormSection title="Studio Information" icon={<BuildingIcon className="size-5" />}>
+      <FormSection title={t("studioInfo")} icon={<BuildingIcon className="size-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <FormField label="Studio Name" icon={<BuildingIcon className="size-3.5" />} span={2}
+          <FormField label={t("studioName")} icon={<BuildingIcon className="size-3.5" />} span={2}
             editing={editing} value={entity.name} formValue={form.name}
             onChange={(v) => setForm({ ...form, name: v })} />
-          <FormField label="Description" span={2} multiline
+          <FormField label={t("descriptionLabel")} span={2} multiline
             editing={editing} value={entity.description} formValue={form.description}
             onChange={(v) => setForm({ ...form, description: v })} />
-          <FormField label="Short Description" span={2}
+          <FormField label={t("shortDescription")} span={2}
             editing={editing} value={entity.short_description} formValue={form.short_description}
             onChange={(v) => setForm({ ...form, short_description: v })} />
-          <FormField label="Email" icon={<MailIcon className="size-3.5" />} type="email"
+          <FormField label={tc("email")} icon={<MailIcon className="size-3.5" />} type="email"
             editing={editing} value={entity.email} formValue={form.email}
             onChange={(v) => setForm({ ...form, email: v })} />
-          <FormField label="Phone" icon={<PhoneIcon className="size-3.5" />}
+          <FormField label={tc("phone")} icon={<PhoneIcon className="size-3.5" />}
             editing={editing} value={entity.phone} formValue={form.phone}
             onChange={(v) => setForm({ ...form, phone: v })} />
-          <FormField label="Website" icon={<GlobeIcon className="size-3.5" />} span={2}
+          <FormField label={t("website")} icon={<GlobeIcon className="size-3.5" />} span={2}
             editing={editing} value={entity.website} formValue={form.website}
             onChange={(v) => setForm({ ...form, website: v })} placeholder="https://" />
         </div>
       </FormSection>
 
-      <FormSection title="Location" icon={<MapPinIcon className="size-5" />}>
+      <FormSection title={t("location")} icon={<MapPinIcon className="size-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <FormField label="Address" span={2} editing={editing}
+          <FormField label={t("address")} span={2} editing={editing}
             value={entity.address_line1} formValue={form.address_line1}
             onChange={(v) => setForm({ ...form, address_line1: v })} />
-          <FormField label="Address Line 2" span={2} editing={editing}
+          <FormField label={t("addressLine2")} span={2} editing={editing}
             value={entity.address_line2} formValue={form.address_line2}
             onChange={(v) => setForm({ ...form, address_line2: v })} />
-          <FormField label="City" editing={editing}
+          <FormField label={t("city")} editing={editing}
             value={entity.city} formValue={form.city}
             onChange={(v) => setForm({ ...form, city: v })} />
-          <FormField label="Region" editing={editing}
+          <FormField label={t("region")} editing={editing}
             value={entity.region} formValue={form.region}
             onChange={(v) => setForm({ ...form, region: v })} />
-          <FormField label="Postal Code" editing={editing}
+          <FormField label={t("postalCode")} editing={editing}
             value={entity.postal_code} formValue={form.postal_code}
             onChange={(v) => setForm({ ...form, postal_code: v })} />
           <div>
-            <label className="text-sm font-medium text-muted-foreground">Country</label>
+            <label className="text-sm font-medium text-muted-foreground">{t("country")}</label>
             <p className="mt-1.5 text-foreground">{entity.country || "MA"}</p>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { FullPageLoader } from "@/components/layout/full-page-loader";
 import { useAuth } from "@/lib/auth/provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboardIcon,
   UsersIcon,
@@ -17,20 +18,6 @@ import {
   GraduationCapIcon,
 } from "lucide-react";
 
-const navItems: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboardIcon, href: "/admin/dashboard" },
-  { label: "Users", icon: UsersIcon, href: "/admin/users" },
-  { label: "Studios", icon: BuildingIcon, href: "/admin/studios" },
-  { label: "Instructors", icon: GraduationCapIcon, href: "/admin/instructors" },
-  { label: "Bookings", icon: BookOpenIcon, href: "/admin/bookings" },
-  { label: "Analytics", icon: BarChart3Icon, href: "/admin/analytics" },
-  { label: "Policies", icon: SlidersHorizontalIcon, href: "/admin/policies" },
-];
-
-const bottomItems: NavItem[] = [
-  { label: "Settings", icon: SettingsIcon, href: "/admin/settings" },
-];
-
 export default function AdminLayout({
   children,
 }: {
@@ -38,6 +25,21 @@ export default function AdminLayout({
 }) {
   const { roles, loading } = useAuth();
   const router = useRouter();
+  const t = useTranslations("admin");
+
+  const navItems: NavItem[] = [
+    { label: t("sidebar.dashboard"), icon: LayoutDashboardIcon, href: "/admin/dashboard" },
+    { label: t("sidebar.users"), icon: UsersIcon, href: "/admin/users" },
+    { label: t("sidebar.studios"), icon: BuildingIcon, href: "/admin/studios" },
+    { label: t("sidebar.instructors"), icon: GraduationCapIcon, href: "/admin/instructors" },
+    { label: t("sidebar.bookings"), icon: BookOpenIcon, href: "/admin/bookings" },
+    { label: t("sidebar.analytics"), icon: BarChart3Icon, href: "/admin/analytics" },
+    { label: t("sidebar.policies"), icon: SlidersHorizontalIcon, href: "/admin/policies" },
+  ];
+
+  const bottomItems: NavItem[] = [
+    { label: t("sidebar.settings"), icon: SettingsIcon, href: "/admin/settings" },
+  ];
 
   const redirectTarget = !loading && !roles?.isAdmin ? "/no-access" : null;
 
@@ -54,7 +56,7 @@ export default function AdminLayout({
   return (
     <EditModeProvider>
     <div className="flex min-h-screen">
-      <Sidebar navItems={navItems} bottomItems={bottomItems} title="Admin" subtitle="Moovli" />
+      <Sidebar navItems={navItems} bottomItems={bottomItems} title={t("sidebar.title")} subtitle="Moovli" />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar />
         <main className="flex-1 p-6 overflow-y-auto">{children}</main>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { formatMoneyWhole } from "@/lib/money";
 import { formatDateTime } from "@/lib/datetime";
@@ -20,18 +21,19 @@ type FilterTab = "all" | "pending" | "today" | "marketplace" | "direct";
 
 const STATUS_VARIANT: Record<
   string,
-  { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
+  { variant: "default" | "secondary" | "outline" | "destructive" }
 > = {
-  pending: { label: "Pending", variant: "secondary" },
-  confirmed: { label: "Confirmed", variant: "default" },
-  checked_in: { label: "Checked in", variant: "default" },
-  completed: { label: "Completed", variant: "outline" },
-  cancelled: { label: "Cancelled", variant: "outline" },
-  no_show: { label: "No-show", variant: "destructive" },
+  pending: { variant: "secondary" },
+  confirmed: { variant: "default" },
+  checked_in: { variant: "default" },
+  completed: { variant: "outline" },
+  cancelled: { variant: "outline" },
+  no_show: { variant: "destructive" },
 };
 
 
 export default function StudioBookingsPage() {
+  const t = useTranslations("studioMain");
   const activeEntity = useActiveEntity();
   const entityId = activeEntity.entityId;
   const currency = activeEntity.currencyCode;
@@ -92,7 +94,7 @@ export default function StudioBookingsPage() {
       await studioApi.confirmBooking(entityId, bookingId);
       await fetchBookings();
     } catch (e) {
-      alert((e as Error).message || "Failed to confirm");
+      alert((e as Error).message || t("bookings.errors.confirmFailed"));
     } finally {
       setActionLoading(null);
     }
@@ -100,14 +102,14 @@ export default function StudioBookingsPage() {
 
   const handleDecline = async (bookingId: string) => {
     if (!entityId) return;
-    const reason = prompt("Reason for declining (optional)") ?? undefined;
+    const reason = prompt(t("bookings.declinePrompt")) ?? undefined;
     if (reason === null) return;
     setActionLoading(bookingId);
     try {
       await studioApi.declineBooking(entityId, bookingId, reason);
       await fetchBookings();
     } catch (e) {
-      alert((e as Error).message || "Failed to decline");
+      alert((e as Error).message || t("bookings.errors.declineFailed"));
     } finally {
       setActionLoading(null);
     }
@@ -120,7 +122,7 @@ export default function StudioBookingsPage() {
       await studioApi.checkinBooking(entityId, bookingId);
       await fetchBookings();
     } catch (e) {
-      alert((e as Error).message || "Failed to check in");
+      alert((e as Error).message || t("bookings.errors.checkinFailed"));
     } finally {
       setActionLoading(null);
     }
@@ -128,7 +130,7 @@ export default function StudioBookingsPage() {
 
   const columns: Column<StudioBookingRow>[] = [
     {
-      header: "Customer",
+      header: t("bookings.columns.customer"),
       cell: (b) => (
         <div className="text-sm">
           <div className="font-medium">{b.user?.name ?? b.guest_name ?? "—"}</div>
@@ -139,10 +141,10 @@ export default function StudioBookingsPage() {
       ),
     },
     {
-      header: "Session",
+      header: t("bookings.columns.session"),
       cell: (b) => (
         <div className="text-sm">
-          <div>{b.service?.name ?? "Session"}</div>
+          <div>{b.service?.name ?? t("bookings.sessionFallback")}</div>
           <div className="text-xs text-muted-foreground">
             {formatDateTime(b.session?.start_time ?? null)}
           </div>
@@ -150,7 +152,7 @@ export default function StudioBookingsPage() {
       ),
     },
     {
-      header: "Channel",
+      header: t("bookings.columns.channel"),
       cell: (b) =>
         b.channel ? (
           <Badge variant={b.channel.type === "marketplace" ? "default" : "secondary"}>
@@ -159,28 +161,28 @@ export default function StudioBookingsPage() {
             ) : (
               <GlobeIcon className="size-3 mr-1" />
             )}
-            {b.channel.type === "marketplace" ? "Marketplace" : "Direct"}
+            {b.channel.type === "marketplace" ? t("bookings.marketplace") : t("bookings.direct")}
           </Badge>
         ) : (
           <Badge variant="outline">—</Badge>
         ),
     },
     {
-      header: "Price",
+      header: t("bookings.columns.price"),
       cell: (b) => (
         <div className="text-sm">
           <div>{formatPrice(b.price_mad_at_booking)}</div>
           {b.channel?.type !== "marketplace" && (
-            <div className="text-[10px] text-muted-foreground">at studio</div>
+            <div className="text-[10px] text-muted-foreground">{t("bookings.atStudio")}</div>
           )}
         </div>
       ),
     },
     {
-      header: "Status",
+      header: t("bookings.columns.status"),
       cell: (b) => (
         <Badge variant={STATUS_VARIANT[b.status]?.variant ?? "outline"}>
-          {STATUS_VARIANT[b.status]?.label ?? b.status}
+          {t.has(`bookings.status.${b.status}`) ? t(`bookings.status.${b.status}`) : b.status}
         </Badge>
       ),
     },
@@ -196,13 +198,13 @@ export default function StudioBookingsPage() {
     if (isPendingDirect) {
       return [
         {
-          label: "Confirm",
+          label: t("bookings.actions.confirm"),
           icon: CheckIcon,
           disabled: busy,
           onClick: () => handleConfirm(b.id),
         },
         {
-          label: "Decline",
+          label: t("bookings.actions.decline"),
           icon: XIcon,
           variant: "destructive",
           disabled: busy,
@@ -213,7 +215,7 @@ export default function StudioBookingsPage() {
     if (isConfirmedMarketplace) {
       return [
         {
-          label: "Check in",
+          label: t("bookings.actions.checkin"),
           icon: ClipboardCheckIcon,
           disabled: busy,
           onClick: () => handleCheckin(b.id),
@@ -224,7 +226,7 @@ export default function StudioBookingsPage() {
   };
 
   if (!entityId) {
-    return <div className="p-8 text-muted-foreground">No studio access found.</div>;
+    return <div className="p-8 text-muted-foreground">{t("bookings.noAccess")}</div>;
   }
 
   const pendingCount = bookings.filter(
@@ -234,28 +236,28 @@ export default function StudioBookingsPage() {
   return (
     <BaseLayout
       maxWidth="xl"
-      title="Bookings"
-      subtitle="Manage incoming reservations and check in arrivals."
+      title={t("bookings.title")}
+      subtitle={t("bookings.subtitle")}
     >
       {/* Tab chips */}
       <div className="flex flex-wrap gap-2">
         {([
-          { id: "all", label: "All" },
-          { id: "pending", label: `Pending${pendingCount > 0 ? ` · ${pendingCount}` : ""}` },
-          { id: "today", label: "Today" },
-          { id: "marketplace", label: "Marketplace" },
-          { id: "direct", label: "Direct page" },
-        ] as { id: FilterTab; label: string }[]).map((t) => (
+          { id: "all", label: t("bookings.tabs.all") },
+          { id: "pending", label: `${t("bookings.tabs.pending")}${pendingCount > 0 ? ` · ${pendingCount}` : ""}` },
+          { id: "today", label: t("bookings.tabs.today") },
+          { id: "marketplace", label: t("bookings.tabs.marketplace") },
+          { id: "direct", label: t("bookings.tabs.direct") },
+        ] as { id: FilterTab; label: string }[]).map((tab_) => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+            key={tab_.id}
+            onClick={() => setTab(tab_.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-              tab === t.id
+              tab === tab_.id
                 ? "bg-foreground text-background border-foreground"
                 : "border-input hover:bg-accent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t.label}
+            {tab_.label}
           </button>
         ))}
       </div>

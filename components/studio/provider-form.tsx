@@ -1,7 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { InfoTip } from "@/components/ui/info-tip";
 import { StarIcon } from "lucide-react";
 
 // ============================================================================
@@ -126,32 +128,36 @@ export function ProviderForm({
   setForm: (next: ProviderFormValues) => void;
   currency: string;
 }) {
+  const t = useTranslations("studioSettings.providerForm");
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium">Name *</label>
+          <label className="text-sm font-medium inline-flex items-center gap-1">
+            {t("name")}
+            <InfoTip term="instructor" />
+          </label>
           <Input
             className="mt-1.5"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Instructor name"
+            placeholder={t("namePlaceholder")}
           />
         </div>
         <div>
-          <label className="text-sm font-medium">Title</label>
+          <label className="text-sm font-medium">{t("titleLabel")}</label>
           <Input
             className="mt-1.5"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            placeholder="e.g. Senior Pilates Coach"
+            placeholder={t("titlePlaceholder")}
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium">Email</label>
+          <label className="text-sm font-medium">{t("email")}</label>
           <Input
             className="mt-1.5"
             type="email"
@@ -160,11 +166,11 @@ export function ProviderForm({
             placeholder="email@example.com"
           />
           <p className="mt-1 text-[10px] text-muted-foreground">
-            Adding an email provisions an instructor login.
+            {t("emailHint")}
           </p>
         </div>
         <div>
-          <label className="text-sm font-medium">Phone</label>
+          <label className="text-sm font-medium">{t("phone")}</label>
           <Input
             className="mt-1.5"
             value={form.phone}
@@ -176,7 +182,7 @@ export function ProviderForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium">Experience (yrs)</label>
+          <label className="text-sm font-medium">{t("experience")}</label>
           <Input
             className="mt-1.5"
             type="number"
@@ -186,7 +192,7 @@ export function ProviderForm({
           />
         </div>
         <div>
-          <label className="text-sm font-medium">Rate ({currency})</label>
+          <label className="text-sm font-medium">{t("rate", { currency })}</label>
           <Input
             className="mt-1.5"
             type="number"
@@ -199,38 +205,38 @@ export function ProviderForm({
       </div>
 
       <div>
-        <label className="text-sm font-medium">Specializations</label>
+        <label className="text-sm font-medium">{t("specializations")}</label>
         <Input
           className="mt-1.5"
           value={form.specializations}
           onChange={(e) => setForm({ ...form, specializations: e.target.value })}
-          placeholder="Pilates, Yoga, HIIT (comma-separated)"
+          placeholder={t("specializationsPlaceholder")}
         />
       </div>
 
       <div>
-        <label className="text-sm font-medium">Short bio</label>
+        <label className="text-sm font-medium">{t("shortBio")}</label>
         <Input
           className="mt-1.5"
           value={form.short_bio}
           onChange={(e) => setForm({ ...form, short_bio: e.target.value })}
-          placeholder="One-line summary"
+          placeholder={t("shortBioPlaceholder")}
           maxLength={500}
         />
       </div>
 
       <div>
-        <label className="text-sm font-medium">Bio</label>
+        <label className="text-sm font-medium">{t("bio")}</label>
         <textarea
           className="mt-1.5 min-h-[80px] w-full resize-y rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           value={form.bio}
           onChange={(e) => setForm({ ...form, bio: e.target.value })}
-          placeholder="Detailed bio…"
+          placeholder={t("bioPlaceholder")}
         />
       </div>
 
       <div>
-        <label className="text-sm font-medium">Avatar URL</label>
+        <label className="text-sm font-medium">{t("avatarUrl")}</label>
         <Input
           className="mt-1.5"
           value={form.avatar_url}
@@ -241,28 +247,28 @@ export function ProviderForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium">Instagram</label>
+          <label className="text-sm font-medium">{t("instagram")}</label>
           <Input
             className="mt-1.5"
             value={form.instagram}
             onChange={(e) => setForm({ ...form, instagram: e.target.value })}
-            placeholder="@handle or URL"
+            placeholder={t("instagramPlaceholder")}
           />
         </div>
         <div>
-          <label className="text-sm font-medium">Facebook</label>
+          <label className="text-sm font-medium">{t("facebook")}</label>
           <Input
             className="mt-1.5"
             value={form.facebook}
             onChange={(e) => setForm({ ...form, facebook: e.target.value })}
-            placeholder="profile or URL"
+            placeholder={t("facebookPlaceholder")}
           />
         </div>
       </div>
 
       <div className="grid grid-cols-3 items-end gap-3">
         <div>
-          <label className="text-sm font-medium">Display order</label>
+          <label className="text-sm font-medium">{t("displayOrder")}</label>
           <Input
             className="mt-1.5"
             type="number"
@@ -276,7 +282,7 @@ export function ProviderForm({
             onCheckedChange={(v) => setForm({ ...form, is_featured: v })}
           />
           <label className="flex items-center gap-1 text-sm font-medium">
-            <StarIcon className="size-3" /> Featured
+            <StarIcon className="size-3" /> {t("featured")}
           </label>
         </div>
         <div className="flex items-center gap-2 pb-2">
@@ -284,7 +290,7 @@ export function ProviderForm({
             checked={form.is_active}
             onCheckedChange={(v) => setForm({ ...form, is_active: v })}
           />
-          <label className="text-sm font-medium">Active</label>
+          <label className="text-sm font-medium">{t("active")}</label>
         </div>
       </div>
     </div>

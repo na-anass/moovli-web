@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { ImageIcon, Loader2Icon } from "lucide-react";
 import { studioApi } from "@/lib/api/studio";
 import { createClient } from "@/lib/supabase/client";
@@ -25,14 +26,15 @@ export function LogoUpload({
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const { notify } = useDialogs();
+  const t = useTranslations("onboarding");
 
   const upload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      notify("Please choose an image file.", { title: "Unsupported file" });
+      notify(t("logoUpload.errors.notImage"), { title: t("logoUpload.errors.unsupportedFile") });
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      notify("Image must be 8MB or smaller.", { title: "File too large" });
+      notify(t("logoUpload.errors.tooLarge"), { title: t("logoUpload.errors.fileTooLarge") });
       return;
     }
     setBusy(true);
@@ -48,7 +50,7 @@ export function LogoUpload({
       if (error) throw error;
       onUploaded(up.publicUrl);
     } catch (e) {
-      notify((e as Error).message || "Upload failed", { variant: "error" });
+      notify((e as Error).message || t("logoUpload.errors.uploadFailed"), { variant: "error" });
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -77,9 +79,9 @@ export function LogoUpload({
       />
       {value ? (
         <>
-          <Image src={value} alt="Logo" fill sizes="96px" className="object-cover" />
+          <Image src={value} alt={t("logoUpload.logoAlt")} fill sizes="96px" className="object-cover" />
           <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-[11px] font-medium text-white opacity-0 transition group-hover:opacity-100">
-            Change
+            {t("logoUpload.change")}
           </span>
         </>
       ) : busy ? (
@@ -88,9 +90,9 @@ export function LogoUpload({
         <span className="flex flex-col items-center gap-1 px-2 text-muted-foreground">
           <ImageIcon className="size-5" />
           <span className="text-[11px] leading-tight">
-            Logo
+            {t("logoUpload.logo")}
             <br />
-            <span className="underline">browse</span>
+            <span className="underline">{t("logoUpload.browse")}</span>
           </span>
         </span>
       )}

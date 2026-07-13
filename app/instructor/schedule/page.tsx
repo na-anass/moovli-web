@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { formatTime, formatDateFull } from "@/lib/datetime";
 import { instructorApi } from "@/lib/api/instructor";
 
@@ -16,6 +17,7 @@ interface ScheduleItem {
 }
 
 export default function InstructorSchedulePage() {
+  const t = useTranslations("instructor");
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +34,7 @@ export default function InstructorSchedulePage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">My Schedule</h1>
+        <h1 className="text-2xl font-bold">{t("schedule.title")}</h1>
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-20 rounded-xl border border-border bg-card animate-pulse" />
@@ -52,12 +54,14 @@ export default function InstructorSchedulePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">My Schedule</h1>
-      <p className="text-muted-foreground">Next 30 days — {schedule.length} sessions</p>
+      <h1 className="text-2xl font-bold">{t("schedule.title")}</h1>
+      <p className="text-muted-foreground">
+        {t("schedule.summary", { count: schedule.length })}
+      </p>
 
       {Object.keys(grouped).length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
-          <p className="text-muted-foreground">No upcoming sessions.</p>
+          <p className="text-muted-foreground">{t("schedule.empty")}</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -78,11 +82,15 @@ export default function InstructorSchedulePage() {
                           {formatTime(item.start_time)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {item.service?.duration_minutes || "?"}min
+                          {t("schedule.minutes", {
+                            minutes: item.service?.duration_minutes ?? "?",
+                          })}
                         </p>
                       </div>
                       <div>
-                        <p className="font-medium">{item.service?.name || "Session"}</p>
+                        <p className="font-medium">
+                          {item.service?.name || t("schedule.sessionFallback")}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           {item.entity?.name} — {item.entity?.city}
                         </p>
@@ -90,7 +98,10 @@ export default function InstructorSchedulePage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium">
-                        {item.booked_count}/{item.capacity} booked
+                        {t("schedule.booked", {
+                          booked: item.booked_count,
+                          capacity: item.capacity,
+                        })}
                       </p>
                       <p className="text-xs text-muted-foreground">{item.status}</p>
                     </div>

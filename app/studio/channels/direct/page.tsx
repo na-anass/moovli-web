@@ -19,19 +19,21 @@ import {
   LockIcon,
   PaletteIcon,
 } from "lucide-react";
+import { InfoTip } from "@/components/ui/info-tip";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
 const DEFAULT_COLOR = "#7c3aed";
 
-const PRESETS = [
-  { label: "Moovli violet", value: "#7c3aed" },
-  { label: "Magenta", value: "#d946ef" },
-  { label: "Teal", value: "#14b8a6" },
-  { label: "Indigo", value: "#6366f1" },
-  { label: "Rose", value: "#f43f5e" },
-  { label: "Emerald", value: "#10b981" },
-  { label: "Amber", value: "#f59e0b" },
-  { label: "Slate", value: "#64748b" },
+const PRESET_COLORS: { labelKey: string; value: string }[] = [
+  { labelKey: "moovliViolet", value: "#7c3aed" },
+  { labelKey: "magenta", value: "#d946ef" },
+  { labelKey: "teal", value: "#14b8a6" },
+  { labelKey: "indigo", value: "#6366f1" },
+  { labelKey: "rose", value: "#f43f5e" },
+  { labelKey: "emerald", value: "#10b981" },
+  { labelKey: "amber", value: "#f59e0b" },
+  { labelKey: "slate", value: "#64748b" },
 ];
 
 const PUBLIC_BOOKING_BASE =
@@ -44,6 +46,8 @@ const directHostedUrl = (slug: string): string =>
     : `${PUBLIC_BOOKING_BASE}/booking/${slug}`;
 
 export default function StudioChannelDirectPage() {
+  const t = useTranslations("studioChannels.direct");
+  const tc = useTranslations("common");
   const activeEntity = useActiveEntity();
   const currency = activeEntity.currencyCode;
   const entityId = activeEntity.entityId;
@@ -168,11 +172,11 @@ export default function StudioChannelDirectPage() {
   };
 
   if (!entityId) {
-    return <div className="p-8 text-muted-foreground">No studio access found.</div>;
+    return <div className="p-8 text-muted-foreground">{t("noAccess")}</div>;
   }
 
   if (loading) {
-    return <div className="p-8 text-muted-foreground">Loading…</div>;
+    return <div className="p-8 text-muted-foreground">{tc("loading")}</div>;
   }
 
   const isDirty = color !== originalColor;
@@ -183,25 +187,25 @@ export default function StudioChannelDirectPage() {
     <BaseLayout
       icon={GlobeIcon}
       iconAccent="emerald"
-      title="Direct booking page"
-      subtitle="Customize your studio's public hosted page."
+      title={t("title")}
+      subtitle={t("subtitle")}
       maxWidth="xl"
       action={
         planAllowsDirect && canManage ? (
           <>
             <span className="text-xs text-muted-foreground">
-              {isLive ? "Active" : "Off"}
+              {isLive ? t("active") : t("off")}
             </span>
             <Switch
               checked={directOn}
               disabled={togglingPref}
               onCheckedChange={toggleDirect}
-              aria-label="Toggle direct booking page"
+              aria-label={t("toggleAria")}
             />
           </>
         ) : !planAllowsDirect ? (
           <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-            <LockIcon className="size-2.5 mr-1" /> Plan required
+            <LockIcon className="size-2.5 mr-1" /> {t("planRequired")}
           </Badge>
         ) : null
       }
@@ -209,18 +213,21 @@ export default function StudioChannelDirectPage() {
       {/* Page URL section */}
       <section className="rounded-xl border bg-card p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">Your page</h2>
+          <h2 className="text-sm font-semibold inline-flex items-center gap-1.5">
+            {t("yourPage")}
+            <InfoTip term="direct" />
+          </h2>
           {isLive ? (
             <Badge
               variant="outline"
               className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]"
             >
               <span className="size-1.5 rounded-full bg-emerald-500 mr-1" />
-              Live
+              {t("live")}
             </Badge>
           ) : (
             <Badge variant="outline" className="text-[10px]">
-              Off
+              {t("off")}
             </Badge>
           )}
         </div>
@@ -243,29 +250,29 @@ export default function StudioChannelDirectPage() {
               <Button variant="outline" size="sm" asChild>
                 <a href={directHostedUrl(channel.slug)} target="_blank" rel="noreferrer">
                   <ExternalLinkIcon className="size-3.5 mr-1.5" />
-                  Preview
+                  {t("preview")}
                 </a>
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
               {isLive
-                ? "Your page is visible to anyone with this link. Bookings show up in your Bookings inbox as pending — confirm to lock in the seat."
+                ? t("pageHelpLive")
                 : directOn
-                  ? "Your page is configured but the channel is currently off."
-                  : "Preview your page, then publish to make it live."}
+                  ? t("pageHelpConfiguredOff")
+                  : t("pageHelpPreview")}
             </p>
             {/* Explicit publish CTA — clearer than the header switch when the
                 page is configured but not yet live. */}
             {planAllowsDirect && canManage && !isLive && (
               <Button size="sm" onClick={() => toggleDirect(true)} disabled={togglingPref}>
                 <CheckIcon className="size-3.5 mr-1.5" />
-                {togglingPref ? "Publishing…" : "Publish page — go live"}
+                {togglingPref ? t("publishing") : t("publishGoLive")}
               </Button>
             )}
           </>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Default page hasn&apos;t been provisioned yet. Contact support.
+            {t("notProvisioned")}
           </p>
         )}
       </section>
@@ -274,11 +281,10 @@ export default function StudioChannelDirectPage() {
       <section className="rounded-xl border bg-card p-5 space-y-4">
         <div className="flex items-center gap-2">
           <PaletteIcon className="size-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">Branding</h2>
+          <h2 className="text-sm font-semibold">{t("branding")}</h2>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">
-          Your brand color is used for the Book button, session highlights, and key accents on
-          your public page.
+          {t("brandingHelp")}
         </p>
 
         <div className="flex items-center gap-3">
@@ -297,12 +303,12 @@ export default function StudioChannelDirectPage() {
             className="w-32 h-12 font-mono text-sm"
           />
           <span className="text-xs text-muted-foreground">
-            Click the swatch to pick, or type a hex code.
+            {t("colorHelp")}
           </span>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
+          {PRESET_COLORS.map((p) => (
             <button
               key={p.value}
               onClick={() => canManage && setColor(p.value)}
@@ -313,7 +319,7 @@ export default function StudioChannelDirectPage() {
                 className="size-3 rounded-full ring-1 ring-border"
                 style={{ backgroundColor: p.value }}
               />
-              {p.label}
+              {t(`presets.${p.labelKey}`)}
             </button>
           ))}
         </div>
@@ -321,7 +327,7 @@ export default function StudioChannelDirectPage() {
         {/* Preview */}
         <div className="border-t pt-4 mt-1">
           <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-3">
-            Preview
+            {t("previewLabel")}
           </h3>
           <div
             className="rounded-lg border p-4 space-y-3"
@@ -329,14 +335,18 @@ export default function StudioChannelDirectPage() {
           >
             <div className="flex items-baseline justify-between gap-3">
               <div>
-                <div className="font-semibold">18:00 · Yoga Flow</div>
-                <div className="text-xs text-muted-foreground">60 min · with Sara</div>
+                <div className="font-semibold">{t("previewSessionTitle")}</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("previewSessionMeta")}
+                </div>
               </div>
               <div className="text-right">
                 <div className="font-semibold" style={{ color }}>
                   {formatMoneyWhole(100, currency)}
                 </div>
-                <div className="text-[10px] text-muted-foreground">at studio</div>
+                <div className="text-[10px] text-muted-foreground">
+                  {t("previewAtStudio")}
+                </div>
               </div>
             </div>
             <button
@@ -344,7 +354,7 @@ export default function StudioChannelDirectPage() {
               className="inline-flex items-center px-4 py-2 rounded-md text-sm font-semibold text-white"
               style={{ backgroundColor: color }}
             >
-              Book
+              {t("book")}
             </button>
           </div>
         </div>
@@ -352,16 +362,16 @@ export default function StudioChannelDirectPage() {
         {canManage && (
           <div className="flex items-center justify-between pt-3 border-t">
             <Button variant="ghost" size="sm" onClick={handleResetBrand} disabled={savingBrand}>
-              Reset to default
+              {t("resetToDefault")}
             </Button>
             <div className="flex items-center gap-3">
               {brandSaved && (
                 <span className="inline-flex items-center text-xs text-emerald-600">
-                  <CheckIcon className="size-3 mr-1" /> Saved
+                  <CheckIcon className="size-3 mr-1" /> {t("saved")}
                 </span>
               )}
               <Button onClick={handleSaveBrand} disabled={!isDirty || savingBrand}>
-                {savingBrand ? "Saving…" : "Save changes"}
+                {savingBrand ? tc("saving") : t("saveChanges")}
               </Button>
             </div>
           </div>

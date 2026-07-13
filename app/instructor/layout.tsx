@@ -6,22 +6,13 @@ import { FullPageLoader } from "@/components/layout/full-page-loader";
 import { useAuth } from "@/lib/auth/provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboardIcon,
   CalendarIcon,
   UserIcon,
   SettingsIcon,
 } from "lucide-react";
-
-const navItems: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboardIcon, href: "/instructor/dashboard" },
-  { label: "Schedule", icon: CalendarIcon, href: "/instructor/schedule" },
-];
-
-const bottomItems: NavItem[] = [
-  { label: "Profile", icon: UserIcon, href: "/instructor/profile" },
-  { label: "Settings", icon: SettingsIcon, href: "/instructor/settings" },
-];
 
 export default function InstructorLayout({
   children,
@@ -30,6 +21,17 @@ export default function InstructorLayout({
 }) {
   const { roles, loading } = useAuth();
   const router = useRouter();
+  const t = useTranslations("instructor");
+
+  const navItems: NavItem[] = [
+    { label: t("sidebar.dashboard"), icon: LayoutDashboardIcon, href: "/instructor/dashboard" },
+    { label: t("sidebar.schedule"), icon: CalendarIcon, href: "/instructor/schedule" },
+  ];
+
+  const bottomItems: NavItem[] = [
+    { label: t("sidebar.profile"), icon: UserIcon, href: "/instructor/profile" },
+    { label: t("sidebar.settings"), icon: SettingsIcon, href: "/instructor/settings" },
+  ];
 
   const redirectTarget =
     !loading && !roles?.isAdmin && (roles?.instructorEntities ?? []).length === 0
@@ -48,7 +50,7 @@ export default function InstructorLayout({
   return (
     <EditModeProvider>
     <div className="flex min-h-screen">
-      <Sidebar navItems={navItems} bottomItems={bottomItems} title="Instructor" />
+      <Sidebar navItems={navItems} bottomItems={bottomItems} title={t("sidebar.title")} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar />
         <main className="flex-1 p-6 overflow-y-auto">{children}</main>

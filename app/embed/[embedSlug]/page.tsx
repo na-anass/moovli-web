@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatTime, formatWeekdayShort, localDateStr } from "@/lib/datetime";
 import { ClockIcon, UsersIcon } from "lucide-react";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 interface PageProps {
   params: Promise<{ embedSlug: string }>;
@@ -22,6 +23,7 @@ interface SessionRow {
 export default async function EmbedWidgetPage({ params }: PageProps) {
   const { embedSlug } = await params;
   const supabase = await createClient();
+  const t = await getTranslations("booking");
 
   // Resolve embed channel
   const { data: channel } = await supabase
@@ -78,7 +80,7 @@ export default async function EmbedWidgetPage({ params }: PageProps) {
 
       {Object.keys(sessionsByDate).length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-6">
-          No sessions in the next 14 days.
+          {t("embed.noSessions")}
         </p>
       ) : (
         <div className="space-y-3 max-h-[560px] overflow-y-auto">
@@ -111,7 +113,7 @@ export default async function EmbedWidgetPage({ params }: PageProps) {
                               {formatTime(s.start_time)}
                             </span>
                             <span className="text-xs truncate">
-                              {s.service?.name ?? "Session"}
+                              {s.service?.name ?? t("session.fallbackName")}
                             </span>
                           </div>
                           <div className="text-[10px] text-muted-foreground flex items-center gap-2 mt-0.5">
@@ -133,10 +135,10 @@ export default async function EmbedWidgetPage({ params }: PageProps) {
                           </div>
                           {isFull ? (
                             <Badge variant="outline" className="text-[9px] py-0 px-1 mt-0.5">
-                              Full
+                              {t("session.full")}
                             </Badge>
                           ) : (
-                            <span className="text-[10px] text-primary">Book →</span>
+                            <span className="text-[10px] text-primary">{t("embed.bookArrow")}</span>
                           )}
                         </div>
                       </div>

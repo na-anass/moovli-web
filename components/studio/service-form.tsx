@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -9,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { InfoTip } from "@/components/ui/info-tip";
 import { ClockIcon, StarIcon, UsersIcon } from "lucide-react";
 import type { Category } from "@/lib/api/catalog";
 
@@ -94,29 +96,33 @@ export function ServiceForm({
   categories: Category[];
   currency: string;
 }) {
+  const t = useTranslations("studioSettings.serviceForm");
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-sm font-medium">Name *</label>
+        <label className="text-sm font-medium inline-flex items-center gap-1">
+          {t("name")}
+          <InfoTip term="service" />
+        </label>
         <Input
           className="mt-1.5"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          placeholder="e.g. Megaformer Pilates"
+          placeholder={t("namePlaceholder")}
         />
       </div>
 
       <div>
-        <label className="text-sm font-medium">Category</label>
+        <label className="text-sm font-medium">{t("category")}</label>
         <Select
           value={form.category_id || "none"}
           onValueChange={(v) => setForm({ ...form, category_id: v === "none" ? "" : v })}
         >
           <SelectTrigger className="mt-1.5">
-            <SelectValue placeholder="Pick a category…" />
+            <SelectValue placeholder={t("categoryPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">Uncategorized</SelectItem>
+            <SelectItem value="none">{t("uncategorized")}</SelectItem>
             {categories.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.icon ? `${c.icon} ` : ""}
@@ -126,35 +132,35 @@ export function ServiceForm({
           </SelectContent>
         </Select>
         <p className="mt-1 text-[10px] text-muted-foreground">
-          Helps consumers discover your service by type (yoga, HIIT, spa…).
+          {t("categoryHint")}
         </p>
       </div>
 
       <div>
-        <label className="text-sm font-medium">Short description</label>
+        <label className="text-sm font-medium">{t("shortDescription")}</label>
         <Input
           className="mt-1.5"
           value={form.short_description}
           onChange={(e) => setForm({ ...form, short_description: e.target.value })}
-          placeholder="One-line summary"
+          placeholder={t("shortDescriptionPlaceholder")}
           maxLength={500}
         />
       </div>
 
       <div>
-        <label className="text-sm font-medium">Description</label>
+        <label className="text-sm font-medium">{t("description")}</label>
         <textarea
           className="mt-1.5 min-h-[80px] w-full resize-y rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
-          placeholder="Detailed description…"
+          placeholder={t("descriptionPlaceholder")}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="flex items-center gap-1 text-sm font-medium">
-            <ClockIcon className="size-3" /> Duration (min) *
+            <ClockIcon className="size-3" /> {t("duration")}
           </label>
           <Input
             type="number"
@@ -166,7 +172,8 @@ export function ServiceForm({
         </div>
         <div>
           <label className="flex items-center gap-1 text-sm font-medium">
-            <UsersIcon className="size-3" /> Capacity *
+            <UsersIcon className="size-3" /> {t("capacity")}
+            <InfoTip term="capacity" />
           </label>
           <Input
             type="number"
@@ -180,7 +187,7 @@ export function ServiceForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium">Price ({currency}) *</label>
+          <label className="text-sm font-medium">{t("price", { currency })}</label>
           <Input
             type="number"
             className="mt-1.5"
@@ -197,7 +204,7 @@ export function ServiceForm({
               onCheckedChange={(v) => setForm({ ...form, is_featured: v })}
             />
             <label className="flex items-center gap-1 text-sm font-medium">
-              <StarIcon className="size-3" /> Featured
+              <StarIcon className="size-3" /> {t("featured")}
             </label>
           </div>
         </div>

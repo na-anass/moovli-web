@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { studioApi } from "@/lib/api/studio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,8 @@ import { initialsOf, toProviderRow, type OnboardingData, type ProviderRow } from
 export function TeamPanel({ data }: { data: OnboardingData }) {
   const { entityId, providers, setProviders, currency, flashSaved } = data;
   const { notify } = useDialogs();
+  const t = useTranslations("onboarding");
+  const tc = useTranslations("common");
 
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -41,7 +44,7 @@ export function TeamPanel({ data }: { data: OnboardingData }) {
 
   const save = async () => {
     if (!isProviderFormValid(form)) {
-      notify("Please enter the instructor's name.", { title: "Almost there" });
+      notify(t("team.errors.nameRequired"), { title: t("common.almostThere") });
       return;
     }
     setSaving(true);
@@ -79,8 +82,8 @@ export function TeamPanel({ data }: { data: OnboardingData }) {
   return (
     <div>
       <PanelHeading
-        title="Your team"
-        subtitle="Add your instructors so you can assign them to classes. This step is optional."
+        title={t("team.title")}
+        subtitle={t("team.subtitle")}
       />
 
       <div className="space-y-2.5">
@@ -104,12 +107,12 @@ export function TeamPanel({ data }: { data: OnboardingData }) {
                 {p.is_featured && <StarIcon className="size-3 fill-current text-amber-500" />}
                 {!p.is_active && (
                   <Badge variant="outline" className="shrink-0 text-[10px]">
-                    Inactive
+                    {t("team.inactive")}
                   </Badge>
                 )}
               </div>
               <div className="truncate text-xs text-muted-foreground">
-                {[p.title, p.email].filter(Boolean).join(" · ") || "Instructor"}
+                {[p.title, p.email].filter(Boolean).join(" · ") || t("team.instructor")}
               </div>
             </div>
             <Button
@@ -133,17 +136,17 @@ export function TeamPanel({ data }: { data: OnboardingData }) {
       </div>
 
       <Button variant="outline" className="mt-3 w-full border-dashed" onClick={openCreate}>
-        <PlusIcon className="mr-1.5 size-4" /> Add an instructor
+        <PlusIcon className="mr-1.5 size-4" /> {t("team.addInstructor")}
       </Button>
 
       <FormSheet
         open={open}
         onOpenChange={setOpen}
-        title={editingId ? "Edit instructor" : "Add instructor"}
+        title={editingId ? t("team.editInstructor") : t("team.addInstructor")}
         subtitle={
           editingId
-            ? "Update this instructor's profile."
-            : "Add someone who teaches at your studio. Add an email to give them a login."
+            ? t("team.editSubtitle")
+            : t("team.addSubtitle")
         }
         icon={editingId ? PencilIcon : UserPlusIcon}
         iconAccent="primary"
@@ -151,10 +154,10 @@ export function TeamPanel({ data }: { data: OnboardingData }) {
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {tc("cancel")}
             </Button>
             <Button onClick={save} disabled={saving || !isProviderFormValid(form)}>
-              {saving ? "Saving…" : editingId ? "Update instructor" : "Add instructor"}
+              {saving ? tc("saving") : editingId ? t("team.updateInstructor") : t("team.addInstructor")}
             </Button>
           </>
         }

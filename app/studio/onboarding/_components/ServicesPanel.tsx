@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { studioApi } from "@/lib/api/studio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,11 +20,13 @@ import { PackageIcon, PencilIcon, PlusIcon, StarIcon, Trash2Icon } from "lucide-
 import { PanelHeading } from "./PanelHeading";
 import { toServiceRow, type OnboardingData, type ServiceRow } from "../_lib/useOnboarding";
 
-const QUICK_ADD = ["Yoga", "Pilates", "HIIT", "Strength", "Dance", "Spa & Wellness"];
+const QUICK_ADD = ["yoga", "pilates", "hiit", "strength", "dance", "spa"] as const;
 
 export function ServicesPanel({ data }: { data: OnboardingData }) {
   const { entityId, services, setServices, categories, currency, flashSaved } = data;
   const { notify } = useDialogs();
+  const t = useTranslations("onboarding");
+  const tc = useTranslations("common");
 
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,8 +47,8 @@ export function ServicesPanel({ data }: { data: OnboardingData }) {
 
   const save = async () => {
     if (!isServiceFormValid(form)) {
-      notify("Please fill in the name, duration, capacity and price.", {
-        title: "Almost there",
+      notify(t("services.errors.fillFields"), {
+        title: t("common.almostThere"),
       });
       return;
     }
@@ -87,23 +90,26 @@ export function ServicesPanel({ data }: { data: OnboardingData }) {
   return (
     <div>
       <PanelHeading
-        title="Your services"
-        subtitle="Add the classes or sessions you offer. You can add more later."
+        title={t("services.title")}
+        subtitle={t("services.subtitle")}
       />
 
       {/* Quick-add chips open the full form pre-filled with the name */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {QUICK_ADD.map((name) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => openCreate(name)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-dashed px-3 py-1.5 text-sm transition hover:border-primary/60 hover:bg-accent"
-          >
-            <PlusIcon className="size-3.5" />
-            {name}
-          </button>
-        ))}
+        {QUICK_ADD.map((key) => {
+          const name = t(`services.quickAdd.${key}`);
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => openCreate(name)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-dashed px-3 py-1.5 text-sm transition hover:border-primary/60 hover:bg-accent"
+            >
+              <PlusIcon className="size-3.5" />
+              {name}
+            </button>
+          );
+        })}
       </div>
 
       {/* Service summary cards */}
@@ -129,8 +135,9 @@ export function ServicesPanel({ data }: { data: OnboardingData }) {
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {s.duration_minutes} min · {formatMoneyWhole(s.base_price, currency)} ·{" "}
-                  {s.capacity} spots
+                  {t("services.durationMin", { minutes: s.duration_minutes })} ·{" "}
+                  {formatMoneyWhole(s.base_price, currency)} ·{" "}
+                  {t("services.spots", { count: s.capacity })}
                 </div>
               </div>
               <Button
@@ -159,30 +166,30 @@ export function ServicesPanel({ data }: { data: OnboardingData }) {
         className="mt-3 w-full border-dashed"
         onClick={() => openCreate()}
       >
-        <PlusIcon className="mr-1.5 size-4" /> Add a service
+        <PlusIcon className="mr-1.5 size-4" /> {t("services.addService")}
       </Button>
 
       {services.length === 0 && (
         <p className="mt-4 text-sm text-muted-foreground">
-          Add at least one service to continue — tap a suggestion above to start.
+          {t("services.emptyState")}
         </p>
       )}
 
       <FormSheet
         open={open}
         onOpenChange={setOpen}
-        title={editingId ? "Edit service" : "New service"}
-        subtitle="What people book — a class, a session, a treatment."
+        title={editingId ? t("services.editService") : t("services.newService")}
+        subtitle={t("services.formSubtitle")}
         icon={PackageIcon}
         iconAccent="violet"
         width="md"
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {tc("cancel")}
             </Button>
             <Button onClick={save} disabled={saving || !isServiceFormValid(form)}>
-              {saving ? "Saving…" : editingId ? "Update service" : "Create service"}
+              {saving ? tc("saving") : editingId ? t("services.updateService") : t("services.createService")}
             </Button>
           </>
         }

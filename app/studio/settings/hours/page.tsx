@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useSettings } from "@/lib/studio/settings-context";
 import { SettingsHeader } from "@/components/studio/settings-header";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,8 @@ interface DayHours {
 type OperatingHours = Record<string, DayHours>;
 
 export default function HoursSettingsPage() {
+  const t = useTranslations("studioSettings.hours");
+  const tc = useTranslations("common");
   const { entity, loading, canEdit, updateProfile } = useSettings();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -70,20 +73,20 @@ export default function HoursSettingsPage() {
   if (loading) {
     return <div className="h-96 rounded-xl border border-border bg-card animate-pulse" />;
   }
-  if (!entity) return <p className="text-muted-foreground">Entity not found.</p>;
+  if (!entity) return <p className="text-muted-foreground">{t("entityNotFound")}</p>;
 
   const view: OperatingHours = editing ? hours : entity.operating_hours || {};
 
   return (
     <div className="space-y-6">
       <SettingsHeader
-        title="Operating Hours"
-        description="When your studio is open. Shown to customers on your booking pages."
+        title={t("title")}
+        description={t("description")}
         action={
           <>
             {success && (
               <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 gap-1">
-                <CheckIcon className="size-3" /> Saved
+                <CheckIcon className="size-3" /> {tc("success")}
               </Badge>
             )}
             {canEdit && !editing && (
@@ -94,14 +97,14 @@ export default function HoursSettingsPage() {
                 className="gap-1.5 text-muted-foreground hover:text-foreground"
               >
                 <PencilIcon className="size-3.5" />
-                Edit
+                {tc("edit")}
               </Button>
             )}
           </>
         }
       />
 
-      <FormSection title="Weekly Schedule" icon={<ClockIcon className="size-5" />}>
+      <FormSection title={t("weeklySchedule")} icon={<ClockIcon className="size-5" />}>
         <div className="space-y-2">
           {DAYS.map((day) => {
             const dayHours = view[day] || { open: "09:00", close: "18:00", closed: false };
@@ -110,7 +113,7 @@ export default function HoursSettingsPage() {
                 key={day}
                 className="flex items-center gap-4 rounded-lg border border-border px-4 py-3"
               >
-                <span className="text-sm font-medium capitalize w-24 shrink-0">{day}</span>
+                <span className="text-sm font-medium capitalize w-24 shrink-0">{t(`days.${day}`)}</span>
 
                 {editing ? (
                   <>
@@ -120,7 +123,7 @@ export default function HoursSettingsPage() {
                         onCheckedChange={(checked) => updateDay(day, "closed", !checked)}
                       />
                       <span className="text-xs text-muted-foreground w-10">
-                        {dayHours.closed ? "Closed" : "Open"}
+                        {dayHours.closed ? t("closed") : t("open")}
                       </span>
                     </div>
                     {!dayHours.closed ? (
@@ -131,7 +134,7 @@ export default function HoursSettingsPage() {
                           value={dayHours.open}
                           onChange={(e) => updateDay(day, "open", e.target.value)}
                         />
-                        <span className="text-muted-foreground text-sm">to</span>
+                        <span className="text-muted-foreground text-sm">{t("to")}</span>
                         <Input
                           type="time"
                           className="w-28 h-8 text-sm"
@@ -140,13 +143,13 @@ export default function HoursSettingsPage() {
                         />
                       </div>
                     ) : (
-                      <span className="ml-auto text-sm text-muted-foreground">Closed</span>
+                      <span className="ml-auto text-sm text-muted-foreground">{t("closed")}</span>
                     )}
                   </>
                 ) : (
                   <span className="ml-auto text-sm">
                     {dayHours.closed ? (
-                      <span className="text-muted-foreground">Closed</span>
+                      <span className="text-muted-foreground">{t("closed")}</span>
                     ) : (
                       <span className="text-foreground">{dayHours.open} — {dayHours.close}</span>
                     )}

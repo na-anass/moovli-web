@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { formatMoneyWhole } from "@/lib/money";
 import { formatDate } from "@/lib/datetime";
@@ -12,17 +13,17 @@ import { useRouter } from "next/navigation";
 import { EyeIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-const SOURCE_LABEL: Record<AcquisitionSource, { label: string; variant: "default" | "secondary" | "outline" }> = {
-  marketplace: { label: "Marketplace", variant: "default" },
-  direct_hosted: { label: "Direct", variant: "secondary" },
+const SOURCE_LABEL: Record<AcquisitionSource, { labelKey: string; variant: "default" | "secondary" | "outline" }> = {
+  marketplace: { labelKey: "marketplace", variant: "default" },
+  direct_hosted: { labelKey: "direct", variant: "secondary" },
   // direct_link + direct_embed exist in the schema but their UI is hidden until
   // we ship custom-link / embeddable-widget channels. Bookings on those types
   // still get labeled — they just fall through to "Direct" via the dropdown
   // collapse in HIDDEN_SOURCES below.
-  direct_link: { label: "Direct", variant: "secondary" },
-  direct_embed: { label: "Direct", variant: "secondary" },
-  manual: { label: "Manual", variant: "outline" },
-  unknown: { label: "—", variant: "outline" },
+  direct_link: { labelKey: "direct", variant: "secondary" },
+  direct_embed: { labelKey: "direct", variant: "secondary" },
+  manual: { labelKey: "manual", variant: "outline" },
+  unknown: { labelKey: "unknown", variant: "outline" },
 };
 
 // Filter chips only surface these — keeps the customer-source filter focused
@@ -31,6 +32,7 @@ const VISIBLE_FILTER_SOURCES: AcquisitionSource[] = ["marketplace", "direct_host
 
 
 export default function StudioCustomersPage() {
+  const t = useTranslations("studioMain");
   const activeEntity = useActiveEntity();
   const router = useRouter();
   const currency = activeEntity.currencyCode;
@@ -71,7 +73,7 @@ export default function StudioCustomersPage() {
 
   const columns: Column<EntityCustomer>[] = [
     {
-      header: "Name",
+      header: t("customers.columns.name"),
       cell: (c) => (
         <Link href={`/studio/customers/${c.id}`} className="font-medium hover:underline">
           {c.name}
@@ -79,7 +81,7 @@ export default function StudioCustomersPage() {
       ),
     },
     {
-      header: "Contact",
+      header: t("customers.columns.contact"),
       cell: (c) => (
         <div className="text-sm">
           <div>{c.email}</div>
@@ -88,49 +90,49 @@ export default function StudioCustomersPage() {
       ),
     },
     {
-      header: "Source",
+      header: t("customers.columns.source"),
       cell: (c) => (
         <Badge variant={SOURCE_LABEL[c.acquisition_source].variant}>
-          {SOURCE_LABEL[c.acquisition_source].label}
+          {t(`customers.source.${SOURCE_LABEL[c.acquisition_source].labelKey}`)}
         </Badge>
       ),
     },
     {
-      header: "Bookings",
+      header: t("customers.columns.bookings"),
       cell: (c) => (
         <div className="text-sm">
           <div className="font-medium">{c.completed_bookings + c.confirmed_bookings}</div>
-          <div className="text-muted-foreground text-xs">{c.total_bookings} total</div>
+          <div className="text-muted-foreground text-xs">{t("customers.totalCount", { count: c.total_bookings })}</div>
         </div>
       ),
     },
     {
-      header: "Lifetime value",
+      header: t("customers.columns.lifetimeValue"),
       cell: (c) => <span className="font-medium">{formatMoneyWhole(c.lifetime_value_mad, currency)}</span>,
     },
     {
-      header: "Last booking",
+      header: t("customers.columns.lastBooking"),
       cell: (c) => <span className="text-sm">{formatDate(c.last_booking_at)}</span>,
     },
     {
-      header: "Status",
+      header: t("customers.columns.status"),
       cell: (c) => (
         <div className="text-xs text-muted-foreground">
-          {c.user_id ? <Badge variant="outline">Account</Badge> : <Badge variant="outline">Guest</Badge>}
+          {c.user_id ? <Badge variant="outline">{t("customers.account")}</Badge> : <Badge variant="outline">{t("customers.guest")}</Badge>}
         </div>
       ),
     },
   ];
 
   if (!entityId) {
-    return <div className="p-8 text-muted-foreground">No studio access found.</div>;
+    return <div className="p-8 text-muted-foreground">{t("customers.noAccess")}</div>;
   }
 
   return (
     <BaseLayout
       maxWidth="xl"
-      title="Customers"
-      subtitle={`Everyone who has booked a session with you. ${total} total.`}
+      title={t("customers.title")}
+      subtitle={t("customers.subtitle", { total })}
     >
       <DataTable
         columns={columns}
@@ -139,23 +141,23 @@ export default function StudioCustomersPage() {
         page={page}
         pageSize={pageSize}
         onPageChange={setPage}
-        searchPlaceholder="Search by name or email..."
+        searchPlaceholder={t("customers.searchPlaceholder")}
         onSearch={(q) => {
           setSearch(q);
           setPage(1);
         }}
         filters={[
           {
-            label: "Source",
+            label: t("customers.columns.source"),
             value: sourceFilter || "all",
             onChange: (v) => {
               setSourceFilter(v === "all" ? "" : (v as AcquisitionSource));
               setPage(1);
             },
             options: [
-              { label: "All sources", value: "all" },
+              { label: t("customers.allSources"), value: "all" },
               ...VISIBLE_FILTER_SOURCES.map((src) => ({
-                label: SOURCE_LABEL[src].label,
+                label: t(`customers.source.${SOURCE_LABEL[src].labelKey}`),
                 value: src,
               })),
             ],
@@ -163,7 +165,7 @@ export default function StudioCustomersPage() {
         ]}
         rowActions={(c) => [
           {
-            label: "View customer",
+            label: t("customers.viewCustomer"),
             icon: EyeIcon,
             onClick: () => router.push(`/studio/customers/${c.id}`),
           },

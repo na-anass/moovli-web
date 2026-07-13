@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { studioApi } from "@/lib/api/studio";
 import { channelsApi } from "@/lib/api/channels";
 import { entityPlansApi, type EntityPlan } from "@/lib/api/entityPlans";
@@ -20,6 +21,7 @@ import {
   BuildingIcon,
 } from "lucide-react";
 import Image from "next/image";
+import { InfoTip } from "@/components/ui/info-tip";
 import { useDialogs } from "@/components/shared/dialogs";
 import { PanelHeading } from "./PanelHeading";
 import { slugify, type OnboardingData } from "../_lib/useOnboarding";
@@ -29,6 +31,8 @@ type SlugState = "idle" | "checking" | "available" | "taken" | "invalid";
 export function PublishStage({ data }: { data: OnboardingData }) {
   const { entityId, profile, color, channel, setChannelSlug, services, currency, plans, currentPlanSlug, refreshSubscription, flashSaved } = data;
   const { notify } = useDialogs();
+  const t = useTranslations("onboarding");
+  const tc = useTranslations("common");
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://moovli.app";
   const suggested = channel?.slug || slugify(profile.name) || "my-studio";
@@ -107,8 +111,8 @@ export function PublishStage({ data }: { data: OnboardingData }) {
       // automatically when they finish setup, using this handle's default.
       if (msg.includes("PLAN_DOES_NOT_ALLOW")) {
         notify(
-          "Your booking link will be finalized when you finish setup — pick a plan below first to customize it now.",
-          { title: "Almost there" },
+          t("publish.linkFinalizeNote"),
+          { title: t("common.almostThere") },
         );
       } else {
         notify(msg, { variant: "error" });
@@ -130,12 +134,12 @@ export function PublishStage({ data }: { data: OnboardingData }) {
     <div className="space-y-8">
       <div>
         <PanelHeading
-          title="Your booking page is ready"
-          subtitle="Personalize your link and share it with your clients."
+          title={t("publish.title")}
+          subtitle={t("publish.subtitle")}
         />
 
         {/* Slug editor */}
-        <label className="mb-1.5 block text-sm font-medium">Booking link</label>
+        <label className="mb-1.5 block text-sm font-medium">{t("publish.bookingLink")}</label>
         <div className="flex items-stretch gap-2">
           <div className="flex flex-1 items-center rounded-md border bg-muted/30 pl-3 focus-within:border-primary">
             <span className="shrink-0 text-sm text-muted-foreground">{origin.replace(/^https?:\/\//, "")}/booking/</span>
@@ -150,15 +154,15 @@ export function PublishStage({ data }: { data: OnboardingData }) {
               {slugState === "checking" && <Loader2Icon className="size-3.5 animate-spin text-muted-foreground" />}
               {slugState === "available" && (
                 <span className="flex items-center gap-1 text-emerald-600">
-                  <CheckIcon className="size-3.5" /> Available
+                  <CheckIcon className="size-3.5" /> {t("publish.slug.available")}
                 </span>
               )}
-              {slugState === "taken" && <span className="text-destructive">Taken</span>}
-              {slugState === "invalid" && <span className="text-muted-foreground">Use 2–40 letters, numbers, hyphens</span>}
+              {slugState === "taken" && <span className="text-destructive">{t("publish.slug.taken")}</span>}
+              {slugState === "invalid" && <span className="text-muted-foreground">{t("publish.slug.invalid")}</span>}
             </span>
           </div>
           <Button onClick={saveSlug} disabled={savingSlug || slugState === "taken" || slugState === "invalid"}>
-            {savingSlug ? "Saving…" : "Save"}
+            {savingSlug ? tc("saving") : tc("save")}
           </Button>
         </div>
 
@@ -192,7 +196,7 @@ export function PublishStage({ data }: { data: OnboardingData }) {
               </span>
             )}
             <div className="flex-1">
-              <div className="font-semibold">{profile.name || "Your studio"}</div>
+              <div className="font-semibold">{profile.name || t("publish.yourStudio")}</div>
               {profile.city && (
                 <div className="text-sm text-muted-foreground">{profile.city}</div>
               )}
@@ -206,19 +210,19 @@ export function PublishStage({ data }: { data: OnboardingData }) {
         {/* Share */}
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => copy(url)}>
-            <CopyIcon className="mr-1.5 size-4" /> Copy link
+            <CopyIcon className="mr-1.5 size-4" /> {t("publish.copyLink")}
           </Button>
           <Button variant="outline" asChild>
             <a
-              href={`https://wa.me/?text=${encodeURIComponent(`Book with us: ${url}`)}`}
+              href={`https://wa.me/?text=${encodeURIComponent(t("publish.whatsappText", { url }))}`}
               target="_blank"
               rel="noopener noreferrer"
             >
-              <MessageCircleIcon className="mr-1.5 size-4" /> Share on WhatsApp
+              <MessageCircleIcon className="mr-1.5 size-4" /> {t("publish.shareWhatsApp")}
             </a>
           </Button>
           <Button variant="outline" onClick={() => copy(url)}>
-            <InstagramIcon className="mr-1.5 size-4" /> Add to Instagram bio
+            <InstagramIcon className="mr-1.5 size-4" /> {t("publish.addToInstagram")}
           </Button>
         </div>
       </div>
@@ -252,6 +256,7 @@ function PlanSection({
   currency: string;
 }) {
   const { notify } = useDialogs();
+  const t = useTranslations("onboarding");
   const [saving, setSaving] = useState<"standard" | "marketplace" | null>(null);
   const standard = useMemo(() => plans.find((p) => p.slug === "standard"), [plans]);
   const marketplace = useMemo(() => plans.find((p) => p.slug === "marketplace"), [plans]);
@@ -275,15 +280,18 @@ function PlanSection({
 
   return (
     <div>
-      <h3 className="text-lg font-semibold">How do your clients pay?</h3>
+      <h3 className="text-lg font-semibold">{t("publish.plans.heading")}</h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        Choose how payment is collected for bookings. Start with a 14-day free trial — no card required during the trial.
+        {t("publish.plans.description")}
       </p>
 
       {currentPlanSlug && (
         <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
           <CheckCircle2Icon className="size-3.5" />
-          You&apos;re on the <strong>{currentPlanSlug}</strong> plan. You can change it anytime from Billing.
+          {t.rich("publish.plans.currentNotice", {
+            plan: currentPlanSlug,
+            strong: (chunks) => <strong>{chunks}</strong>,
+          })}
         </div>
       )}
 
@@ -292,9 +300,14 @@ function PlanSection({
           <PlanCard
             plan={standard}
             currency={currency}
-            title="Pay at the studio"
-            note="Clients book online and pay on-site, in cash or by card."
-            features={["Public booking page", "Custom branding", "Reservation-based bookings", "Studio CRM"]}
+            title={t("publish.plans.standard.title")}
+            note={t("publish.plans.standard.note")}
+            features={[
+              t("publish.plans.standard.features.bookingPage"),
+              t("publish.plans.standard.features.branding"),
+              t("publish.plans.standard.features.reservations"),
+              t("publish.plans.standard.features.crm"),
+            ]}
             isCurrent={currentPlanSlug === "standard"}
             isSaving={saving === "standard"}
             highlight={false}
@@ -305,12 +318,18 @@ function PlanSection({
           <PlanCard
             plan={marketplace}
             currency={currency}
-            title="Pay online via Moovli"
-            note="Clients pay at booking time; you're listed in the Moovli app."
-            features={["Everything in Standard", "Listed in the Moovli app", "Online payments + payouts", "Customer discovery"]}
+            title={t("publish.plans.marketplace.title")}
+            note={t("publish.plans.marketplace.note")}
+            features={[
+              t("publish.plans.marketplace.features.everything"),
+              t("publish.plans.marketplace.features.listed"),
+              t("publish.plans.marketplace.features.payments"),
+              t("publish.plans.marketplace.features.discovery"),
+            ]}
             isCurrent={currentPlanSlug === "marketplace"}
             isSaving={saving === "marketplace"}
             highlight
+            term="marketplace"
             onChoose={() => choose("marketplace")}
           />
         )}
@@ -328,6 +347,7 @@ function PlanCard({
   isCurrent,
   isSaving,
   highlight,
+  term,
   onChoose,
 }: {
   plan: EntityPlan;
@@ -338,8 +358,10 @@ function PlanCard({
   isCurrent: boolean;
   isSaving: boolean;
   highlight: boolean;
+  term?: "marketplace";
   onChoose: () => void;
 }) {
+  const t = useTranslations("onboarding");
   return (
     <div
       className={cn(
@@ -350,15 +372,18 @@ function PlanCard({
     >
       {highlight && (
         <Badge className="absolute -top-2.5 right-4 bg-primary text-[10px] text-primary-foreground">
-          Most popular
+          {t("publish.plans.mostPopular")}
         </Badge>
       )}
-      <h4 className="font-semibold">{title}</h4>
+      <h4 className="flex items-center gap-1 font-semibold">
+        {title}
+        {term && <InfoTip term={term} />}
+      </h4>
       <div className="mt-1 flex items-baseline gap-1.5">
         <span className="text-2xl font-bold">{formatMoneyWhole(plan.price_mad, currency)}</span>
-        <span className="text-xs text-muted-foreground">/month</span>
+        <span className="text-xs text-muted-foreground">{t("publish.plans.perMonth")}</span>
       </div>
-      <p className="mt-1 text-[11px] text-muted-foreground">14-day free trial</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{t("publish.plans.freeTrial")}</p>
 
       <ul className="mt-4 space-y-1.5 text-xs">
         {features.map((f) => (
@@ -377,7 +402,11 @@ function PlanCard({
         disabled={isSaving || isCurrent}
         onClick={onChoose}
       >
-        {isCurrent ? "Current plan" : isSaving ? "Redirecting…" : `Start ${plan.name} trial`}
+        {isCurrent
+          ? t("publish.plans.currentPlan")
+          : isSaving
+            ? t("publish.plans.redirecting")
+            : t("publish.plans.startTrial", { plan: plan.name })}
       </Button>
     </div>
   );
@@ -392,6 +421,8 @@ function PayoutSection({
   onSaved: () => void;
 }) {
   const { notify } = useDialogs();
+  const t = useTranslations("onboarding");
+  const tc = useTranslations("common");
   const [form, setForm] = useState({ account_holder: "", iban: "", bank_name: "" });
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
@@ -414,7 +445,7 @@ function PayoutSection({
 
   const save = async () => {
     if (!form.account_holder.trim()) {
-      notify("Account holder is required.", { title: "Almost there" });
+      notify(t("publish.payout.errors.holderRequired"), { title: t("common.almostThere") });
       return;
     }
     setSaving(true);
@@ -436,38 +467,38 @@ function PayoutSection({
   return (
     <div className="rounded-xl border p-5">
       <div className="flex items-center gap-2">
-        <h3 className="text-lg font-semibold">Where should we send your payouts?</h3>
+        <h3 className="text-lg font-semibold">{t("publish.payout.title")}</h3>
         {done && (
           <Badge className="gap-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
-            <CheckIcon className="size-3" /> Saved
+            <CheckIcon className="size-3" /> {t("common.saved")}
           </Badge>
         )}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        Needed for online (marketplace) bookings. You can also add this later in Settings.
+        {t("publish.payout.subtitle")}
       </p>
 
       <div className="mt-4 space-y-3">
         <Input
           value={form.account_holder}
           onChange={(e) => setForm({ ...form, account_holder: e.target.value })}
-          placeholder="Account holder"
+          placeholder={t("publish.payout.accountHolder")}
         />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Input
             className="font-mono"
             value={form.iban}
             onChange={(e) => setForm({ ...form, iban: e.target.value.toUpperCase() })}
-            placeholder="IBAN"
+            placeholder={t("publish.payout.iban")}
           />
           <Input
             value={form.bank_name}
             onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
-            placeholder="Bank name"
+            placeholder={t("publish.payout.bankName")}
           />
         </div>
         <Button onClick={save} disabled={saving} variant="outline">
-          {saving ? "Saving…" : "Save payout details"}
+          {saving ? tc("saving") : t("publish.payout.save")}
         </Button>
       </div>
     </div>

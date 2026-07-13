@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { studioApi } from "@/lib/api/studio";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -74,6 +76,7 @@ export function PlanningStage({
 }) {
   const { entityId, services, providers, currency, existingSessions, flashSaved } = data;
   const { notify } = useDialogs();
+  const t = useTranslations("onboarding");
   const [cards, setCards] = useState<PlannedCard[]>([]);
   const [editing, setEditing] = useState<PlannedCard | null>(null);
   const [seeded, setSeeded] = useState(false);
@@ -215,24 +218,26 @@ export function PlanningStage({
   return (
     <div>
       <PanelHeading
-        title="Plan your classes"
-        subtitle="Here's a starter schedule based on your services — adjust times, move, or remove classes freely."
+        title={t("planning.title")}
+        subtitle={t("planning.subtitle")}
       />
 
       {/* Always-visible add action + live count */}
       <div className="mb-5 flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          <strong className="text-foreground">{total}</strong>{" "}
-          {total === 1 ? "class" : "classes"} this week
+          {t.rich("planning.classesThisWeek", {
+            count: total,
+            strong: (chunks) => <strong className="text-foreground">{chunks}</strong>,
+          })}
         </p>
         <Button size="sm" onClick={openNewCard} disabled={services.length === 0}>
-          <PlusIcon className="mr-1.5 size-4" /> Add class
+          <PlusIcon className="mr-1.5 size-4" /> {t("planning.addClass")}
         </Button>
       </div>
 
       {services.length === 0 && (
         <p className="mb-4 rounded-lg border border-dashed bg-muted/20 p-3 text-center text-sm text-muted-foreground">
-          Add a service first (Studio → Services) to schedule classes.
+          {t("planning.noServices")}
         </p>
       )}
 
@@ -247,12 +252,12 @@ export function PlanningStage({
               className="flex min-h-[9rem] flex-col rounded-lg border bg-muted/20 p-2"
             >
               <div className="mb-2 text-center text-xs font-semibold text-muted-foreground">
-                {day}
+                {t(`planning.days.${DAY_TOKENS[dayIndex]}`)}
               </div>
               <div className="flex-1 space-y-1.5">
                 {dayCards.length === 0 && (
                   <p className="py-3 text-center text-[11px] italic text-muted-foreground/70">
-                    No class
+                    {t("planning.noClass")}
                   </p>
                 )}
                 {dayCards.map((c) => {
@@ -269,7 +274,8 @@ export function PlanningStage({
                       <div className="truncate text-xs font-medium">{svc?.name}</div>
                       <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
                         <ClockIcon className="size-2.5" />
-                        {provider?.name ?? "No instructor"} · {c.capacity} spots
+                        {provider?.name ?? t("planning.noInstructor")} ·{" "}
+                        {t("planning.spots", { count: c.capacity })}
                       </div>
                     </button>
                   );
@@ -280,7 +286,7 @@ export function PlanningStage({
                 onClick={() => addCard(dayIndex)}
                 className="mt-1.5 flex items-center justify-center gap-1 rounded-md border border-dashed py-1.5 text-[11px] text-muted-foreground transition hover:border-primary/60 hover:text-foreground"
               >
-                <PlusIcon className="size-3" /> Add
+                <PlusIcon className="size-3" /> {t("planning.add")}
               </button>
             </div>
           );
@@ -324,18 +330,22 @@ function CardEditor({
   onSave: (card: PlannedCard) => void;
   onRemove: () => void;
 }) {
+  const t = useTranslations("onboarding");
   const [draft, setDraft] = useState<PlannedCard>(card);
   const set = (patch: Partial<PlannedCard>) => setDraft((d) => ({ ...d, ...patch }));
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Class details</DialogTitle>
+        <DialogTitle>{t("planning.editor.title")}</DialogTitle>
       </DialogHeader>
 
       <div className="space-y-4 py-2">
         <div>
-          <label className="mb-1.5 block text-sm font-medium">Service</label>
+          <label className="mb-1.5 flex items-center gap-1 text-sm font-medium">
+            {t("planning.editor.service")}
+            <InfoTip term="service" />
+          </label>
           <Select value={draft.serviceId} onValueChange={(v) => set({ serviceId: v })}>
             <SelectTrigger>
               <SelectValue />
@@ -352,7 +362,7 @@ function CardEditor({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1.5 block text-sm font-medium">Day</label>
+            <label className="mb-1.5 block text-sm font-medium">{t("planning.editor.day")}</label>
             <Select
               value={String(draft.dayIndex)}
               onValueChange={(v) => set({ dayIndex: Number(v) })}
@@ -363,14 +373,14 @@ function CardEditor({
               <SelectContent>
                 {DAYS.map((d, i) => (
                   <SelectItem key={d} value={String(i)}>
-                    {d}
+                    {t(`planning.days.${DAY_TOKENS[i]}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium">Start time</label>
+            <label className="mb-1.5 block text-sm font-medium">{t("planning.editor.startTime")}</label>
             <Input
               type="time"
               value={draft.time}
@@ -380,7 +390,10 @@ function CardEditor({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium">Instructor</label>
+          <label className="mb-1.5 flex items-center gap-1 text-sm font-medium">
+            {t("planning.editor.instructor")}
+            <InfoTip term="instructor" />
+          </label>
           <Select
             value={draft.providerId ?? "none"}
             onValueChange={(v) => set({ providerId: v === "none" ? null : v })}
@@ -389,7 +402,7 @@ function CardEditor({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">No instructor</SelectItem>
+              <SelectItem value="none">{t("planning.noInstructor")}</SelectItem>
               {providers.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name}
@@ -401,7 +414,10 @@ function CardEditor({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1.5 block text-sm font-medium">Capacity</label>
+            <label className="mb-1.5 flex items-center gap-1 text-sm font-medium">
+              {t("planning.editor.capacity")}
+              <InfoTip term="capacity" />
+            </label>
             <Input
               type="number"
               min={1}
@@ -411,7 +427,7 @@ function CardEditor({
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium">
-              Price ({currency})
+              {t("planning.editor.price", { currency })}
             </label>
             <Input
               type="number"
@@ -424,9 +440,9 @@ function CardEditor({
 
         <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2.5">
           <div>
-            <div className="text-sm font-medium">Repeat weekly</div>
+            <div className="text-sm font-medium">{t("planning.editor.repeatWeekly")}</div>
             <div className="text-xs text-muted-foreground">
-              Creates this class every week for the next 8 weeks.
+              {t("planning.editor.repeatWeeklyHint")}
             </div>
           </div>
           <Switch
@@ -437,7 +453,8 @@ function CardEditor({
         </div>
 
         <p className="text-xs text-muted-foreground">
-          {formatMoneyWhole(draft.price, currency)} · {draft.capacity} spots
+          {formatMoneyWhole(draft.price, currency)} ·{" "}
+          {t("planning.spots", { count: draft.capacity })}
         </p>
       </div>
 
@@ -447,9 +464,9 @@ function CardEditor({
           className="text-muted-foreground hover:text-destructive"
           onClick={onRemove}
         >
-          <Trash2Icon className="mr-1.5 size-4" /> Remove
+          <Trash2Icon className="mr-1.5 size-4" /> {t("planning.editor.remove")}
         </Button>
-        <Button onClick={() => onSave(draft)}>Done</Button>
+        <Button onClick={() => onSave(draft)}>{t("planning.editor.done")}</Button>
       </DialogFooter>
     </>
   );

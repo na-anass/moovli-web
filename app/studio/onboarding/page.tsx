@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { studioApi } from "@/lib/api/studio";
 import { useAuth } from "@/lib/auth/provider";
@@ -16,8 +17,9 @@ import { PlanningStage } from "./_components/PlanningStage";
 import { PublishStage } from "./_components/PublishStage";
 
 export default function StudioOnboardingPage() {
+  const tc = useTranslations("common");
   return (
-    <Suspense fallback={<Centered>Loading…</Centered>}>
+    <Suspense fallback={<Centered>{tc("loading")}</Centered>}>
       <DialogsProvider>
         <OnboardingInner />
       </DialogsProvider>
@@ -30,6 +32,8 @@ function OnboardingInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { notify } = useDialogs();
+  const t = useTranslations("onboarding");
+  const tc = useTranslations("common");
 
   const owned = roles?.ownedEntities?.[0];
   const entityId = owned?.entityId;
@@ -103,12 +107,12 @@ function OnboardingInner() {
       // Leaving Studio → Planning. Require a name + at least one service.
       if (!data.profile.name.trim()) {
         setStudioTab("profile");
-        notify("Please give your studio a name.", { title: "Almost there" });
+        notify(t("studio.errors.nameRequired"), { title: t("common.almostThere") });
         return;
       }
       if (data.services.length === 0) {
         setStudioTab("services");
-        notify("Add at least one service to continue.", { title: "Almost there" });
+        notify(t("studio.errors.serviceRequired"), { title: t("common.almostThere") });
         return;
       }
       setStage("planning");
@@ -157,11 +161,11 @@ function OnboardingInner() {
   const progressPct = Math.round(((stepIndex + 1) / TOTAL_STEPS) * 100);
 
   const nextLabel = useMemo(() => {
-    if (stage === "publish") return "Finish setup";
-    return "Continue";
-  }, [stage]);
+    if (stage === "publish") return t("publish.finishSetup");
+    return t("common.continue");
+  }, [stage, t]);
 
-  if (authLoading || !entityId) return <Centered>Loading…</Centered>;
+  if (authLoading || !entityId) return <Centered>{tc("loading")}</Centered>;
 
   return (
     <div className="flex h-screen flex-col bg-muted/20">
@@ -177,7 +181,7 @@ function OnboardingInner() {
               className="shrink-0 rounded-md"
             />
             <span className="truncate text-sm font-semibold">
-              {entityName ?? "Studio setup"}
+              {entityName ?? t("studioSetup")}
             </span>
           </div>
 
@@ -190,7 +194,7 @@ function OnboardingInner() {
             disabled={finishing}
             className="shrink-0 text-sm text-muted-foreground hover:text-foreground"
           >
-            Set up later
+            {t("setUpLater")}
           </button>
         </div>
         {/* Compact stepper on mobile */}
@@ -234,7 +238,7 @@ function OnboardingInner() {
             onClick={goBack}
             disabled={stage === "studio" && studioTab === "profile"}
           >
-            <ArrowLeftIcon className="mr-1.5 size-4" /> Back
+            <ArrowLeftIcon className="mr-1.5 size-4" /> {tc("back")}
           </Button>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -244,7 +248,7 @@ function OnboardingInner() {
                 data.saved ? "opacity-100" : "opacity-0",
               )}
             >
-              <span className="size-1.5 rounded-full bg-emerald-500" /> Saved
+              <span className="size-1.5 rounded-full bg-emerald-500" /> {t("common.saved")}
             </span>
             {canSkip && (
               <Button
@@ -253,11 +257,11 @@ function OnboardingInner() {
                 disabled={advancing || finishing}
                 className="text-muted-foreground hover:text-foreground"
               >
-                Skip
+                {t("common.skip")}
               </Button>
             )}
             <Button onClick={goNext} disabled={advancing || finishing} size="lg">
-              {finishing ? "Finishing…" : advancing ? "Saving…" : nextLabel}
+              {finishing ? t("common.finishing") : advancing ? tc("saving") : nextLabel}
               {!finishing && !advancing && <ArrowRightIcon className="ml-1.5 size-4" />}
             </Button>
           </div>

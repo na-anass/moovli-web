@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/datetime";
+import { setLocale } from "@/lib/i18n/set-locale";
 import { useAuth } from "@/lib/auth/provider";
 import { apiClient } from "@/lib/api/client";
 import { createClient } from "@/lib/supabase/client";
@@ -56,6 +59,9 @@ interface UserProfile {
 }
 
 export function AccountPage() {
+  const t = useTranslations("account");
+  const tc = useTranslations("common");
+  const router = useRouter();
   const { roles } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,12 +127,19 @@ export function AccountPage() {
         method: "PUT",
         body: JSON.stringify(form),
       });
+      const languageChanged = res.data.preferred_language !== profile?.preferred_language;
       setProfile({ ...profile!, ...res.data });
       setEditing(false);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
+      // Apply the UI locale immediately when the language preference changed:
+      // persist the cookie next-intl reads, then re-render with the new catalog.
+      if (languageChanged && form.preferred_language) {
+        await setLocale(form.preferred_language);
+        router.refresh();
+      }
     } catch (e) {
-      setError((e as Error).message || "Couldn't save your changes. Please try again.");
+      setError((e as Error).message || t("errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -150,7 +163,7 @@ export function AccountPage() {
       );
       setProfile((p) => (p ? { ...p, avatar_url: res.data.url } : p));
     } catch (err) {
-      setError((err as Error).message || "Couldn't upload your photo. Please try again.");
+      setError((err as Error).message || t("errors.avatarFailed"));
     } finally {
       setUploadingAvatar(false);
     }
@@ -160,11 +173,11 @@ export function AccountPage() {
     setError(null);
     setPwSuccess(false);
     if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(t("errors.passwordShort"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("Passwords don't match.");
+      setError(t("errors.passwordMismatch"));
       return;
     }
     setPwSaving(true);
@@ -177,7 +190,7 @@ export function AccountPage() {
       setPwSuccess(true);
       setTimeout(() => setPwSuccess(false), 3000);
     } catch (err) {
-      setError((err as Error).message || "Couldn't update your password. Please try again.");
+      setError((err as Error).message || t("errors.passwordFailed"));
     } finally {
       setPwSaving(false);
     }
@@ -187,31 +200,31 @@ export function AccountPage() {
   useEditModeSync({
     editing,
     saving,
-    title: "My Account",
+    title: t("title"),
     onSave: handleSave,
     onCancel: handleCancel,
   });
 
   if (loading) {
     return (
-      <BaseLayout maxWidth="md" title="My Account">
+      <BaseLayout maxWidth="md" title={t("title")}>
         <div className="h-32 rounded-xl border border-border bg-card animate-pulse" />
         <div className="h-64 rounded-xl border border-border bg-card animate-pulse" />
       </BaseLayout>
     );
   }
 
-  if (!profile) return <p className="text-muted-foreground">Failed to load profile.</p>;
+  if (!profile) return <p className="text-muted-foreground">{t("loadFailed")}</p>;
 
   return (
     <BaseLayout
       maxWidth="md"
-      title="My Account"
+      title={t("title")}
       action={
         <>
           {success && (
             <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 gap-1">
-              <CheckIcon className="size-3" /> Saved
+              <CheckIcon className="size-3" /> {tc("success")}
             </Badge>
           )}
           {!editing && (
@@ -222,7 +235,7 @@ export function AccountPage() {
               className="gap-1.5 text-muted-foreground hover:text-foreground"
             >
               <PencilIcon className="size-3.5" />
-              Edit
+              {tc("edit")}
             </Button>
           )}
         </>
@@ -237,9 +250,9 @@ export function AccountPage() {
               <button
                 onClick={() => setError(null)}
                 className="text-xs text-destructive/80 hover:text-destructive"
-                aria-label="Dismiss"
+                aria-label={t("dismiss")}
               >
-                Dismiss
+                {t("dismiss")}
               </button>
             </div>
           )}
@@ -260,7 +273,7 @@ export function AccountPage() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar}
-                  aria-label="Change photo"
+                  aria-label={t("changePhoto")}
                   className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border border-border bg-background hover:bg-muted disabled:opacity-60"
                 >
                   {uploadingAvatar ? (
@@ -284,14 +297,14 @@ export function AccountPage() {
                   <Badge variant="outline">{profile.status}</Badge>
                   {profile.is_admin && (
                     <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                      <ShieldIcon className="size-3 mr-1" />Admin
+                      <ShieldIcon className="size-3 mr-1" />{t("admin")}
                     </Badge>
                   )}
                   {(roles?.ownedEntities?.length ?? 0) > 0 && (
-                    <Badge variant="outline">Studio {roles!.ownedEntities[0].role}</Badge>
+                    <Badge variant="outline">{t("studioRole", { role: roles!.ownedEntities[0].role })}</Badge>
                   )}
                   <span className="text-xs text-muted-foreground">
-                    Joined {formatDate(profile.created_at)}
+                    {t("joined", { date: formatDate(profile.created_at) })}
                   </span>
                 </div>
               </div>
@@ -299,125 +312,124 @@ export function AccountPage() {
           </div>
 
           {/* Personal info */}
-          <FormSection title="Personal Information" icon={<UserIcon className="size-5" />}>
+          <FormSection title={t("personalInfo")} icon={<UserIcon className="size-5" />}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <FormField label="Full Name" icon={<UserIcon className="size-3.5" />} span={2}
+              <FormField label={t("fullName")} icon={<UserIcon className="size-3.5" />} span={2}
                 editing={editing} value={profile.name} formValue={form.name}
                 onChange={(v) => setForm({ ...form, name: v })} />
               <div>
                 <label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                  <MailIcon className="size-3.5" /> Email
+                  <MailIcon className="size-3.5" /> {tc("email")}
                 </label>
                 <p className="mt-1.5 text-foreground text-sm">{profile.email}</p>
-                {editing && <p className="text-[10px] text-muted-foreground mt-0.5">Email cannot be changed here</p>}
+                {editing && <p className="text-[10px] text-muted-foreground mt-0.5">{t("emailCannotChange")}</p>}
               </div>
-              <FormField label="Phone" icon={<PhoneIcon className="size-3.5" />}
+              <FormField label={tc("phone")} icon={<PhoneIcon className="size-3.5" />}
                 editing={editing} value={profile.phone} formValue={form.phone}
                 onChange={(v) => setForm({ ...form, phone: v })} />
               {editing ? (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Date of Birth</label>
+                  <label className="text-sm font-medium text-muted-foreground">{t("dateOfBirth")}</label>
                   <Input type="date" className="mt-1.5" value={form.date_of_birth}
                     onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} />
                 </div>
               ) : (
-                <FormField label="Date of Birth" editing={false}
+                <FormField label={t("dateOfBirth")} editing={false}
                   value={profile.date_of_birth ? formatDate(profile.date_of_birth) : null}
                   formValue="" onChange={() => {}} />
               )}
               {editing ? (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Gender</label>
+                  <label className="text-sm font-medium text-muted-foreground">{t("gender")}</label>
                   <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
-                    <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectTrigger className="mt-1.5"><SelectValue placeholder={t("selectPlaceholder")} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="unspecified">Prefer not to say</SelectItem>
+                      <SelectItem value="male">{t("genderMale")}</SelectItem>
+                      <SelectItem value="female">{t("genderFemale")}</SelectItem>
+                      <SelectItem value="unspecified">{t("genderUnspecified")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               ) : (
-                <FormField label="Gender" editing={false}
-                  value={profile.gender === "unspecified" ? "Prefer not to say" : profile.gender}
+                <FormField label={t("gender")} editing={false}
+                  value={profile.gender === "unspecified" ? t("genderUnspecified") : profile.gender}
                   formValue="" onChange={() => {}} />
               )}
-              <FormField label="Bio" span={2} multiline
-                placeholder="Tell us a little about yourself"
+              <FormField label={t("bio")} span={2} multiline
+                placeholder={t("bioPlaceholder")}
                 editing={editing} value={profile.bio} formValue={form.bio}
                 onChange={(v) => setForm({ ...form, bio: v })} />
             </div>
           </FormSection>
 
           {/* Location */}
-          <FormSection title="Location" icon={<MapPinIcon className="size-5" />}>
+          <FormSection title={t("location")} icon={<MapPinIcon className="size-5" />}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <FormField label="City" editing={editing} value={profile.city} formValue={form.city}
+              <FormField label={t("city")} editing={editing} value={profile.city} formValue={form.city}
                 onChange={(v) => setForm({ ...form, city: v })} />
-              <FormField label="Region" editing={editing} value={profile.region} formValue={form.region}
+              <FormField label={t("region")} editing={editing} value={profile.region} formValue={form.region}
                 onChange={(v) => setForm({ ...form, region: v })} />
               {editing ? (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Country</label>
+                  <label className="text-sm font-medium text-muted-foreground">{t("country")}</label>
                   <Select value={form.country} onValueChange={(v) => setForm({ ...form, country: v })}>
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="MA">Morocco</SelectItem>
-                      <SelectItem value="FR">France</SelectItem>
-                      <SelectItem value="US">United States</SelectItem>
+                      <SelectItem value="MA">{t("countryMA")}</SelectItem>
+                      <SelectItem value="FR">{t("countryFR")}</SelectItem>
+                      <SelectItem value="US">{t("countryUS")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               ) : (
-                <FormField label="Country" editing={false} value={profile.country} formValue="" onChange={() => {}} />
+                <FormField label={t("country")} editing={false} value={profile.country} formValue="" onChange={() => {}} />
               )}
               {editing ? (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                    <GlobeIcon className="size-3.5" /> Language
+                    <GlobeIcon className="size-3.5" /> {t("language")}
                   </label>
                   <Select value={form.preferred_language} onValueChange={(v) => setForm({ ...form, preferred_language: v })}>
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="en">English</SelectItem>
                       <SelectItem value="fr">Français</SelectItem>
-                      <SelectItem value="ar">العربية</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               ) : (
-                <FormField label="Language" icon={<GlobeIcon className="size-3.5" />} editing={false}
-                  value={profile.preferred_language === "fr" ? "Français" : profile.preferred_language === "ar" ? "العربية" : "English"}
+                <FormField label={t("language")} icon={<GlobeIcon className="size-3.5" />} editing={false}
+                  value={profile.preferred_language === "fr" ? "Français" : "English"}
                   formValue="" onChange={() => {}} />
               )}
             </div>
           </FormSection>
 
           {/* Security — password change (independent of the profile Edit/Save flow) */}
-          <FormSection title="Security" icon={<ShieldIcon className="size-5" />}>
+          <FormSection title={t("security")} icon={<ShieldIcon className="size-5" />}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                  <KeyIcon className="size-3.5" /> New password
+                  <KeyIcon className="size-3.5" /> {t("newPassword")}
                 </label>
                 <Input type="password" className="mt-1.5" value={newPassword}
-                  autoComplete="new-password" placeholder="At least 8 characters"
+                  autoComplete="new-password" placeholder={t("newPasswordPlaceholder")}
                   onChange={(e) => setNewPassword(e.target.value)} />
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Confirm password</label>
+                <label className="text-sm font-medium text-muted-foreground">{t("confirmPassword")}</label>
                 <Input type="password" className="mt-1.5" value={confirmPassword}
-                  autoComplete="new-password" placeholder="Re-enter new password"
+                  autoComplete="new-password" placeholder={t("confirmPasswordPlaceholder")}
                   onChange={(e) => setConfirmPassword(e.target.value)} />
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Button onClick={handleChangePassword} disabled={pwSaving || !newPassword || !confirmPassword}>
-                {pwSaving ? "Updating…" : "Update password"}
+                {pwSaving ? t("updating") : t("updatePassword")}
               </Button>
               {pwSuccess && (
                 <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 gap-1">
-                  <CheckIcon className="size-3" /> Password updated
+                  <CheckIcon className="size-3" /> {t("passwordUpdated")}
                 </Badge>
               )}
             </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { studioApi } from "@/lib/api/studio";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,19 +11,20 @@ import { PanelHeading } from "./PanelHeading";
 import { DEFAULT_COLOR, type OnboardingData } from "../_lib/useOnboarding";
 
 const BRAND_PRESETS = [
-  { label: "Moovli violet", value: "#7c3aed" },
-  { label: "Magenta", value: "#d946ef" },
-  { label: "Teal", value: "#14b8a6" },
-  { label: "Indigo", value: "#6366f1" },
-  { label: "Rose", value: "#f43f5e" },
-  { label: "Emerald", value: "#10b981" },
-  { label: "Amber", value: "#f59e0b" },
-  { label: "Slate", value: "#64748b" },
+  { key: "moovliViolet", value: "#7c3aed" },
+  { key: "magenta", value: "#d946ef" },
+  { key: "teal", value: "#14b8a6" },
+  { key: "indigo", value: "#6366f1" },
+  { key: "rose", value: "#f43f5e" },
+  { key: "emerald", value: "#10b981" },
+  { key: "amber", value: "#f59e0b" },
+  { key: "slate", value: "#64748b" },
 ];
 
 export function ProfilePanel({ data }: { data: OnboardingData }) {
   const { entityId, profile, setProfile, color, setColor, flashSaved } = data;
   const { notify } = useDialogs();
+  const t = useTranslations("onboarding");
 
   const persistProfile = async (patch: Record<string, unknown>) => {
     try {
@@ -46,8 +48,8 @@ export function ProfilePanel({ data }: { data: OnboardingData }) {
   return (
     <div>
       <PanelHeading
-        title="Tell us about your studio"
-        subtitle="This information appears on your public booking page."
+        title={t("profile.title")}
+        subtitle={t("profile.subtitle")}
       />
 
       <div className="space-y-5">
@@ -62,27 +64,27 @@ export function ProfilePanel({ data }: { data: OnboardingData }) {
           />
 
           <div className="flex-1 space-y-4">
-            <Field label="Studio name">
+            <Field label={t("profile.studioName")}>
               <Input
                 value={profile.name}
                 onChange={(e) => setProfile({ name: e.target.value })}
                 onBlur={() => persistProfile({ name: profile.name.trim() })}
-                placeholder="e.g. FitZone"
+                placeholder={t("profile.studioNamePlaceholder")}
               />
             </Field>
 
-            <Field label="City">
+            <Field label={t("profile.city")}>
               <Input
                 value={profile.city}
                 onChange={(e) => setProfile({ city: e.target.value })}
                 onBlur={() => persistProfile({ city: profile.city.trim() })}
-                placeholder="e.g. Casablanca"
+                placeholder={t("profile.cityPlaceholder")}
               />
             </Field>
           </div>
         </div>
 
-        <Field label="Description" optional>
+        <Field label={t("profile.description")} optional>
           <Textarea
             rows={2}
             value={profile.short_description}
@@ -90,18 +92,18 @@ export function ProfilePanel({ data }: { data: OnboardingData }) {
             onBlur={() =>
               persistProfile({ short_description: profile.short_description.trim() })
             }
-            placeholder="One line to introduce your studio…"
+            placeholder={t("profile.descriptionPlaceholder")}
           />
         </Field>
 
-        <Field label="Brand color">
+        <Field label={t("profile.brandColor")}>
           <div className="flex items-center gap-3">
             <input
               type="color"
               value={color}
               onChange={(e) => persistColor(e.target.value)}
               className="size-10 cursor-pointer rounded border"
-              aria-label="Brand color"
+              aria-label={t("profile.brandColor")}
             />
             <div className="flex flex-wrap gap-2">
               {BRAND_PRESETS.map((p) => (
@@ -118,20 +120,20 @@ export function ProfilePanel({ data }: { data: OnboardingData }) {
                     className="size-3 rounded-full ring-1 ring-border"
                     style={{ backgroundColor: p.value }}
                   />
-                  {p.label}
+                  {t(`profile.brandPresets.${p.key}`)}
                 </button>
               ))}
             </div>
           </div>
           <p className="mt-1.5 text-xs text-muted-foreground">
-            Used for Book buttons, accents, and price highlights.{" "}
+            {t("profile.brandColorHelp")}{" "}
             {color.toLowerCase() !== DEFAULT_COLOR && (
               <button
                 type="button"
                 className="underline hover:text-foreground"
                 onClick={() => persistColor(DEFAULT_COLOR)}
               >
-                Reset
+                {t("profile.reset")}
               </button>
             )}
           </p>
@@ -150,11 +152,14 @@ function Field({
   optional?: boolean;
   children: React.ReactNode;
 }) {
+  const t = useTranslations("onboarding");
   return (
     <div>
       <label className="mb-1.5 block text-sm font-medium">
         {label}
-        {optional && <span className="ml-1 text-xs text-muted-foreground">(optional)</span>}
+        {optional && (
+          <span className="ml-1 text-xs text-muted-foreground">{t("profile.optional")}</span>
+        )}
       </label>
       {children}
     </div>

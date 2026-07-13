@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   BanknoteIcon,
   BuildingIcon,
@@ -13,21 +14,22 @@ import {
 import { cn } from "@/lib/utils";
 
 interface SettingsNavItem {
-  label: string;
+  labelKey: string;
   href: string;
   icon: LucideIcon;
 }
 
 const ITEMS: SettingsNavItem[] = [
-  { label: "General", href: "/studio/settings/general", icon: BuildingIcon },
-  { label: "Branding", href: "/studio/settings/branding", icon: ImageIcon },
-  { label: "Hours", href: "/studio/settings/hours", icon: ClockIcon },
-  { label: "Policies", href: "/studio/settings/policies", icon: ShieldIcon },
-  { label: "Payouts", href: "/studio/settings/payouts", icon: BanknoteIcon },
+  { labelKey: "general", href: "/studio/settings/general", icon: BuildingIcon },
+  { labelKey: "branding", href: "/studio/settings/branding", icon: ImageIcon },
+  { labelKey: "hours", href: "/studio/settings/hours", icon: ClockIcon },
+  { labelKey: "policies", href: "/studio/settings/policies", icon: ShieldIcon },
+  { labelKey: "payouts", href: "/studio/settings/payouts", icon: BanknoteIcon },
 ];
 
 export function SettingsNav() {
   const pathname = usePathname();
+  const t = useTranslations("studioSettings.nav");
 
   return (
     <nav className="space-y-0.5">
@@ -47,7 +49,7 @@ export function SettingsNav() {
             )}
           >
             <Icon className={cn("size-4", active && "text-primary")} />
-            {item.label}
+            {t(item.labelKey)}
           </Link>
         );
       })}

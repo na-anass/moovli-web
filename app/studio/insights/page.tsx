@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { StatsCard } from "@/components/shared/stats-card";
+import { InfoTip } from "@/components/ui/info-tip";
 import { studioApi } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
 import {
@@ -19,6 +21,7 @@ interface InsightsData {
 }
 
 export default function InsightsPage() {
+  const t = useTranslations("studioMain");
   const activeEntity = useActiveEntity();
   const [insights, setInsights] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,7 +39,7 @@ export default function InsightsPage() {
 
   if (loading) {
     return (
-      <BaseLayout maxWidth="full" title="Insights">
+      <BaseLayout maxWidth="full" title={t("insights.title")}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />
@@ -50,32 +53,35 @@ export default function InsightsPage() {
   const maxBookings = Math.max(...daily.map((d) => d.bookings), 1);
 
   return (
-    <BaseLayout maxWidth="full" title="Insights">
+    <BaseLayout maxWidth="full" title={t("insights.title")}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatsCard
-          title="Total Bookings"
+          title={t("insights.stats.totalBookings")}
           value={insights?.totalBookings ?? 0}
           icon={<CalendarIcon className="size-5" />}
-          description="Last 30 days"
+          description={t("insights.stats.last30Days")}
         />
         <StatsCard
-          title="Cancelled"
+          title={t("insights.stats.cancelled")}
           value={insights?.cancelledCount ?? 0}
           icon={<XCircleIcon className="size-5" />}
-          description="Cancelled bookings"
+          description={t("insights.stats.cancelledDesc")}
         />
         <StatsCard
-          title="Cancellation Rate"
+          title={t("insights.stats.cancellationRate")}
           value={`${(insights?.cancellationRate ?? 0).toFixed(1)}%`}
           icon={<PercentIcon className="size-5" />}
-          description="Of total bookings"
+          description={t("insights.stats.ofTotalBookings")}
         />
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Daily Bookings (Last 30 Days)</h2>
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-1.5">
+          {t("insights.dailyBookings")}
+          <InfoTip term="analytics" />
+        </h2>
         {daily.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No booking data available.</p>
+          <p className="text-muted-foreground text-sm">{t("insights.noData")}</p>
         ) : (
           <div className="space-y-2">
             {daily.slice(-10).map((point) => (

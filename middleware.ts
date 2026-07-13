@@ -77,6 +77,24 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Seed the UI locale cookie from the user's saved preference on first visit
+  // (only when the cookie is absent, so an explicit in-app switch always wins).
+  if (user && !request.cookies.get("NEXT_LOCALE")) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("preferred_language")
+      .eq("id", user.id)
+      .single();
+    const pref = profile?.preferred_language;
+    const locale = pref === "fr" ? "fr" : "en";
+    request.cookies.set("NEXT_LOCALE", locale);
+    response.cookies.set("NEXT_LOCALE", locale, {
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+      sameSite: "lax",
+    });
+  }
+
   // Allow public routes
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
     if (user && pathname.startsWith("/login")) {

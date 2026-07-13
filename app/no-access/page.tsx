@@ -3,9 +3,11 @@
 import { useAuth } from "@/lib/auth/provider";
 import { Button } from "@/components/ui/button";
 import { ShieldOffIcon, LogOutIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function NoAccessPage() {
   const { user, signOut } = useAuth();
+  const t = useTranslations("auth");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -16,19 +18,22 @@ export default function NoAccessPage() {
           </div>
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-foreground">No Dashboard Access</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("noAccess.title")}</h1>
           <p className="text-muted-foreground">
-            The account <span className="font-medium text-foreground">{user?.email}</span> does
-            not have access to any Moovli dashboard. You need to be assigned as a
-            studio owner, manager, staff member, or instructor.
+            {t.rich("noAccess.description", {
+              email: user?.email ?? "",
+              strong: (chunks) => (
+                <span className="font-medium text-foreground">{chunks}</span>
+              ),
+            })}
           </p>
           <p className="text-sm text-muted-foreground">
-            Contact your studio owner or the Moovli support team to get access.
+            {t("noAccess.contact")}
           </p>
         </div>
         <Button onClick={() => signOut()} variant="outline">
           <LogOutIcon className="size-4 mr-2" />
-          Sign Out
+          {t("signOut")}
         </Button>
       </div>
     </div>

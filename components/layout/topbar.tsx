@@ -7,7 +7,10 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth/provider";
+import { setLocale } from "@/lib/i18n/set-locale";
+import { apiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   BellIcon,
+  CheckIcon,
   ChevronRightIcon,
   UserIcon,
   LogOutIcon,
@@ -64,42 +68,32 @@ export const useEditMode = () => useContext(EditModeContext);
 // TOP BAR
 // ============================================================================
 
-const LABELS: Record<string, string> = {
-  admin: "Admin",
-  studio: "Studio",
-  instructor: "Instructor",
-  dashboard: "Dashboard",
-  users: "Users",
-  studios: "Studios",
-  bookings: "Bookings",
-  analytics: "Analytics",
-  schedule: "Schedule",
-  pricing: "Pricing",
-  instructors: "Instructors",
-  insights: "Insights",
-  team: "Team",
-  settings: "Settings",
-  profile: "Profile",
-  sessions: "Sessions",
-  general: "General",
-  branding: "Branding",
-  hours: "Hours",
-  policies: "Policies",
-  payouts: "Payouts",
-};
-
 export function TopBar() {
   const pathname = usePathname();
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("nav");
+  const tc = useTranslations("common");
   const { user, signOut } = useAuth();
   const { editMode } = useEditMode();
 
   const segments = pathname.split("/").filter(Boolean);
   const crumbs = segments.map((seg, i) => ({
-    label: LABELS[seg] || seg,
+    label: t.has(`crumbs.${seg}`) ? t(`crumbs.${seg}`) : seg,
     href: "/" + segments.slice(0, i + 1).join("/"),
     isLast: i === segments.length - 1,
   }));
+
+  const switchLocale = async (next: "en" | "fr") => {
+    if (next === locale) return;
+    await setLocale(next);
+    // Best-effort cross-device persistence; the cookie already drives the UI.
+    apiClient("/api/users/me", {
+      method: "PUT",
+      body: JSON.stringify({ preferred_language: next }),
+    }).catch(() => {});
+    router.refresh();
+  };
 
   const initials = user?.email
     ? user.email.substring(0, 2).toUpperCase()
@@ -112,10 +106,10 @@ export function TopBar() {
         <div className="flex items-center gap-3">
           <div className="size-2 rounded-full bg-primary animate-pulse" />
           <span className="text-sm font-medium">
-            {editMode.title || "Editing"}
+            {editMode.title || t("editing")}
           </span>
           <span className="text-xs text-muted-foreground hidden sm:inline">
-            — unsaved changes
+            {t("unsavedChanges")}
           </span>
         </div>
       ) : (
@@ -152,7 +146,7 @@ export function TopBar() {
             disabled={editMode.saving}
           >
             <XIcon className="size-4 mr-1.5" />
-            Discard
+            {tc("discard")}
           </Button>
           <Button
             size="sm"
@@ -160,15 +154,35 @@ export function TopBar() {
             disabled={editMode.saving}
           >
             <SaveIcon className="size-4 mr-1.5" />
-            {editMode.saving ? "Saving..." : "Save"}
+            {editMode.saving ? tc("saving") : tc("save")}
           </Button>
         </div>
       ) : (
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="size-8">
-            <GlobeIcon className="size-4 text-muted-foreground" />
-          </Button>
-          <Button variant="ghost" size="icon" className="size-8 relative">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 px-2 text-muted-foreground"
+                aria-label={t("language")}
+              >
+                <GlobeIcon className="size-4" />
+                <span className="text-xs font-medium">{locale.toUpperCase()}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem className="cursor-pointer" onClick={() => switchLocale("en")}>
+                English
+                {locale === "en" && <CheckIcon className="size-4 ml-auto" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onClick={() => switchLocale("fr")}>
+                Français
+                {locale === "fr" && <CheckIcon className="size-4 ml-auto" />}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="ghost" size="icon" className="size-8 relative" aria-label={t("notifications")}>
             <BellIcon className="size-4 text-muted-foreground" />
           </Button>
           <div className="scale-75">
@@ -195,7 +209,7 @@ export function TopBar() {
                 }}
               >
                 <UserIcon className="size-4 mr-2" />
-                My Account
+                {t("myAccount")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -203,7 +217,7 @@ export function TopBar() {
                 onClick={() => signOut()}
               >
                 <LogOutIcon className="size-4 mr-2" />
-                Sign Out
+                {t("signOut")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { InfoTip } from "@/components/ui/info-tip";
 import { adminApi } from "@/lib/api/admin";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,6 +32,8 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 export default function AdminInstructorsPage() {
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const [data, setData] = useState<Instructor[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -61,7 +65,7 @@ export default function AdminInstructorsPage() {
 
   const columns: Column<Instructor>[] = [
     {
-      header: "Instructor",
+      header: t("instructors.instructor"),
       cell: (r) => (
         <div className="flex items-center gap-3">
           {r.avatar_url ? (
@@ -80,7 +84,7 @@ export default function AdminInstructorsPage() {
       ),
     },
     {
-      header: "Studio",
+      header: t("instructors.studio"),
       cell: (r) => (
         <div className="text-sm">
           <div>{r.entity?.name ?? "—"}</div>
@@ -89,7 +93,7 @@ export default function AdminInstructorsPage() {
       ),
     },
     {
-      header: "Skills",
+      header: t("instructors.skills"),
       cell: (r) =>
         r.specializations && r.specializations.length > 0 ? (
           <div className="flex flex-wrap gap-1 max-w-xs">
@@ -109,7 +113,7 @@ export default function AdminInstructorsPage() {
         ),
     },
     {
-      header: "Tier",
+      header: t("instructors.tier"),
       cell: (r) => (
         <Badge variant="outline" className={TIER_COLORS[r.tier ?? "standard"] || ""}>
           {r.tier ?? "standard"}
@@ -117,7 +121,7 @@ export default function AdminInstructorsPage() {
       ),
     },
     {
-      header: "Rating",
+      header: t("instructors.rating"),
       cell: (r) => (
         <span className="text-sm">
           {r.rating != null ? `${Number(r.rating).toFixed(1)} (${r.total_reviews})` : "—"}
@@ -125,21 +129,21 @@ export default function AdminInstructorsPage() {
       ),
     },
     {
-      header: "Account",
+      header: t("instructors.account"),
       cell: (r) =>
         r.account_state === "linked" ? (
           <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-            Account
+            {t("instructors.accountLinked")}
           </Badge>
         ) : (
-          <Badge variant="outline" className="text-[10px]">External</Badge>
+          <Badge variant="outline" className="text-[10px]">{t("instructors.accountExternal")}</Badge>
         ),
     },
     {
-      header: "Status",
+      header: tc("status"),
       cell: (r) => (
         <Badge variant="outline" className={r.is_active ? "" : "text-muted-foreground"}>
-          {r.is_active ? "Active" : "Inactive"}
+          {r.is_active ? t("instructors.active") : t("instructors.inactive")}
         </Badge>
       ),
     },
@@ -148,8 +152,11 @@ export default function AdminInstructorsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Instructors</h1>
-        <p className="text-sm text-muted-foreground">{total} total</p>
+        <div className="flex items-center gap-1.5">
+          <h1 className="text-2xl font-bold">{t("instructors.title")}</h1>
+          <InfoTip term="instructor" />
+        </div>
+        <p className="text-sm text-muted-foreground">{t("instructors.totalCount", { count: total })}</p>
       </div>
 
       <DataTable
@@ -163,19 +170,19 @@ export default function AdminInstructorsPage() {
           setSearch(q);
           setPage(1);
         }}
-        searchPlaceholder="Search by name or email..."
+        searchPlaceholder={t("instructors.searchPlaceholder")}
         filters={[
           {
-            label: "Status",
+            label: tc("status"),
             value: active,
             onChange: (v) => {
               setActive(v);
               setPage(1);
             },
             options: [
-              { label: "All", value: "all" },
-              { label: "Active", value: "active" },
-              { label: "Inactive", value: "inactive" },
+              { label: tc("all"), value: "all" },
+              { label: t("instructors.active"), value: "active" },
+              { label: t("instructors.inactive"), value: "inactive" },
             ],
           },
         ]}

@@ -65,6 +65,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // ============================================================================
 // TYPES
@@ -154,23 +155,24 @@ const displayStatus = (s: {
 
 const DISPLAY_STATUS: Record<
   DisplayStatus,
-  { label: string; bg: string; border: string; text: string }
+  { bg: string; border: string; text: string }
 > = {
-  draft: { label: "Draft", bg: "bg-muted", border: "border-l-gray-400 dark:border-l-gray-600", text: "text-muted-foreground" },
-  scheduled: { label: "Scheduled", bg: "bg-emerald-50 dark:bg-emerald-950/40", border: "border-l-emerald-500", text: "text-emerald-700 dark:text-emerald-300" },
-  full: { bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-l-amber-500", text: "text-amber-700 dark:text-amber-300", label: "Full" },
-  cancelled: { label: "Cancelled", bg: "bg-red-50 dark:bg-red-950/40", border: "border-l-red-500", text: "text-red-700 dark:text-red-300 line-through opacity-70" },
-  completed: { label: "Completed", bg: "bg-gray-50 dark:bg-gray-900/40", border: "border-l-gray-400", text: "text-gray-500 dark:text-gray-400" },
+  draft: { bg: "bg-muted", border: "border-l-gray-400 dark:border-l-gray-600", text: "text-muted-foreground" },
+  scheduled: { bg: "bg-emerald-50 dark:bg-emerald-950/40", border: "border-l-emerald-500", text: "text-emerald-700 dark:text-emerald-300" },
+  full: { bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-l-amber-500", text: "text-amber-700 dark:text-amber-300" },
+  cancelled: { bg: "bg-red-50 dark:bg-red-950/40", border: "border-l-red-500", text: "text-red-700 dark:text-red-300 line-through opacity-70" },
+  completed: { bg: "bg-gray-50 dark:bg-gray-900/40", border: "border-l-gray-400", text: "text-gray-500 dark:text-gray-400" },
 };
 
 // Kebab menu for a session card in the list view — mirrors the DataTable's row
 // menu so both surfaces share the same `sessionRowActions` action list.
 function SessionCardActions({ actions }: { actions: RowAction[] }) {
+  const t = useTranslations("studioMain");
   if (!actions.length) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Session actions">
+        <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label={t("schedule.sessionActions")}>
           <MoreVerticalIcon className="size-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -197,12 +199,12 @@ function SessionCardActions({ actions }: { actions: RowAction[] }) {
 }
 
 // Sort presets for the list view (the card layout has no sortable headers).
-const LIST_SORTS: { value: string; label: string; key: "start_time" | "price_mad" | "booked_count" | "updated_at"; dir: "asc" | "desc" }[] = [
-  { value: "start_time:asc", label: "Soonest first", key: "start_time", dir: "asc" },
-  { value: "start_time:desc", label: "Latest first", key: "start_time", dir: "desc" },
-  { value: "price_mad:desc", label: "Price: high to low", key: "price_mad", dir: "desc" },
-  { value: "booked_count:desc", label: "Most booked", key: "booked_count", dir: "desc" },
-  { value: "updated_at:desc", label: "Recently updated", key: "updated_at", dir: "desc" },
+const LIST_SORTS: { value: string; labelKey: string; key: "start_time" | "price_mad" | "booked_count" | "updated_at"; dir: "asc" | "desc" }[] = [
+  { value: "start_time:asc", labelKey: "soonest", key: "start_time", dir: "asc" },
+  { value: "start_time:desc", labelKey: "latest", key: "start_time", dir: "desc" },
+  { value: "price_mad:desc", labelKey: "priceHighLow", key: "price_mad", dir: "desc" },
+  { value: "booked_count:desc", labelKey: "mostBooked", key: "booked_count", dir: "desc" },
+  { value: "updated_at:desc", labelKey: "recentlyUpdated", key: "updated_at", dir: "desc" },
 ];
 
 // Group sessions whose time ranges overlap into clusters, so the calendar can
@@ -275,6 +277,7 @@ const MAX_CALENDAR_COLS = 3;
 // ============================================================================
 
 export default function SchedulePage() {
+  const t = useTranslations("studioMain");
   const activeEntity = useActiveEntity();
   const currency = activeEntity.currencyCode;
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -724,19 +727,19 @@ export default function SchedulePage() {
       setDialogOpen(false);
       fetchSessions();
       if (editingSession) {
-        showToast("Session updated.");
+        showToast(t("schedule.toast.updated"));
       } else if (publish) {
-        showToast("Session published — now live on your channels.");
+        showToast(t("schedule.toast.published"));
       } else {
-        showToast("Draft saved — not visible to customers until you publish it.", "info");
+        showToast(t("schedule.toast.draftSaved"), "info");
       }
     } catch (e) {
       console.error(e);
       // Surface the failure instead of silently swallowing it — otherwise a
       // rejected create/update just looks like "nothing happened".
       showAlert(
-        editingSession ? "Couldn't save session" : "Couldn't create session",
-        (e as Error).message || "Please check the details and try again.",
+        editingSession ? t("schedule.errors.saveTitle") : t("schedule.errors.createTitle"),
+        (e as Error).message || t("schedule.errors.checkDetails"),
       );
     } finally {
       setSaving(false);
@@ -774,11 +777,11 @@ export default function SchedulePage() {
     withScope(
       session,
       {
-        title: isDraft ? "Delete draft session" : "Delete session",
+        title: isDraft ? t("schedule.delete.draftTitle") : t("schedule.delete.title"),
         description: isDraft
-          ? "This permanently deletes the draft. This can't be undone."
-          : "This permanently removes the session from your schedule. This can't be undone.",
-        confirmLabel: "Delete",
+          ? t("schedule.delete.draftDesc")
+          : t("schedule.delete.desc"),
+        confirmLabel: t("schedule.delete.confirm"),
         destructive: true,
       },
       async (scope) => {
@@ -786,14 +789,14 @@ export default function SchedulePage() {
         try {
           const res = await studioApi.deleteSession(entityId, session.id, scope);
           if (res.skipped_published > 0) {
-            showAlert("Some sessions skipped", res.message);
+            showAlert(t("schedule.delete.skippedTitle"), res.message);
           } else {
-            showToast("Session deleted.", "info");
+            showToast(t("schedule.toast.deleted"), "info");
           }
           fetchSessions();
         } catch (e) {
           console.error(e);
-          showAlert("Couldn't delete session", (e as Error).message || "Please try again.");
+          showAlert(t("schedule.errors.deleteTitle"), (e as Error).message || t("schedule.errors.tryAgain"));
         }
       },
     );
@@ -810,10 +813,10 @@ export default function SchedulePage() {
         ],
       });
       fetchSessions();
-      showToast("Session published — now live on your channels.");
+      showToast(t("schedule.toast.published"));
     } catch (e) {
       console.error(e);
-      showAlert("Couldn't publish session", (e as Error).message || "Please try again.");
+      showAlert(t("schedule.errors.publishTitle"), (e as Error).message || t("schedule.errors.tryAgain"));
     }
   };
 
@@ -822,9 +825,9 @@ export default function SchedulePage() {
     withScope(
       session,
       {
-        title: "Cancel session",
-        description: "Attendees keep their booking history. This can't be undone.",
-        confirmLabel: "Cancel session",
+        title: t("schedule.cancel.title"),
+        description: t("schedule.cancel.desc"),
+        confirmLabel: t("schedule.cancel.confirm"),
         destructive: true,
       },
       async (scope) => {
@@ -832,10 +835,10 @@ export default function SchedulePage() {
         try {
           await studioApi.cancelSession(entityId, session.id, scope);
           fetchSessions();
-          showToast("Session cancelled.", "info");
+          showToast(t("schedule.toast.cancelled"), "info");
         } catch (e) {
           console.error(e);
-          showAlert("Couldn't cancel session", (e as Error).message || "Please try again.");
+          showAlert(t("schedule.errors.cancelTitle"), (e as Error).message || t("schedule.errors.tryAgain"));
         }
       },
     );
@@ -880,7 +883,7 @@ export default function SchedulePage() {
       fetchSessions();
     } catch (e) {
       console.error(e);
-      showAlert("Couldn't move session", (e as Error).message || "Please try again.");
+      showAlert(t("schedule.errors.moveTitle"), (e as Error).message || t("schedule.errors.tryAgain"));
     }
   };
 
@@ -958,13 +961,13 @@ export default function SchedulePage() {
 
     const actions: RowAction[] = [];
     if (!isTerminal) {
-      actions.push({ label: "Edit", icon: PencilIcon, onClick: () => openEdit(s) });
+      actions.push({ label: t("schedule.rowActions.edit"), icon: PencilIcon, onClick: () => openEdit(s) });
     }
 
     if (isDraft) {
-      actions.push({ label: "Publish", icon: SendIcon, onClick: () => handlePublish(s) });
+      actions.push({ label: t("schedule.rowActions.publish"), icon: SendIcon, onClick: () => handlePublish(s) });
       actions.push({
-        label: s.recurrence_group_id ? "Delete…" : "Delete",
+        label: s.recurrence_group_id ? t("schedule.rowActions.deleteEllipsis") : t("schedule.rowActions.delete"),
         icon: Trash2Icon,
         variant: "destructive",
         separatorBefore: true,
@@ -972,7 +975,7 @@ export default function SchedulePage() {
       });
     } else if (!isTerminal) {
       actions.push({
-        label: s.recurrence_group_id ? "Cancel…" : "Cancel session",
+        label: s.recurrence_group_id ? t("schedule.rowActions.cancelEllipsis") : t("schedule.rowActions.cancelSession"),
         icon: XCircleIcon,
         variant: "destructive",
         separatorBefore: true,
@@ -982,7 +985,7 @@ export default function SchedulePage() {
       // removed (not just cancelled) — handy for cleaning up mistakes.
       if ((s.booked_count ?? 0) === 0) {
         actions.push({
-          label: s.recurrence_group_id ? "Delete…" : "Delete",
+          label: s.recurrence_group_id ? t("schedule.rowActions.deleteEllipsis") : t("schedule.rowActions.delete"),
           icon: Trash2Icon,
           variant: "destructive",
           onClick: () => handleDelete(s),
@@ -1032,7 +1035,7 @@ export default function SchedulePage() {
       : {};
     const dragClass = draggingId === session.id ? "opacity-40" : "";
 
-    const name = session.service?.name || "Session";
+    const name = session.service?.name || t("schedule.sessionFallback");
     const fill = `${session.booked_count}/${session.capacity}`;
     const isFull = session.capacity > 0 && session.booked_count >= session.capacity;
     // Full details live in the hover tooltip + click-through popover, so nothing
@@ -1040,7 +1043,7 @@ export default function SchedulePage() {
     const tooltip = [
       name,
       `${formatTime(session.start_time)} — ${formatTime(session.end_time)}`,
-      `${fill} booked`,
+      t("schedule.fillBooked", { fill }),
       session.provider?.name,
     ]
       .filter(Boolean)
@@ -1056,7 +1059,7 @@ export default function SchedulePage() {
         {/* Always: class name + fill count (the key studio metric). */}
         <div className="flex items-start justify-between gap-1">
           <p className={`min-w-0 flex-1 truncate text-xs font-medium ${colors.text}`}>
-            {isDraft && <span className="font-semibold">[Draft] </span>}
+            {isDraft && <span className="font-semibold">{t("schedule.draftPrefix")} </span>}
             {name}
           </p>
           <span
@@ -1275,7 +1278,7 @@ export default function SchedulePage() {
                   width: `calc(${widthPct}% - 4px)`,
                 }}
               >
-                +{hidden.length} more
+                {t("schedule.plusMore", { count: hidden.length })}
               </button>,
             );
           }
@@ -1294,8 +1297,8 @@ export default function SchedulePage() {
     <BaseLayout
       maxWidth="full"
       gap="tight"
-      title="Schedule"
-      subtitle={`${total} sessions`}
+      title={t("schedule.title")}
+      subtitle={t("schedule.sessionCount", { count: total })}
       action={
         <>
           <div className="flex border border-border rounded-lg overflow-hidden">
@@ -1304,20 +1307,20 @@ export default function SchedulePage() {
                 key={v}
                 variant={view === v ? "secondary" : "ghost"}
                 size="sm"
-                className="rounded-none capitalize text-xs px-3"
+                className="rounded-none text-xs px-3"
                 onClick={() => setView(v)}
               >
                 {v === "list" ? <ListIcon className="size-3.5 mr-1" /> :
                   v === "day" ? <ClockIcon className="size-3.5 mr-1" /> :
                     <CalendarIcon className="size-3.5 mr-1" />}
-                {v}
+                {t(`schedule.views.${v}`)}
               </Button>
             ))}
           </div>
           {canManage && (
             <Button onClick={() => openCreate()}>
               <PlusIcon className="size-4 mr-1.5" />
-              New Session
+              {t("schedule.newSession")}
             </Button>
           )}
         </>
@@ -1330,43 +1333,43 @@ export default function SchedulePage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search service or instructor…"
+            placeholder={t("schedule.searchPlaceholder")}
             className="h-8 pl-8 text-sm"
           />
         </div>
         {/* Visibility — is it public yet (draft vs published) */}
         <Select value={visibilityFilter} onValueChange={(v) => setVisibilityFilter(v as VisibilityFilter)}>
           <SelectTrigger size="sm" className="w-auto min-w-32">
-            <SelectValue placeholder="Visibility" />
+            <SelectValue placeholder={t("schedule.filters.visibility")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All visibility</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="published">Published</SelectItem>
+            <SelectItem value="all">{t("schedule.filters.allVisibility")}</SelectItem>
+            <SelectItem value="draft">{t("schedule.filters.draft")}</SelectItem>
+            <SelectItem value="published">{t("schedule.filters.published")}</SelectItem>
           </SelectContent>
         </Select>
         {/* Status — the session's state */}
         <Select value={stateFilter} onValueChange={(v) => setStateFilter(v as StateFilter)}>
           <SelectTrigger size="sm" className="w-auto min-w-32">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder={t("schedule.filters.status")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
-            <SelectItem value="full">Full</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="all">{t("schedule.filters.allStatuses")}</SelectItem>
+            <SelectItem value="scheduled">{t("schedule.displayStatus.scheduled")}</SelectItem>
+            <SelectItem value="full">{t("schedule.displayStatus.full")}</SelectItem>
+            <SelectItem value="cancelled">{t("schedule.displayStatus.cancelled")}</SelectItem>
+            <SelectItem value="completed">{t("schedule.displayStatus.completed")}</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground">
-          {filteredSessions.length} of {sessions.length} shown
+          {t("schedule.shownCount", { shown: filteredSessions.length, total: sessions.length })}
         </span>
       </div>
 
       {/* Calendar navigation */}
       {view !== "list" && (
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={goToToday}>Today</Button>
+          <Button variant="outline" size="sm" onClick={goToToday}>{t("schedule.today")}</Button>
           <Button variant="ghost" size="icon" className="size-8" onClick={() => navigateCalendar(-1)}>
             <ChevronLeftIcon className="size-4" />
           </Button>
@@ -1395,7 +1398,7 @@ export default function SchedulePage() {
                   <p className="text-[10px] text-muted-foreground uppercase">{formatDateCustom(day, { weekday: "short" })}</p>
                   <p className={`text-sm font-semibold ${isToday ? "text-primary" : ""}`}>{day.getDate()}</p>
                   {daySessionCount > 0 && (
-                    <p className="text-[10px] text-muted-foreground">{daySessionCount} session{daySessionCount > 1 ? "s" : ""}</p>
+                    <p className="text-[10px] text-muted-foreground">{t("schedule.daySessionCount", { count: daySessionCount })}</p>
                   )}
                 </div>
               );
@@ -1437,11 +1440,11 @@ export default function SchedulePage() {
               }}
             >
               <SelectTrigger size="sm" className="w-auto min-w-40">
-                <SelectValue placeholder="Sort" />
+                <SelectValue placeholder={t("schedule.sort.label")} />
               </SelectTrigger>
               <SelectContent>
                 {LIST_SORTS.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  <SelectItem key={s.value} value={s.value}>{t(`schedule.sort.${s.labelKey}`)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1449,16 +1452,17 @@ export default function SchedulePage() {
 
           {loading ? (
             <div className="rounded-xl border bg-card py-12 text-center text-sm text-muted-foreground">
-              Loading…
+              {t("schedule.loading")}
             </div>
           ) : listSessions.length === 0 ? (
             <div className="rounded-xl border bg-card py-12 text-center text-sm text-muted-foreground">
-              No sessions match your filters.
+              {t("schedule.noMatch")}
             </div>
           ) : (
             <>
               {listSessions.map((s) => {
                 const ds = DISPLAY_STATUS[displayStatus(s)];
+                const dsLabel = t(`schedule.displayStatus.${displayStatus(s)}`);
                 const actions = canManage ? sessionRowActions(s) : [];
                 return (
                   <div
@@ -1470,7 +1474,7 @@ export default function SchedulePage() {
                         className="block truncate text-left font-semibold hover:underline"
                         onClick={() => setDetailSession(s)}
                       >
-                        {s.service?.name || "N/A"}
+                        {s.service?.name || t("schedule.notAvailable")}
                       </button>
                       <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
@@ -1481,7 +1485,7 @@ export default function SchedulePage() {
                         </span>
                         <span className="inline-flex items-center gap-1">
                           <UsersIcon className="size-3.5" /> {s.booked_count}/{s.capacity}
-                          {s.waitlist_count > 0 ? ` +${s.waitlist_count} wl` : ""}
+                          {s.waitlist_count > 0 ? ` ${t("schedule.waitlistShort", { count: s.waitlist_count })}` : ""}
                         </span>
                         {s.provider?.name && <span>{s.provider.name}</span>}
                         {s.price_mad != null && (
@@ -1492,7 +1496,7 @@ export default function SchedulePage() {
                       </div>
                     </div>
                     <Badge variant="outline" className={`${ds.bg} ${ds.text} shrink-0`}>
-                      {ds.label}
+                      {dsLabel}
                     </Badge>
                     <SessionCardActions actions={actions} />
                   </div>
@@ -1506,7 +1510,7 @@ export default function SchedulePage() {
                     size="sm"
                     onClick={() => setListVisible((n) => n + LIST_STEP)}
                   >
-                    Show more ({sortedSessions.length - listVisible} more)
+                    {t("schedule.showMore", { count: sortedSessions.length - listVisible })}
                   </Button>
                 </div>
               )}
@@ -1519,11 +1523,11 @@ export default function SchedulePage() {
       <FormSheet
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={editingSession ? "Edit session" : "New session"}
+        title={editingSession ? t("schedule.form.editTitle") : t("schedule.form.newTitle")}
         subtitle={
           editingSession
-            ? "Update the details of this session."
-            : "Schedule a session and choose where it's published."
+            ? t("schedule.form.editSubtitle")
+            : t("schedule.form.newSubtitle")
         }
         icon={editingSession ? PencilIcon : CalendarIcon}
         iconAccent="emerald"
@@ -1548,7 +1552,7 @@ export default function SchedulePage() {
                     className="mr-auto text-destructive hover:text-destructive"
                     onClick={() => { handleDelete(editingSession); setDialogOpen(false); }}
                   >
-                    <Trash2Icon className="size-3.5 mr-1.5" /> Delete draft
+                    <Trash2Icon className="size-3.5 mr-1.5" /> {t("schedule.form.deleteDraft")}
                   </Button>
                 ) : (
                   <Button
@@ -1557,12 +1561,12 @@ export default function SchedulePage() {
                     className="mr-auto text-destructive hover:text-destructive"
                     onClick={() => { handleCancel(editingSession); setDialogOpen(false); }}
                   >
-                    <XCircleIcon className="size-3.5 mr-1.5" /> Cancel session
+                    <XCircleIcon className="size-3.5 mr-1.5" /> {t("schedule.form.cancelSession")}
                   </Button>
                 )
               )}
               <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-                Close
+                {t("schedule.form.close")}
               </Button>
 
               {editingSession ? (
@@ -1574,7 +1578,7 @@ export default function SchedulePage() {
                       disabled={formInvalid}
                       onClick={async () => { await handleSave(false); await handlePublish(editingSession); }}
                     >
-                      <SendIcon className="size-4 mr-1.5" /> Publish
+                      <SendIcon className="size-4 mr-1.5" /> {t("schedule.form.publish")}
                     </Button>
                   )}
                   <Button
@@ -1583,9 +1587,9 @@ export default function SchedulePage() {
                         ? withScope(
                             editingSession,
                             {
-                              title: "Update session",
-                              description: "Apply these changes to…",
-                              confirmLabel: "Update",
+                              title: t("schedule.form.updateTitle"),
+                              description: t("schedule.form.applyChangesTo"),
+                              confirmLabel: t("schedule.form.update"),
                             },
                             (scope) => handleSave(false, scope),
                           )
@@ -1593,19 +1597,19 @@ export default function SchedulePage() {
                     }
                     disabled={formInvalid}
                   >
-                    {saving ? "Saving…" : "Update"}
+                    {saving ? t("schedule.form.saving") : t("schedule.form.update")}
                   </Button>
                 </>
               ) : (
                 <>
                   <Button variant="outline" onClick={() => handleSave(false)} disabled={formInvalid}>
-                    {saving ? "Saving…" : "Save as draft"}
+                    {saving ? t("schedule.form.saving") : t("schedule.form.saveAsDraft")}
                   </Button>
                   <Button onClick={() => handleSave(true)} disabled={formInvalid}>
                     {saving ? (
-                      form.repeat_mode !== "none" ? "Creating sessions…" : "Publishing…"
+                      form.repeat_mode !== "none" ? t("schedule.form.creatingSessions") : t("schedule.form.publishing")
                     ) : (
-                      <><SendIcon className="size-4 mr-1.5" /> Publish</>
+                      <><SendIcon className="size-4 mr-1.5" /> {t("schedule.form.publish")}</>
                     )}
                   </Button>
                 </>
@@ -1617,16 +1621,16 @@ export default function SchedulePage() {
         <div className="space-y-5">
           {/* What — which service */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">What</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{t("schedule.form.what")}</p>
             <Select value={form.service_id} onValueChange={handleServiceChange}>
-              <SelectTrigger><SelectValue placeholder="Select a service" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("schedule.form.selectService")} /></SelectTrigger>
               <SelectContent>
                 {services.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     <div className="flex items-center gap-2">
                       <span>{s.name}</span>
                       <span className="text-muted-foreground text-xs">
-                        {s.duration_minutes}min · {formatMoneyWhole(serviceDefaultPriceMad(s), currency)} · {s.capacity} spots
+                        {t("schedule.form.serviceMeta", { duration: s.duration_minutes, price: formatMoneyWhole(serviceDefaultPriceMad(s), currency), capacity: s.capacity })}
                       </span>
                     </div>
                   </SelectItem>
@@ -1637,11 +1641,11 @@ export default function SchedulePage() {
 
           {/* Who — instructor */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Who teaches</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{t("schedule.form.whoTeaches")}</p>
             <Select value={form.provider_id || "none"} onValueChange={(v) => setForm({ ...form, provider_id: v === "none" ? "" : v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No instructor assigned</SelectItem>
+                <SelectItem value="none">{t("schedule.form.noInstructor")}</SelectItem>
                 {providers.map((p) => (
                   <SelectItem key={p.id} value={p.id}>{p.name}{p.tier ? ` · ${p.tier}` : ""}</SelectItem>
                 ))}
@@ -1651,13 +1655,13 @@ export default function SchedulePage() {
 
           {/* When — date + time */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">When</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{t("schedule.form.when")}</p>
             <div className="space-y-3">
               <Input type="date" value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })} />
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">Start time</label>
+                  <label className="text-xs text-muted-foreground">{t("schedule.form.startTime")}</label>
                   <Input type="time" className="mt-1" value={form.start_time}
                     onChange={(e) => {
                       const newStart = e.target.value;
@@ -1666,7 +1670,7 @@ export default function SchedulePage() {
                     }} />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">End time</label>
+                  <label className="text-xs text-muted-foreground">{t("schedule.form.endTime")}</label>
                   <Input type="time" className="mt-1" value={form.end_time}
                     onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
                 </div>
@@ -1674,12 +1678,12 @@ export default function SchedulePage() {
               {form.start_time && form.end_time && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <ClockIcon className="size-3" />
-                  Duration: {minutesBetweenTimes(form.start_time, form.end_time)} min
+                  {t("schedule.form.duration", { min: minutesBetweenTimes(form.start_time, form.end_time) })}
                   {form.service_id && (() => {
                     const svc = services.find(s => s.id === form.service_id);
                     const dur = minutesBetweenTimes(form.start_time, form.end_time);
                     return svc && dur !== svc.duration_minutes
-                      ? <span className="text-amber-600 ml-1">(service default: {svc.duration_minutes} min)</span>
+                      ? <span className="text-amber-600 ml-1">{t("schedule.form.serviceDefaultDuration", { min: svc.duration_minutes })}</span>
                       : null;
                   })()}
                 </p>
@@ -1691,7 +1695,7 @@ export default function SchedulePage() {
           {!editingSession && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                Repeats
+                {t("schedule.form.repeats")}
               </p>
               <Select
                 value={form.repeat_mode}
@@ -1703,9 +1707,9 @@ export default function SchedulePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Doesn&apos;t repeat</SelectItem>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="none">{t("schedule.form.doesntRepeat")}</SelectItem>
+                  <SelectItem value="daily">{t("schedule.form.daily")}</SelectItem>
+                  <SelectItem value="weekly">{t("schedule.form.weekly")}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -1713,7 +1717,7 @@ export default function SchedulePage() {
                 <div className="mt-3 space-y-3 rounded-lg border p-3 bg-muted/30">
                   {/* Interval */}
                   <div className="flex items-center gap-2 text-xs">
-                    <span>Every</span>
+                    <span>{t("schedule.form.every")}</span>
                     <Input
                       type="number"
                       min="1"
@@ -1724,24 +1728,24 @@ export default function SchedulePage() {
                     />
                     <span>
                       {form.repeat_mode === "daily"
-                        ? parseInt(form.repeat_interval) === 1 ? "day" : "days"
-                        : parseInt(form.repeat_interval) === 1 ? "week" : "weeks"}
+                        ? t("schedule.form.dayUnit", { count: parseInt(form.repeat_interval) || 0 })
+                        : t("schedule.form.weekUnit", { count: parseInt(form.repeat_interval) || 0 })}
                     </span>
                   </div>
 
                   {/* Weekday selector (weekly only) */}
                   {form.repeat_mode === "weekly" && (
                     <div className="space-y-1.5">
-                      <div className="text-xs text-muted-foreground">On these days</div>
+                      <div className="text-xs text-muted-foreground">{t("schedule.form.onTheseDays")}</div>
                       <div className="flex gap-1">
                         {([
-                          { id: "mon", label: "M" },
-                          { id: "tue", label: "T" },
-                          { id: "wed", label: "W" },
-                          { id: "thu", label: "T" },
-                          { id: "fri", label: "F" },
-                          { id: "sat", label: "S" },
-                          { id: "sun", label: "S" },
+                          { id: "mon", label: t("schedule.form.weekday.mon") },
+                          { id: "tue", label: t("schedule.form.weekday.tue") },
+                          { id: "wed", label: t("schedule.form.weekday.wed") },
+                          { id: "thu", label: t("schedule.form.weekday.thu") },
+                          { id: "fri", label: t("schedule.form.weekday.fri") },
+                          { id: "sat", label: t("schedule.form.weekday.sat") },
+                          { id: "sun", label: t("schedule.form.weekday.sun") },
                         ] as const).map((d) => {
                           const on = form.repeat_weekdays.includes(d.id);
                           return (
@@ -1767,14 +1771,14 @@ export default function SchedulePage() {
                         })}
                       </div>
                       <p className="text-[10px] text-muted-foreground">
-                        Leave empty to use the start date&apos;s weekday only.
+                        {t("schedule.form.weekdayHint")}
                       </p>
                     </div>
                   )}
 
                   {/* End condition */}
                   <div className="space-y-1.5">
-                    <div className="text-xs text-muted-foreground">Ends</div>
+                    <div className="text-xs text-muted-foreground">{t("schedule.form.ends")}</div>
                     <div className="flex items-center gap-2 text-xs">
                       <label className="flex items-center gap-1.5 cursor-pointer">
                         <input
@@ -1783,7 +1787,7 @@ export default function SchedulePage() {
                           checked={form.repeat_end_mode === "until"}
                           onChange={() => setForm({ ...form, repeat_end_mode: "until" })}
                         />
-                        On
+                        {t("schedule.form.endsOn")}
                       </label>
                       <Input
                         type="date"
@@ -1806,7 +1810,7 @@ export default function SchedulePage() {
                           checked={form.repeat_end_mode === "count"}
                           onChange={() => setForm({ ...form, repeat_end_mode: "count" })}
                         />
-                        After
+                        {t("schedule.form.endsAfter")}
                       </label>
                       <Input
                         type="number"
@@ -1822,7 +1826,7 @@ export default function SchedulePage() {
                         }
                         className="h-7 w-16 text-right"
                       />
-                      <span>occurrences</span>
+                      <span>{t("schedule.form.occurrences")}</span>
                     </div>
                   </div>
                 </div>
@@ -1830,7 +1834,7 @@ export default function SchedulePage() {
 
               {editingSession === null && form.repeat_mode !== "none" && (
                 <p className="text-[10px] text-muted-foreground mt-2">
-                  All occurrences will be created at once with the same channel publication and capacity.
+                  {t("schedule.form.allOccurrencesNote")}
                 </p>
               )}
             </div>
@@ -1838,27 +1842,27 @@ export default function SchedulePage() {
 
           {/* Capacity */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Capacity</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{t("schedule.form.capacity")}</p>
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <Input type="number" value={form.capacity} min="1"
                   onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
               </div>
               <span className="text-xs text-muted-foreground shrink-0">
-                <UsersIcon className="size-3 inline mr-1" />spots
+                <UsersIcon className="size-3 inline mr-1" />{t("schedule.form.spots")}
               </span>
             </div>
             {form.service_id && (() => {
               const svc = services.find(s => s.id === form.service_id);
               return svc && parseInt(form.capacity) !== svc.capacity
-                ? <p className="text-[10px] text-amber-600 mt-1">Service default: {svc.capacity} spots</p>
+                ? <p className="text-[10px] text-amber-600 mt-1">{t("schedule.form.serviceDefaultCapacity", { count: svc.capacity })}</p>
                 : null;
             })()}
           </div>
 
           {/* Pricing — inherited from service, with optional override */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Pricing</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{t("schedule.form.pricing")}</p>
             {form.service_id ? (() => {
               const svc = services.find(s => s.id === form.service_id);
               return (
@@ -1876,17 +1880,17 @@ export default function SchedulePage() {
                               : "—"}
                         </p>
                         {!form.override_pricing && (
-                          <p className="text-[10px] text-muted-foreground">Inherited from {svc?.name || "service"}</p>
+                          <p className="text-[10px] text-muted-foreground">{t("schedule.form.inheritedFrom", { name: svc?.name || t("schedule.form.serviceWord") })}</p>
                         )}
                         {form.override_pricing && svc && (
                           <p className="text-[10px] text-amber-600">
-                            Service default: {formatMoneyWhole(serviceDefaultPriceMad(svc), currency)}
+                            {t("schedule.form.serviceDefaultPrice", { price: formatMoneyWhole(serviceDefaultPriceMad(svc), currency) })}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted-foreground">Override</span>
+                      <span className="text-[10px] text-muted-foreground">{t("schedule.form.override")}</span>
                       <Switch
                         checked={form.override_pricing}
                         onCheckedChange={(checked) => {
@@ -1905,7 +1909,7 @@ export default function SchedulePage() {
                   {/* Override input */}
                   {form.override_pricing && (
                     <div>
-                      <label className="text-xs text-muted-foreground">Custom price for this session ({currency})</label>
+                      <label className="text-xs text-muted-foreground">{t("schedule.form.customPrice", { currency })}</label>
                       <Input type="number" className="mt-1" value={form.price_mad} min="0" step="0.01"
                         onChange={(e) => setForm({ ...form, price_mad: e.target.value })} />
                     </div>
@@ -1913,7 +1917,7 @@ export default function SchedulePage() {
                 </div>
               );
             })() : (
-              <p className="text-xs text-muted-foreground">Select a service to see pricing</p>
+              <p className="text-xs text-muted-foreground">{t("schedule.form.selectServicePricing")}</p>
             )}
           </div>
 
@@ -1924,12 +1928,12 @@ export default function SchedulePage() {
               they can't actually surface. */}
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-              Publish to
+              {t("schedule.form.publishTo")}
             </p>
             <div className="space-y-2">
               <PublishChannelRow
-                label="Direct booking page"
-                description="Visible on your studio's public booking page — paid at studio"
+                label={t("schedule.form.directLabel")}
+                description={t("schedule.form.directDesc")}
                 state={channelState.direct}
                 checked={form.publish_direct && channelState.direct === "live"}
                 onCheckedChange={(checked) =>
@@ -1937,10 +1941,16 @@ export default function SchedulePage() {
                 }
                 manageHref="/studio/channels/direct"
                 upgradeHref="/studio/billing"
+                offBadge={t("schedule.form.offInSettings")}
+                lockedBadge={t("schedule.form.planUpgrade")}
+                offText={t("schedule.form.channelOff")}
+                enableLink={t("schedule.form.enable")}
+                lockedText={t("schedule.form.notInPlan")}
+                upgradeLink={t("schedule.form.upgrade")}
               />
               <PublishChannelRow
-                label="Marketplace"
-                description="Visible in the Moovli mobile app — paid via Moovli"
+                label={t("schedule.form.marketplaceLabel")}
+                description={t("schedule.form.marketplaceDesc")}
                 state={channelState.marketplace}
                 checked={form.publish_marketplace && channelState.marketplace === "live"}
                 onCheckedChange={(checked) =>
@@ -1948,11 +1958,17 @@ export default function SchedulePage() {
                 }
                 manageHref="/studio/channels/marketplace"
                 upgradeHref="/studio/billing"
+                offBadge={t("schedule.form.offInSettings")}
+                lockedBadge={t("schedule.form.planUpgrade")}
+                offText={t("schedule.form.channelOff")}
+                enableLink={t("schedule.form.enable")}
+                lockedText={t("schedule.form.notInPlan")}
+                upgradeLink={t("schedule.form.upgrade")}
               />
             </div>
             {!form.publish_marketplace && !form.publish_direct && (
               <p className="text-[11px] text-amber-600 mt-2">
-                ⚠ At least one channel should be selected, otherwise the session won&apos;t be visible to anyone.
+                {t("schedule.form.noChannelWarning")}
               </p>
             )}
           </div>
@@ -1961,7 +1977,7 @@ export default function SchedulePage() {
           {(form.publish_marketplace || form.publish_direct) && parseInt(form.capacity) > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                Capacity allocation
+                {t("schedule.form.capacityAllocation")}
               </p>
               <div className="space-y-2">
                 <label className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent/40">
@@ -1973,9 +1989,9 @@ export default function SchedulePage() {
                     className="size-4"
                   />
                   <div className="flex-1">
-                    <div className="text-sm font-medium">Shared inventory</div>
+                    <div className="text-sm font-medium">{t("schedule.form.sharedInventory")}</div>
                     <div className="text-[11px] text-muted-foreground">
-                      Any channel can book any of the {form.capacity} spots
+                      {t("schedule.form.sharedInventoryDesc", { capacity: form.capacity })}
                     </div>
                   </div>
                 </label>
@@ -1989,9 +2005,9 @@ export default function SchedulePage() {
                   />
                   <div className="flex-1 space-y-2">
                     <div>
-                      <div className="text-sm font-medium">Split per channel</div>
+                      <div className="text-sm font-medium">{t("schedule.form.splitPerChannel")}</div>
                       <div className="text-[11px] text-muted-foreground">
-                        Reserve a fixed number of spots per channel
+                        {t("schedule.form.splitPerChannelDesc")}
                       </div>
                     </div>
                     {form.allocation_mode === "split" && (() => {
@@ -2063,29 +2079,33 @@ export default function SchedulePage() {
                         <div className="space-y-2 pt-1">
                           {form.publish_direct && (
                             <AllocationRow
-                              label="Direct booking page"
+                              label={t("schedule.form.directLabel")}
                               value={directAlloc}
                               max={totalCapacity}
                               isAnchor={anchor === "direct"}
                               autoFilled={bothPublished && anchor !== "direct"}
                               editable={bothPublished}
                               onChange={(raw) => onAnchorChange("direct", raw)}
+                              youSetLabel={t("schedule.form.youSet")}
+                              autoLabel={t("schedule.form.auto")}
                             />
                           )}
                           {form.publish_marketplace && (
                             <AllocationRow
-                              label="Marketplace"
+                              label={t("schedule.form.marketplaceLabel")}
                               value={marketplaceAlloc}
                               max={totalCapacity}
                               isAnchor={anchor === "marketplace"}
                               autoFilled={bothPublished && anchor !== "marketplace"}
                               editable={bothPublished}
                               onChange={(raw) => onAnchorChange("marketplace", raw)}
+                              youSetLabel={t("schedule.form.youSet")}
+                              autoLabel={t("schedule.form.auto")}
                             />
                           )}
                           <div className="flex items-center justify-between gap-3 pt-1 border-t text-[11px]">
                             <span className="text-muted-foreground">
-                              Allocated · {totalCapacity} total
+                              {t("schedule.form.allocatedTotal", { total: totalCapacity })}
                             </span>
                             {bothPublished && anchor && (
                               <button
@@ -2093,7 +2113,7 @@ export default function SchedulePage() {
                                 onClick={resetAnchor}
                                 className="text-[10px] text-muted-foreground hover:text-foreground underline"
                               >
-                                Reset to 50/50
+                                {t("schedule.form.reset5050")}
                               </button>
                             )}
                           </div>
@@ -2110,7 +2130,7 @@ export default function SchedulePage() {
                                 onClick={(e) => e.stopPropagation()}
                                 className="size-3.5"
                               />
-                              <span>Release unused spots to other channels</span>
+                              <span>{t("schedule.form.releaseUnused")}</span>
                             </label>
                             {form.release_enabled && (
                               <div className="flex items-center gap-2 pl-5 text-xs">
@@ -2138,19 +2158,18 @@ export default function SchedulePage() {
                                   onClick={(e) => e.stopPropagation()}
                                   className="h-7 rounded border border-input bg-background px-2 text-xs"
                                 >
-                                  <option value="minutes">minutes</option>
-                                  <option value="hours">hours</option>
-                                  <option value="days">days</option>
+                                  <option value="minutes">{t("schedule.form.unitMinutes")}</option>
+                                  <option value="hours">{t("schedule.form.unitHours")}</option>
+                                  <option value="days">{t("schedule.form.unitDays")}</option>
                                 </select>
                                 <span className="text-muted-foreground">
-                                  before session starts
+                                  {t("schedule.form.beforeSession")}
                                 </span>
                               </div>
                             )}
                             {form.release_enabled && (
                               <p className="text-[10px] text-muted-foreground pl-5">
-                                At that point, unused spots from any channel
-                                become bookable by the other.
+                                {t("schedule.form.releaseHint")}
                               </p>
                             )}
                           </div>
@@ -2165,12 +2184,12 @@ export default function SchedulePage() {
 
           {/* Notes */}
           <div>
-            <label className="text-xs text-muted-foreground">Notes (optional)</label>
+            <label className="text-xs text-muted-foreground">{t("schedule.form.notes")}</label>
             <textarea
               className="mt-1 w-full rounded-lg border border-border bg-background p-3 text-sm min-h-[50px] focus:outline-none focus:ring-2 focus:ring-ring resize-y"
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Internal notes for this session..."
+              placeholder={t("schedule.form.notesPlaceholder")}
             />
           </div>
 
@@ -2186,9 +2205,9 @@ export default function SchedulePage() {
           </DialogHeader>
           <div className="space-y-2 py-1">
             {([
-              { value: "single", label: "This event" },
-              { value: "following", label: "This and following events" },
-              { value: "series", label: "All events" },
+              { value: "single", label: t("schedule.scope.single") },
+              { value: "following", label: t("schedule.scope.following") },
+              { value: "series", label: t("schedule.scope.series") },
             ] as const).map((opt) => (
               <label
                 key={opt.value}
@@ -2207,7 +2226,7 @@ export default function SchedulePage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setScopePrompt(null)} disabled={scopeBusy}>
-              Close
+              {t("schedule.form.close")}
             </Button>
             <Button
               variant={scopePrompt?.destructive ? "destructive" : "default"}
@@ -2223,7 +2242,7 @@ export default function SchedulePage() {
                 }
               }}
             >
-              {scopeBusy ? "Working…" : scopePrompt?.confirmLabel}
+              {scopeBusy ? t("schedule.working") : scopePrompt?.confirmLabel}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2236,6 +2255,7 @@ export default function SchedulePage() {
           {detailSession && (() => {
             const s = detailSession;
             const ds = DISPLAY_STATUS[displayStatus(s)];
+            const dsLabel = t(`schedule.displayStatus.${displayStatus(s)}`);
             const isDraft = displayStatus(s) === "draft";
             const isTerminal = ["cancelled", "completed"].includes(displayStatus(s));
             const close = () => setDetailSession(null);
@@ -2244,10 +2264,10 @@ export default function SchedulePage() {
               <>
                 <DialogHeader>
                   <div className="flex items-start justify-between gap-3">
-                    <DialogTitle className="text-base">{s.service?.name || "Session"}</DialogTitle>
-                    <Badge variant="outline" className={`${ds.bg} ${ds.text} shrink-0`}>{ds.label}</Badge>
+                    <DialogTitle className="text-base">{s.service?.name || t("schedule.sessionFallback")}</DialogTitle>
+                    <Badge variant="outline" className={`${ds.bg} ${ds.text} shrink-0`}>{dsLabel}</Badge>
                   </div>
-                  <DialogDescription className="sr-only">Session details</DialogDescription>
+                  <DialogDescription className="sr-only">{t("schedule.detail.srTitle")}</DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-3 py-1 text-sm">
@@ -2263,15 +2283,15 @@ export default function SchedulePage() {
                   <div className="flex items-center gap-2.5">
                     <UsersIcon className="size-4 text-muted-foreground shrink-0" />
                     <span>
-                      {s.provider?.name || "No instructor assigned"}
+                      {s.provider?.name || t("schedule.form.noInstructor")}
                       {s.provider?.tier ? ` · ${s.provider.tier}` : ""}
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <UsersIcon className="size-4 text-muted-foreground shrink-0" />
                     <span>
-                      {s.booked_count}/{s.capacity} booked
-                      {s.waitlist_count > 0 ? ` · ${s.waitlist_count} waitlisted` : ""}
+                      {t("schedule.detail.booked", { booked: s.booked_count, capacity: s.capacity })}
+                      {s.waitlist_count > 0 ? ` · ${t("schedule.detail.waitlisted", { count: s.waitlist_count })}` : ""}
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5">
@@ -2281,7 +2301,7 @@ export default function SchedulePage() {
                   {s.is_recurring && (
                     <div className="flex items-center gap-2.5">
                       <ClockIcon className="size-4 text-muted-foreground shrink-0" />
-                      <span className="text-muted-foreground">Part of a recurring series</span>
+                      <span className="text-muted-foreground">{t("schedule.detail.recurringSeries")}</span>
                     </div>
                   )}
                   {s.notes && (
@@ -2292,23 +2312,23 @@ export default function SchedulePage() {
                 <DialogFooter>
                   {canManage && isDraft && (
                     <Button variant="ghost" size="sm" className="mr-auto text-destructive hover:text-destructive" onClick={() => run(handleDelete)}>
-                      <Trash2Icon className="size-3.5 mr-1.5" /> Delete
+                      <Trash2Icon className="size-3.5 mr-1.5" /> {t("schedule.rowActions.delete")}
                     </Button>
                   )}
                   {canManage && !isDraft && !isTerminal && (
                     <Button variant="ghost" size="sm" className="mr-auto text-destructive hover:text-destructive" onClick={() => run(handleCancel)}>
-                      <XCircleIcon className="size-3.5 mr-1.5" /> Cancel
+                      <XCircleIcon className="size-3.5 mr-1.5" /> {t("schedule.detail.cancel")}
                     </Button>
                   )}
-                  <Button variant="ghost" onClick={close}>Close</Button>
+                  <Button variant="ghost" onClick={close}>{t("schedule.form.close")}</Button>
                   {canManage && isDraft && (
                     <Button variant="outline" onClick={() => run(handlePublish)}>
-                      <SendIcon className="size-4 mr-1.5" /> Publish
+                      <SendIcon className="size-4 mr-1.5" /> {t("schedule.form.publish")}
                     </Button>
                   )}
                   {canManage && !isTerminal && (
                     <Button onClick={() => run(openEdit)}>
-                      <PencilIcon className="size-4 mr-1.5" /> Edit
+                      <PencilIcon className="size-4 mr-1.5" /> {t("schedule.rowActions.edit")}
                     </Button>
                   )}
                 </DialogFooter>
@@ -2322,9 +2342,9 @@ export default function SchedulePage() {
       <Dialog open={!!moreSessions} onOpenChange={(open) => { if (!open) setMoreSessions(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base">More sessions</DialogTitle>
+            <DialogTitle className="text-base">{t("schedule.more.title")}</DialogTitle>
             <DialogDescription className="sr-only">
-              Sessions that overlap this time slot
+              {t("schedule.more.srDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-1">
@@ -2333,6 +2353,7 @@ export default function SchedulePage() {
               .sort((a, b) => a.start_time.localeCompare(b.start_time))
               .map((s) => {
                 const ds = DISPLAY_STATUS[displayStatus(s)];
+                const dsLabel = t(`schedule.displayStatus.${displayStatus(s)}`);
                 return (
                   <button
                     key={s.id}
@@ -2340,7 +2361,7 @@ export default function SchedulePage() {
                     className={`flex w-full items-center gap-3 rounded-lg border border-l-4 bg-card p-3 text-left transition-colors hover:bg-muted/50 ${ds.border}`}
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{s.service?.name || "Session"}</p>
+                      <p className="truncate text-sm font-medium">{s.service?.name || t("schedule.sessionFallback")}</p>
                       <p className="text-xs text-muted-foreground">
                         {formatTime(s.start_time)} — {formatTime(s.end_time)}
                         {s.provider?.name ? ` · ${s.provider.name}` : ""}
@@ -2349,7 +2370,7 @@ export default function SchedulePage() {
                     <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                       {s.booked_count}/{s.capacity}
                     </span>
-                    <Badge variant="outline" className={`${ds.bg} ${ds.text} shrink-0`}>{ds.label}</Badge>
+                    <Badge variant="outline" className={`${ds.bg} ${ds.text} shrink-0`}>{dsLabel}</Badge>
                   </button>
                 );
               })}
@@ -2366,7 +2387,7 @@ export default function SchedulePage() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmDialog(null)} disabled={confirmBusy}>
-              Close
+              {t("schedule.form.close")}
             </Button>
             <Button
               variant={confirmDialog?.destructive ? "destructive" : "default"}
@@ -2382,7 +2403,7 @@ export default function SchedulePage() {
                 }
               }}
             >
-              {confirmBusy ? "Working…" : confirmDialog?.confirmLabel}
+              {confirmBusy ? t("schedule.working") : confirmDialog?.confirmLabel}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2396,7 +2417,7 @@ export default function SchedulePage() {
             <DialogDescription>{alertMsg?.description}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button onClick={() => setAlertMsg(null)}>OK</Button>
+            <Button onClick={() => setAlertMsg(null)}>{t("schedule.ok")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2413,7 +2434,7 @@ export default function SchedulePage() {
           <button
             onClick={() => setToast(null)}
             className="ml-1 shrink-0 text-muted-foreground hover:text-foreground"
-            aria-label="Dismiss"
+            aria-label={t("schedule.dismiss")}
           >
             <XIcon className="size-4" />
           </button>
@@ -2448,6 +2469,8 @@ function AllocationRow({
   autoFilled,
   editable,
   onChange,
+  youSetLabel,
+  autoLabel,
 }: {
   label: string;
   value: number;
@@ -2456,6 +2479,8 @@ function AllocationRow({
   autoFilled: boolean;
   editable: boolean;
   onChange: (raw: string) => void;
+  youSetLabel: string;
+  autoLabel: string;
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
@@ -2463,12 +2488,12 @@ function AllocationRow({
         <span className="text-xs">{label}</span>
         {editable && isAnchor && (
           <span className="text-[9px] uppercase tracking-wider rounded bg-primary/10 px-1 py-0.5 text-primary">
-            you set
+            {youSetLabel}
           </span>
         )}
         {editable && autoFilled && (
           <span className="text-[9px] uppercase tracking-wider rounded bg-muted px-1 py-0.5 text-muted-foreground">
-            auto
+            {autoLabel}
           </span>
         )}
       </div>
@@ -2503,6 +2528,12 @@ function PublishChannelRow({
   onCheckedChange,
   manageHref,
   upgradeHref,
+  offBadge,
+  lockedBadge,
+  offText,
+  enableLink,
+  lockedText,
+  upgradeLink,
 }: {
   label: string;
   description: string;
@@ -2511,6 +2542,12 @@ function PublishChannelRow({
   onCheckedChange: (v: boolean) => void;
   manageHref: string;
   upgradeHref: string;
+  offBadge: string;
+  lockedBadge: string;
+  offText: string;
+  enableLink: string;
+  lockedText: string;
+  upgradeLink: string;
 }) {
   const disabled = state !== "live";
   return (
@@ -2524,28 +2561,28 @@ function PublishChannelRow({
           <span>{label}</span>
           {state === "off" && (
             <span className="text-[10px] uppercase tracking-wider rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-              Off in channel settings
+              {offBadge}
             </span>
           )}
           {state === "locked" && (
             <span className="text-[10px] uppercase tracking-wider rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">
-              Plan upgrade required
+              {lockedBadge}
             </span>
           )}
         </div>
         <div className="text-[11px] text-muted-foreground">
           {state === "off" ? (
             <>
-              Channel is off.{" "}
+              {offText}{" "}
               <Link href={manageHref} className="underline hover:no-underline">
-                Enable →
+                {enableLink}
               </Link>
             </>
           ) : state === "locked" ? (
             <>
-              Marketplace isn&apos;t in your current plan.{" "}
+              {lockedText}{" "}
               <Link href={upgradeHref} className="underline hover:no-underline">
-                Upgrade →
+                {upgradeLink}
               </Link>
             </>
           ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { useEditMode } from "@/components/layout/topbar";
 
 /**
@@ -24,6 +25,7 @@ export function useEditModeSync({
   onCancel: () => void;
 }) {
   const { setEditMode } = useEditMode();
+  const t = useTranslations("shared");
 
   // Keep the latest callbacks in refs so the sync effect can depend only on
   // primitive state. Page callbacks (onSave/onCancel) are recreated on every
@@ -42,7 +44,7 @@ export function useEditModeSync({
       setEditMode({
         editing: true,
         saving,
-        title: `Editing ${title}`,
+        title: t("formLayout.editing", { title }),
         onSave: () => onSaveRef.current(),
         onCancel: () => onCancelRef.current(),
       });
@@ -50,7 +52,7 @@ export function useEditModeSync({
       setEditMode(null);
     }
     return () => setEditMode(null);
-  }, [editing, saving, title, setEditMode]);
+  }, [editing, saving, title, setEditMode, t]);
 }
 
 /** Reusable section card for grouping form fields */
@@ -97,6 +99,7 @@ export function FormField({
   placeholder?: string;
   multiline?: boolean;
 }) {
+  const t = useTranslations("shared");
   return (
     <div className={span === 2 ? "md:col-span-2" : ""}>
       <label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
@@ -122,7 +125,7 @@ export function FormField({
       ) : (
         <p className="mt-1.5 text-foreground text-sm">
           {value || (
-            <span className="text-muted-foreground italic">Not set</span>
+            <span className="text-muted-foreground italic">{t("formLayout.notSet")}</span>
           )}
         </p>
       )}

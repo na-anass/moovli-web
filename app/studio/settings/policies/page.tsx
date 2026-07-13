@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { studioApi, type EntityPolicies } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
 import { useSettings } from "@/lib/studio/settings-context";
@@ -8,10 +9,12 @@ import { SettingsHeader } from "@/components/studio/settings-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InfoTip } from "@/components/ui/info-tip";
 import { FormSection } from "@/components/shared/form-layout";
 import { CheckIcon, ClockIcon } from "lucide-react";
 
 export default function PoliciesSettingsPage() {
+  const t = useTranslations("studioSettings.policies");
   const { entityId } = useActiveEntity();
   const { canEdit } = useSettings();
 
@@ -60,20 +63,23 @@ export default function PoliciesSettingsPage() {
   };
 
   if (!entityId) {
-    return <p className="text-muted-foreground">No studio access found.</p>;
+    return <p className="text-muted-foreground">{t("noStudioAccess")}</p>;
   }
 
   return (
     <div className="space-y-6">
       <SettingsHeader
-        title="Booking Policies"
-        description="Studio-wide booking rules the platform enforces on every channel."
+        title={t("title")}
+        description={t("description")}
       />
 
-      <FormSection title="Booking policies" icon={<ClockIcon className="size-5" />}>
+      <FormSection title={t("sectionTitle")} icon={<ClockIcon className="size-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label className="text-sm font-medium">Free-cancellation window (hours)</label>
+            <label className="text-sm font-medium inline-flex items-center gap-1">
+              {t("freeCancellationWindow")}
+              <InfoTip term="freeCancellationWindow" />
+            </label>
             <Input
               type="number"
               min="0"
@@ -83,12 +89,11 @@ export default function PoliciesSettingsPage() {
               onChange={(e) => setCancelHours(e.target.value)}
             />
             <p className="text-[11px] text-muted-foreground mt-1">
-              Customers who cancel at least this many hours before the session get a full refund;
-              later cancellations incur the late fee.
+              {t("freeCancellationHint")}
             </p>
           </div>
           <div>
-            <label className="text-sm font-medium">Booking cutoff (minutes before start)</label>
+            <label className="text-sm font-medium">{t("bookingCutoff")}</label>
             <Input
               type="number"
               min="0"
@@ -98,7 +103,7 @@ export default function PoliciesSettingsPage() {
               onChange={(e) => setCutoffMins(e.target.value)}
             />
             <p className="text-[11px] text-muted-foreground mt-1">
-              New bookings close this many minutes before a session starts. 0 = open until start.
+              {t("bookingCutoffHint")}
             </p>
           </div>
         </div>
@@ -106,11 +111,11 @@ export default function PoliciesSettingsPage() {
         {canEdit && (
           <div className="flex items-center gap-2 mt-4">
             <Button onClick={save} disabled={busy || !dirty}>
-              {busy ? "Saving…" : "Save policies"}
+              {busy ? t("savingPolicies") : t("savePolicies")}
             </Button>
             {saved && (
               <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                <CheckIcon className="size-3 mr-1" /> Saved
+                <CheckIcon className="size-3 mr-1" /> {t("saved")}
               </Badge>
             )}
           </div>

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { BookingSheet } from "./booking-sheet";
 import {
   formatTime,
@@ -94,16 +95,17 @@ const inTimeBucket = (iso: string, bucket: string) => {
   return true;
 };
 
-const DATE_CHIPS: { value: string; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "today", label: "Today" },
-  { value: "tomorrow", label: "Tomorrow" },
-  { value: "week", label: "This week" },
+const DATE_CHIPS: { value: string; labelKey: string }[] = [
+  { value: "all", labelKey: "view.dateChips.all" },
+  { value: "today", labelKey: "view.dateChips.today" },
+  { value: "tomorrow", labelKey: "view.dateChips.tomorrow" },
+  { value: "week", labelKey: "view.dateChips.week" },
 ];
 
 export function BookingView({ sessions, studioSlug, entityId, channelId, brandColor, currency }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("booking");
 
   const [view, setView] = useState<ViewMode>("list");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
@@ -248,14 +250,14 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
             <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
             <Input
               type="search"
-              placeholder="Search by class, instructor, day…"
+              placeholder={t("view.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-9 pl-8 text-sm"
             />
           </div>
           <div className="text-xs text-muted-foreground whitespace-nowrap">
-            {filtered.length} session{filtered.length === 1 ? "" : "s"}
+            {t("view.sessionCount", { count: filtered.length })}
           </div>
         </div>
 
@@ -270,7 +272,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
                 className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${active ? "text-white border-transparent" : "border-input text-muted-foreground hover:text-foreground"}`}
                 style={active ? { backgroundColor: accent } : undefined}
               >
-                {c.label}
+                {t(c.labelKey)}
               </button>
             );
           })}
@@ -280,7 +282,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
             value={/^\d{4}-\d{2}-\d{2}$/.test(dateFilter) ? dateFilter : ""}
             onChange={(e) => setDateFilter(e.target.value || "all")}
             className="h-8 w-40 text-xs"
-            aria-label="Pick a date"
+            aria-label={t("view.pickDate")}
           />
         </div>
 
@@ -292,7 +294,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All services</SelectItem>
+                <SelectItem value="all">{t("view.allServices")}</SelectItem>
                 {services.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
@@ -308,7 +310,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All instructors</SelectItem>
+                <SelectItem value="all">{t("view.allInstructors")}</SelectItem>
                 {instructors.map((i) => (
                   <SelectItem key={i.id} value={i.id}>
                     {i.name}
@@ -323,10 +325,10 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="any">Any time</SelectItem>
-              <SelectItem value="morning">Morning</SelectItem>
-              <SelectItem value="afternoon">Afternoon</SelectItem>
-              <SelectItem value="evening">Evening</SelectItem>
+              <SelectItem value="any">{t("view.timeAny")}</SelectItem>
+              <SelectItem value="morning">{t("view.timeMorning")}</SelectItem>
+              <SelectItem value="afternoon">{t("view.timeAfternoon")}</SelectItem>
+              <SelectItem value="evening">{t("view.timeEvening")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -336,7 +338,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
             className={`px-2.5 py-1.5 rounded-md text-xs font-medium border transition ${availableOnly ? "text-white border-transparent" : "border-input text-muted-foreground hover:text-foreground"}`}
             style={availableOnly ? { backgroundColor: accent } : undefined}
           >
-            Available only
+            {t("view.availableOnly")}
           </button>
 
           {hasActiveFilters && (
@@ -344,7 +346,7 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
               onClick={resetFilters}
               className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
             >
-              Clear filters
+              {t("view.clearFilters")}
             </button>
           )}
 
@@ -353,13 +355,13 @@ export function BookingView({ sessions, studioSlug, entityId, channelId, brandCo
               onClick={() => setView("list")}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition ${view === "list" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
             >
-              <ListIcon className="size-3" /> List
+              <ListIcon className="size-3" /> {t("view.list")}
             </button>
             <button
               onClick={() => setView("calendar")}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition ${view === "calendar" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
             >
-              <CalendarIcon className="size-3" /> Week
+              <CalendarIcon className="size-3" /> {t("view.week")}
             </button>
           </div>
         </div>
@@ -417,6 +419,7 @@ function CalendarView({
   onNext: () => void;
   onToday: () => void;
 }) {
+  const t = useTranslations("booking");
   const today = new Date();
 
   return (
@@ -427,7 +430,7 @@ function CalendarView({
           <button
             onClick={onPrev}
             className="p-1.5 rounded hover:bg-muted"
-            aria-label="Previous week"
+            aria-label={t("view.previousWeek")}
           >
             <ChevronLeftIcon className="size-4" />
           </button>
@@ -435,12 +438,12 @@ function CalendarView({
             onClick={onToday}
             className="px-2 py-1 text-xs font-medium rounded hover:bg-muted"
           >
-            Today
+            {t("view.today")}
           </button>
           <button
             onClick={onNext}
             className="p-1.5 rounded hover:bg-muted"
-            aria-label="Next week"
+            aria-label={t("view.nextWeek")}
           >
             <ChevronRightIcon className="size-4" />
           </button>
@@ -541,10 +544,10 @@ function CalendarView({
                     }}
                   >
                     <div className="font-medium truncate">{formatTime(s.start_time)}</div>
-                    <div className="truncate text-foreground/70">{s.service?.name ?? "Session"}</div>
+                    <div className="truncate text-foreground/70">{s.service?.name ?? t("session.fallbackName")}</div>
                     {height > 50 && (
                       <div className="truncate text-[10px] text-muted-foreground mt-0.5">
-                        {s.provider?.name ? `with ${s.provider.name}` : ""}
+                        {s.provider?.name ? t("session.withInstructor", { name: s.provider.name }) : ""}
                       </div>
                     )}
                     {height > 70 && (
@@ -578,6 +581,7 @@ function ListView({
   currency: string;
   onBook: (sessionId: string) => void;
 }) {
+  const t = useTranslations("booking");
   // Group by date
   const sessionsByDate = useMemo(() => {
     const m = new Map<string, SessionRow[]>();
@@ -595,7 +599,7 @@ function ListView({
   if (sessionsByDate.size === 0) {
     return (
       <div className="rounded-lg border bg-muted/30 p-8 text-center">
-        <p className="text-sm text-muted-foreground">No upcoming sessions match your filters.</p>
+        <p className="text-sm text-muted-foreground">{t("view.emptyState")}</p>
       </div>
     );
   }
@@ -622,15 +626,15 @@ function ListView({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
                         <span className="font-semibold text-base">{formatTime(s.start_time)}</span>
-                        <span className="text-sm">{s.service?.name ?? "Session"}</span>
+                        <span className="text-sm">{s.service?.name ?? t("session.fallbackName")}</span>
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-3">
                         {s.service?.duration_minutes != null && (
                           <span className="inline-flex items-center gap-1">
-                            <ClockIcon className="size-3" /> {s.service.duration_minutes}min
+                            <ClockIcon className="size-3" /> {t("session.durationMin", { minutes: s.service.duration_minutes })}
                           </span>
                         )}
-                        {s.provider?.name && <span>with {s.provider.name}</span>}
+                        {s.provider?.name && <span>{t("session.withInstructor", { name: s.provider.name })}</span>}
                         <span className="inline-flex items-center gap-1">
                           <UsersIcon className="size-3" /> {spotsLeft}/{s.capacity}
                         </span>
@@ -646,10 +650,10 @@ function ListView({
                         >
                           {formatMoneyWhole(s.price_mad, currency)}
                         </div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">at studio</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">{t("session.atStudio")}</div>
                       </div>
                       {isFull ? (
-                        <Badge variant="outline">Full</Badge>
+                        <Badge variant="outline">{t("session.full")}</Badge>
                       ) : (
                         <button
                           type="button"
@@ -657,7 +661,7 @@ function ListView({
                           className="inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-semibold text-white transition hover:opacity-90 active:scale-[0.98]"
                           style={{ backgroundColor: accent }}
                         >
-                          Book
+                          {t("session.book")}
                         </button>
                       )}
                     </div>

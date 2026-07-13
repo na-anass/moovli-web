@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { formatDate, formatDateTime } from "@/lib/datetime";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { InfoTip } from "@/components/ui/info-tip";
 import { adminApi } from "@/lib/api/admin";
 import { Badge } from "@/components/ui/badge";
 
@@ -28,6 +30,8 @@ const statusColors: Record<string, string> = {
 };
 
 export default function BookingsPage() {
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const [data, setData] = useState<Booking[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -57,15 +61,15 @@ export default function BookingsPage() {
 
   const columns: Column<Booking>[] = [
     {
-      header: "Studio",
-      cell: (row) => <span>{row.entity?.name || "N/A"}</span>,
+      header: t("bookings.studio"),
+      cell: (row) => <span>{row.entity?.name || t("bookings.na")}</span>,
     },
     {
-      header: "Service",
-      cell: (row) => <span>{row.service?.name || "N/A"}</span>,
+      header: t("bookings.service"),
+      cell: (row) => <span>{row.service?.name || t("bookings.na")}</span>,
     },
     {
-      header: "Status",
+      header: tc("status"),
       cell: (row) => (
         <Badge variant="outline" className={statusColors[row.status] || ""}>
           {row.status}
@@ -73,18 +77,18 @@ export default function BookingsPage() {
       ),
     },
     {
-      header: "Credits",
+      header: t("bookings.credits"),
       cell: (row) => <span className="font-medium">{row.credits_cost || 0}</span>,
     },
     {
-      header: "Session Time",
+      header: t("bookings.sessionTime"),
       cell: (row) =>
         row.session?.start_time
           ? formatDateTime(row.session.start_time)
-          : "N/A",
+          : t("bookings.na"),
     },
     {
-      header: "Booked",
+      header: t("bookings.booked"),
       cell: (row) => formatDate(row.created_at),
     },
   ];
@@ -92,8 +96,11 @@ export default function BookingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Bookings</h1>
-        <p className="text-sm text-muted-foreground">{total} total</p>
+        <div className="flex items-center gap-1.5">
+          <h1 className="text-2xl font-bold">{t("bookings.title")}</h1>
+          <InfoTip term="booking" />
+        </div>
+        <p className="text-sm text-muted-foreground">{t("bookings.totalCount", { count: total })}</p>
       </div>
 
       <DataTable
@@ -105,19 +112,19 @@ export default function BookingsPage() {
         onPageChange={setPage}
         filters={[
           {
-            label: "Status",
+            label: tc("status"),
             value: status,
             onChange: (v) => {
               setStatus(v);
               setPage(1);
             },
             options: [
-              { label: "All statuses", value: "all" },
-              { label: "Confirmed", value: "confirmed" },
-              { label: "Pending", value: "pending" },
-              { label: "Cancelled", value: "cancelled" },
-              { label: "Completed", value: "completed" },
-              { label: "No show", value: "no_show" },
+              { label: t("bookings.allStatuses"), value: "all" },
+              { label: t("bookings.statusConfirmed"), value: "confirmed" },
+              { label: t("bookings.statusPending"), value: "pending" },
+              { label: t("bookings.statusCancelled"), value: "cancelled" },
+              { label: t("bookings.statusCompleted"), value: "completed" },
+              { label: t("bookings.statusNoShow"), value: "no_show" },
             ],
           },
         ]}

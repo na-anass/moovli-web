@@ -29,16 +29,21 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { formatDateLong } from "@/lib/datetime";
+import { InfoTip } from "@/components/ui/info-tip";
+import { useTranslations } from "next-intl";
 
 const daysBetween = (from: Date, to: Date) =>
   Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
 
-const STATUS_BADGE: Record<EntitySubscription["status"], { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-  active: { variant: "default", label: "Active" },
-  trialing: { variant: "secondary", label: "Trial" },
-  past_due: { variant: "destructive", label: "Past due" },
-  cancelled: { variant: "outline", label: "Cancelled" },
-  paused: { variant: "outline", label: "Paused" },
+const STATUS_BADGE: Record<
+  EntitySubscription["status"],
+  { variant: "default" | "secondary" | "destructive" | "outline"; labelKey: string }
+> = {
+  active: { variant: "default", labelKey: "statusActive" },
+  trialing: { variant: "secondary", labelKey: "statusTrial" },
+  past_due: { variant: "destructive", labelKey: "statusPastDue" },
+  cancelled: { variant: "outline", labelKey: "statusCancelled" },
+  paused: { variant: "outline", labelKey: "statusPaused" },
 };
 
 // ============================================================================
@@ -46,6 +51,8 @@ const STATUS_BADGE: Record<EntitySubscription["status"], { variant: "default" | 
 // ============================================================================
 
 export default function StudioBillingPage() {
+  const t = useTranslations("studioChannels.billing");
+  const tc = useTranslations("common");
   const activeEntity = useActiveEntity();
   const currency = activeEntity.currencyCode;
   const entityId = activeEntity.entityId;
@@ -96,7 +103,7 @@ export default function StudioBillingPage() {
       window.location.href = data.url;
     } catch (err) {
       console.error(err);
-      alert("Could not start checkout. Please try again.");
+      alert(t("checkoutError"));
       setActionLoading(null);
     }
   };
@@ -112,7 +119,7 @@ export default function StudioBillingPage() {
       window.location.href = data.url;
     } catch (err) {
       console.error(err);
-      alert("Could not open billing portal.");
+      alert(t("portalError"));
       setActionLoading(null);
     }
   };
@@ -120,13 +127,13 @@ export default function StudioBillingPage() {
   if (!entityId) {
     return (
       <div className="p-8">
-        <p className="text-muted-foreground">No studio access found.</p>
+        <p className="text-muted-foreground">{t("noAccess")}</p>
       </div>
     );
   }
 
   if (loading) {
-    return <div className="p-8 text-muted-foreground">Loading billing…</div>;
+    return <div className="p-8 text-muted-foreground">{t("loadingBilling")}</div>;
   }
 
   // ==========================================================================
@@ -143,8 +150,8 @@ export default function StudioBillingPage() {
   return (
     <BaseLayout
       maxWidth="lg"
-      title="Billing"
-      subtitle="Manage your studio's subscription, payment method, and invoices."
+      title={t("title")}
+      subtitle={t("subtitle")}
     >
 
       {/* Trial-ending banner */}
@@ -152,11 +159,12 @@ export default function StudioBillingPage() {
         <Alert>
           <InfoIcon className="size-4" />
           <AlertTitle>
-            Your trial ends in {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"}
+            {t("trialEndsIn", { days: trialDaysLeft })}
           </AlertTitle>
           <AlertDescription>
-            Add a payment method by {formatDateLong(subscription?.trial_end ?? null)} to keep your
-            subscription active.
+            {t("trialEndsBody", {
+              date: formatDateLong(subscription?.trial_end ?? null),
+            })}
           </AlertDescription>
         </Alert>
       )}
@@ -165,10 +173,9 @@ export default function StudioBillingPage() {
       {isPastDue && (
         <Alert variant="destructive">
           <AlertCircleIcon className="size-4" />
-          <AlertTitle>Payment failed</AlertTitle>
+          <AlertTitle>{t("paymentFailedTitle")}</AlertTitle>
           <AlertDescription>
-            We couldn't process your last payment. Update your payment method to keep your
-            subscription active. Your account will be cancelled if all retries fail.
+            {t("paymentFailedBody")}
           </AlertDescription>
         </Alert>
       )}
@@ -177,10 +184,11 @@ export default function StudioBillingPage() {
       {subscription?.cancel_at_period_end && (
         <Alert>
           <InfoIcon className="size-4" />
-          <AlertTitle>Subscription scheduled to cancel</AlertTitle>
+          <AlertTitle>{t("cancelScheduledTitle")}</AlertTitle>
           <AlertDescription>
-            Your subscription will end on {formatDateLong(subscription.current_period_end)}. You can
-            reactivate any time before then in the billing portal.
+            {t("cancelScheduledBody", {
+              date: formatDateLong(subscription.current_period_end),
+            })}
           </AlertDescription>
         </Alert>
       )}
@@ -190,16 +198,19 @@ export default function StudioBillingPage() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>
-              <CardTitle>Current plan</CardTitle>
+              <CardTitle className="inline-flex items-center gap-1.5">
+                {t("currentPlan")}
+                <InfoTip term="moovliProSubscription" />
+              </CardTitle>
               <CardDescription>
                 {activePlan
                   ? `${activePlan.name} — ${formatMoneyWhole(activePlan.price_mad, currency)} / ${activePlan.billing_interval}`
-                  : "No active plan"}
+                  : t("noActivePlan")}
               </CardDescription>
             </div>
             {subscription && (
               <Badge variant={STATUS_BADGE[subscription.status].variant}>
-                {STATUS_BADGE[subscription.status].label}
+                {t(STATUS_BADGE[subscription.status].labelKey)}
               </Badge>
             )}
           </div>
@@ -209,19 +220,19 @@ export default function StudioBillingPage() {
             <dl className="grid grid-cols-2 gap-4 text-sm">
               {subscription.current_period_end && (
                 <div>
-                  <dt className="text-muted-foreground">Next bill</dt>
+                  <dt className="text-muted-foreground">{t("nextBill")}</dt>
                   <dd>{formatDateLong(subscription.current_period_end)}</dd>
                 </div>
               )}
               {subscription.trial_end && isTrialing && (
                 <div>
-                  <dt className="text-muted-foreground">Trial ends</dt>
+                  <dt className="text-muted-foreground">{t("trialEnds")}</dt>
                   <dd>{formatDateLong(subscription.trial_end)}</dd>
                 </div>
               )}
               {subscription.payment_attempt_count != null && subscription.payment_attempt_count > 0 && (
                 <div>
-                  <dt className="text-muted-foreground">Payment attempts</dt>
+                  <dt className="text-muted-foreground">{t("paymentAttempts")}</dt>
                   <dd>{subscription.payment_attempt_count}/3</dd>
                 </div>
               )}
@@ -231,7 +242,7 @@ export default function StudioBillingPage() {
           {canManage && subscription?.stripe_subscription_id && (
             <Button onClick={launchPortal} disabled={actionLoading === "portal"} variant="outline">
               <CreditCardIcon className="size-4 mr-2" />
-              {actionLoading === "portal" ? "Opening…" : "Manage payment & subscription"}
+              {actionLoading === "portal" ? t("opening") : t("managePayment")}
               <ExternalLinkIcon className="size-3 ml-2" />
             </Button>
           )}
@@ -242,11 +253,9 @@ export default function StudioBillingPage() {
       {(noCardOnTrial || !subscription || subscription.status === "cancelled" || activePlan?.slug === "standard") && (
         <Card>
           <CardHeader>
-            <CardTitle>Plans</CardTitle>
+            <CardTitle>{t("plans")}</CardTitle>
             <CardDescription>
-              {noCardOnTrial
-                ? "Add a payment method to choose a plan"
-                : "Choose a plan that fits your studio"}
+              {noCardOnTrial ? t("plansDescNoCard") : t("plansDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -265,33 +274,35 @@ export default function StudioBillingPage() {
                       <h3 className="font-semibold">{plan.name}</h3>
                       {isCurrent && (
                         <Badge variant="default">
-                          <CheckIcon className="size-3 mr-1" /> Current
+                          <CheckIcon className="size-3 mr-1" /> {t("current")}
                         </Badge>
                       )}
                     </div>
                     <p className="text-2xl font-bold mb-1">
                       {formatMoneyWhole(plan.price_mad, currency)}{" "}
-                      <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                      <span className="text-sm font-normal text-muted-foreground">
+                        {t("perMonth")}
+                      </span>
                     </p>
                     <p className="text-xs text-muted-foreground mb-4">{plan.description}</p>
                     <ul className="space-y-1 text-xs mb-4">
                       {plan.allowed_channel_types.includes("marketplace") && (
                         <li className="flex items-start gap-1">
                           <CheckIcon className="size-3 mt-0.5 text-emerald-600" />
-                          Marketplace listing
+                          {t("featureMarketplace")}
                         </li>
                       )}
                       <li className="flex items-start gap-1">
                         <CheckIcon className="size-3 mt-0.5 text-emerald-600" />
-                        Public booking page
+                        {t("featureBookingPage")}
                       </li>
                       <li className="flex items-start gap-1">
                         <CheckIcon className="size-3 mt-0.5 text-emerald-600" />
-                        Custom calendar links
+                        {t("featureCalendarLinks")}
                       </li>
                       <li className="flex items-start gap-1">
                         <CheckIcon className="size-3 mt-0.5 text-emerald-600" />
-                        Embeddable widget
+                        {t("featureWidget")}
                       </li>
                     </ul>
                     {!isCurrent && canManage && (
@@ -302,10 +313,10 @@ export default function StudioBillingPage() {
                         disabled={actionLoading === plan.slug}
                       >
                         {actionLoading === plan.slug
-                          ? "Loading…"
+                          ? tc("loading")
                           : isUpgrade
-                            ? "Upgrade"
-                            : "Choose plan"}
+                            ? t("upgrade")
+                            : t("choosePlan")}
                       </Button>
                     )}
                   </div>
@@ -320,17 +331,17 @@ export default function StudioBillingPage() {
       {invoices.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Billing history</CardTitle>
-            <CardDescription>{invoices.length} invoice{invoices.length === 1 ? "" : "s"}</CardDescription>
+            <CardTitle>{t("billingHistory")}</CardTitle>
+            <CardDescription>{t("invoiceCount", { count: invoices.length })}</CardDescription>
           </CardHeader>
           <CardContent>
             <table className="w-full text-sm">
               <thead className="text-xs text-muted-foreground border-b">
                 <tr>
-                  <th className="text-left py-2">Date</th>
-                  <th className="text-left py-2">Amount</th>
-                  <th className="text-left py-2">Status</th>
-                  <th className="text-right py-2">Invoice</th>
+                  <th className="text-left py-2">{t("colDate")}</th>
+                  <th className="text-left py-2">{t("colAmount")}</th>
+                  <th className="text-left py-2">{tc("status")}</th>
+                  <th className="text-right py-2">{t("colInvoice")}</th>
                 </tr>
               </thead>
               <tbody>

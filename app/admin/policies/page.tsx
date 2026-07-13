@@ -21,41 +21,19 @@ import {
   TrendingUpIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { formatDateCustom } from "@/lib/datetime";
 
 // ============================================================================
 // Category styling — icon + accent per group of settings
 // ============================================================================
 
-const CATEGORY_META: Record<
-  string,
-  { label: string; description: string; icon: React.ElementType }
-> = {
-  credits: {
-    label: "Credits",
-    description: "How credits convert to currency and how long they last.",
-    icon: CoinsIcon,
-  },
-  pricing: {
-    label: "Pricing",
-    description: "Bounds on the dynamic marketplace markup.",
-    icon: TrendingUpIcon,
-  },
-  subscriptions: {
-    label: "Subscriptions",
-    description: "Trial duration, grace periods, plan defaults.",
-    icon: RefreshCwIcon,
-  },
-  bookings: {
-    label: "Bookings",
-    description: "Default windows and rules used when a service doesn't specify its own.",
-    icon: BookOpenIcon,
-  },
-  general: {
-    label: "General",
-    description: "Platform-wide defaults like currency.",
-    icon: GlobeIcon,
-  },
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  credits: CoinsIcon,
+  pricing: TrendingUpIcon,
+  subscriptions: RefreshCwIcon,
+  bookings: BookOpenIcon,
+  general: GlobeIcon,
 };
 
 const CATEGORY_ORDER = ["credits", "pricing", "subscriptions", "bookings", "general"];
@@ -65,6 +43,7 @@ const CATEGORY_ORDER = ["credits", "pricing", "subscriptions", "bookings", "gene
 // ============================================================================
 
 export default function AdminPoliciesPage() {
+  const t = useTranslations("admin");
   const [settings, setSettings] = useState<PlatformSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,8 +91,8 @@ export default function AdminPoliciesPage() {
     <BaseLayout
       maxWidth="lg"
       icon={SlidersHorizontalIcon}
-      title="Policies"
-      subtitle="Tune platform-wide knobs without a deploy. Changes take effect within a minute (60s service cache)."
+      title={t("policies.title")}
+      subtitle={t("policies.subtitle")}
     >
       {error && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -122,17 +101,14 @@ export default function AdminPoliciesPage() {
       )}
 
       {loading ? (
-        <div className="text-sm text-muted-foreground">Loading policies…</div>
+        <div className="text-sm text-muted-foreground">{t("policies.loading")}</div>
       ) : (
         <div className="space-y-8">
           {grouped.map(({ category, items }) => {
-            const meta =
-              CATEGORY_META[category] ?? {
-                label: category,
-                description: "",
-                icon: SettingsIcon,
-              };
-            const Icon = meta.icon;
+            const known = CATEGORY_ORDER.includes(category);
+            const Icon = CATEGORY_ICONS[category] ?? SettingsIcon;
+            const label = known ? t(`policies.category.${category}.label`) : category;
+            const description = known ? t(`policies.category.${category}.description`) : "";
             return (
               <section key={category}>
                 <div className="flex items-start gap-3 mb-3">
@@ -140,10 +116,10 @@ export default function AdminPoliciesPage() {
                     <Icon className="size-4" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-base">{meta.label}</h2>
-                    {meta.description && (
+                    <h2 className="font-semibold text-base">{label}</h2>
+                    {description && (
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {meta.description}
+                        {description}
                       </p>
                     )}
                   </div>
@@ -173,6 +149,8 @@ function SettingRow({
   setting: PlatformSetting;
   onSaved: (s: PlatformSetting) => void;
 }) {
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>(() => stringifyForEdit(setting));
   const [saving, setSaving] = useState(false);
@@ -202,7 +180,10 @@ function SettingRow({
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 2000);
     } catch (e) {
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      if (msg === "INVALID_NUMBER") setError(t("policies.invalidNumber"));
+      else if (msg === "INVALID_JSON") setError(t("policies.invalidJson"));
+      else setError(msg);
     } finally {
       setSaving(false);
     }
@@ -222,7 +203,7 @@ function SettingRow({
               variant="outline"
               className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-700"
             >
-              Public
+              {t("policies.public")}
             </Badge>
           )}
         </div>
@@ -232,8 +213,9 @@ function SettingRow({
           </p>
         )}
         <p className="text-[10px] text-muted-foreground mt-1.5">
-          Last updated{" "}
-          {formatDateCustom(setting.updated_at, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+          {t("policies.lastUpdated", {
+            date: formatDateCustom(setting.updated_at, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+          })}
         </p>
       </div>
 
@@ -249,10 +231,10 @@ function SettingRow({
             {error && <p className="text-xs text-destructive">{error}</p>}
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={cancel} disabled={saving}>
-                Cancel
+                {tc("cancel")}
               </Button>
               <Button size="sm" onClick={save} disabled={saving}>
-                {saving ? "Saving…" : "Save"}
+                {saving ? tc("saving") : tc("save")}
               </Button>
             </div>
           </div>
@@ -261,11 +243,11 @@ function SettingRow({
             <ValueDisplay setting={setting} />
             {savedFlash && (
               <span className="inline-flex items-center text-xs text-emerald-600">
-                <CheckIcon className="size-3 mr-1" /> Saved
+                <CheckIcon className="size-3 mr-1" /> {t("policies.saved")}
               </span>
             )}
             <Button variant="ghost" size="sm" onClick={startEdit}>
-              Edit
+              {tc("edit")}
             </Button>
           </div>
         )}
@@ -373,7 +355,7 @@ function parseForApi(input: string, dataType: PlatformSetting["data_type"]): unk
       return input;
     case "number": {
       const n = Number(input);
-      if (!Number.isFinite(n)) throw new Error("Not a valid number");
+      if (!Number.isFinite(n)) throw new Error("INVALID_NUMBER");
       return n;
     }
     case "boolean":
@@ -383,7 +365,7 @@ function parseForApi(input: string, dataType: PlatformSetting["data_type"]): unk
       try {
         return JSON.parse(input);
       } catch {
-        throw new Error("Not valid JSON");
+        throw new Error("INVALID_JSON");
       }
   }
 }

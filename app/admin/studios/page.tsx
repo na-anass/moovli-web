@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { InfoTip } from "@/components/ui/info-tip";
 import { adminApi } from "@/lib/api/admin";
 import { Badge } from "@/components/ui/badge";
 import { EyeIcon, ExternalLinkIcon } from "lucide-react";
@@ -27,6 +29,8 @@ const statusColors: Record<string, string> = {
 };
 
 export default function StudiosPage() {
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [data, setData] = useState<Entity[]>([]);
   const [total, setTotal] = useState(0);
@@ -58,10 +62,10 @@ export default function StudiosPage() {
   }, [fetchEntities]);
 
   const columns: Column<Entity>[] = [
-    { header: "Name", accessorKey: "name" },
-    { header: "City", accessorKey: "city" },
+    { header: tc("name"), accessorKey: "name" },
+    { header: t("studios.city"), accessorKey: "city" },
     {
-      header: "Status",
+      header: tc("status"),
       cell: (row) => (
         <Badge variant="outline" className={statusColors[row.status] || ""}>
           {row.status}
@@ -69,16 +73,16 @@ export default function StudiosPage() {
       ),
     },
     {
-      header: "Partner",
+      header: t("studios.partner"),
       cell: (row) =>
         row.is_partner ? (
           <Badge className="bg-primary/10 text-primary">{row.partnership_tier}</Badge>
         ) : (
-          <span className="text-muted-foreground text-sm">No</span>
+          <span className="text-muted-foreground text-sm">{tc("no")}</span>
         ),
     },
     {
-      header: "Reviews",
+      header: t("studios.reviews"),
       cell: (row) => <span>{row.total_reviews}</span>,
     },
   ];
@@ -86,8 +90,11 @@ export default function StudiosPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Studios</h1>
-        <p className="text-sm text-muted-foreground">{total} total</p>
+        <div className="flex items-center gap-1.5">
+          <h1 className="text-2xl font-bold">{t("studios.title")}</h1>
+          <InfoTip term="studio" />
+        </div>
+        <p className="text-sm text-muted-foreground">{t("studios.totalCount", { count: total })}</p>
       </div>
 
       <DataTable
@@ -98,34 +105,34 @@ export default function StudiosPage() {
         pageSize={20}
         onPageChange={setPage}
         onSearch={setSearch}
-        searchPlaceholder="Search by name or city..."
+        searchPlaceholder={t("studios.searchPlaceholder")}
         filters={[
           {
-            label: "Status",
+            label: tc("status"),
             value: status,
             onChange: (v) => {
               setStatus(v);
               setPage(1);
             },
             options: [
-              { label: "All statuses", value: "all" },
-              { label: "Active", value: "active" },
-              { label: "Draft", value: "draft" },
-              { label: "Pending review", value: "pending_review" },
-              { label: "Suspended", value: "suspended" },
-              { label: "Inactive", value: "inactive" },
+              { label: t("studios.allStatuses"), value: "all" },
+              { label: t("studios.statusActive"), value: "active" },
+              { label: t("studios.statusDraft"), value: "draft" },
+              { label: t("studios.statusPendingReview"), value: "pending_review" },
+              { label: t("studios.statusSuspended"), value: "suspended" },
+              { label: t("studios.statusInactive"), value: "inactive" },
             ],
           },
         ]}
         isLoading={loading}
         rowActions={(row) => [
           {
-            label: "View studio",
+            label: t("studios.viewStudio"),
             icon: EyeIcon,
             onClick: () => router.push(`/admin/studios/${row.id}`),
           },
           {
-            label: "Open dashboard (as studio)",
+            label: t("studios.openDashboard"),
             icon: ExternalLinkIcon,
             onClick: () => router.push(`/studio/dashboard?as=${row.id}`),
           },

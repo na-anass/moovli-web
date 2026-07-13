@@ -15,6 +15,7 @@ import {
   PowerOffIcon,
   ShareIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 // ============================================================================
@@ -37,44 +38,21 @@ import { useEffect, useState } from "react";
 // for reassurance.
 // ============================================================================
 
-const CHANNEL_LABEL: Record<ChannelDeactivationType, string> = {
-  marketplace: "Marketplace",
-  direct_hosted: "Direct booking page",
-  direct_link: "Custom link",
-  direct_embed: "Widget",
+const CHANNEL_LABEL_KEY: Record<ChannelDeactivationType, string> = {
+  marketplace: "marketplace",
+  direct_hosted: "directHosted",
+  direct_link: "customLink",
+  direct_embed: "widget",
 };
 
-interface PolicyOption {
+const POLICY_META: {
   value: ChannelDeactivationPolicy;
-  label: string;
-  description: string;
   icon: React.ElementType;
   recommended?: boolean;
-}
-
-const POLICIES: PolicyOption[] = [
-  {
-    value: "release",
-    label: "Release to remaining channels",
-    description:
-      "Sessions stay published; dedicated seats merge into the shared pool so other channels can book them.",
-    icon: ShareIcon,
-    recommended: true,
-  },
-  {
-    value: "unpublish",
-    label: "Unpublish from this channel only",
-    description:
-      "Sessions stay live on other channels they're published to. If this was a session's only channel, it goes to draft until re-published.",
-    icon: EyeOffIcon,
-  },
-  {
-    value: "keep",
-    label: "Keep everything as-is, just hide the surface",
-    description:
-      "Sessions stay published in the database but no one can find the channel. Use this for short pauses (e.g. closing for a week).",
-    icon: ArchiveIcon,
-  },
+}[] = [
+  { value: "release", icon: ShareIcon, recommended: true },
+  { value: "unpublish", icon: EyeOffIcon },
+  { value: "keep", icon: ArchiveIcon },
 ];
 
 interface ChannelDeactivateSheetProps {
@@ -92,6 +70,8 @@ export function ChannelDeactivateSheet({
   channelType,
   onDeactivated,
 }: ChannelDeactivateSheetProps) {
+  const t = useTranslations("studioChannels.deactivate");
+  const tc = useTranslations("common");
   const [impact, setImpact] = useState<ChannelImpact | null>(null);
   const [policy, setPolicy] = useState<ChannelDeactivationPolicy>("release");
   const [loading, setLoading] = useState(false);
@@ -134,7 +114,7 @@ export function ChannelDeactivateSheet({
     }
   };
 
-  const channelLabel = CHANNEL_LABEL[channelType];
+  const channelLabel = t(`channelLabel.${CHANNEL_LABEL_KEY[channelType]}`);
   const hasAnyImpact =
     impact &&
     (impact.upcoming_sessions > 0 ||
@@ -145,22 +125,24 @@ export function ChannelDeactivateSheet({
     <FormSheet
       open={open}
       onOpenChange={onOpenChange}
-      title={`Turn off ${channelLabel}?`}
-      subtitle="Decide what should happen to sessions already published here."
+      title={t("title", { channel: channelLabel })}
+      subtitle={t("subtitle")}
       icon={PowerOffIcon}
       iconAccent="amber"
       width="md"
       footer={
         <>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Cancel
+            {tc("cancel")}
           </Button>
           <Button
             variant="destructive"
             onClick={handleConfirm}
             disabled={loading || submitting}
           >
-            {submitting ? "Turning off…" : `Turn off ${channelLabel.toLowerCase()}`}
+            {submitting
+              ? t("turningOff")
+              : t("turnOff", { channel: channelLabel.toLowerCase() })}
           </Button>
         </>
       }
@@ -169,29 +151,29 @@ export function ChannelDeactivateSheet({
         {/* Impact summary */}
         <section>
           <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-            Impact on current data
+            {t("impactHeading")}
           </h3>
           {loading ? (
             <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-              Checking…
+              {t("checking")}
             </div>
           ) : impact && hasAnyImpact ? (
             <ul className="rounded-lg border border-amber-200 bg-amber-50/50 divide-y divide-amber-200/60 text-sm">
               {impact.upcoming_sessions > 0 && (
                 <ImpactRow
-                  label="Upcoming sessions published here"
+                  label={t("impact.upcomingSessions")}
                   value={impact.upcoming_sessions}
                 />
               )}
               {impact.allocated_seats > 0 && (
                 <ImpactRow
-                  label="Seats dedicated via split allocation"
+                  label={t("impact.allocatedSeats")}
                   value={impact.allocated_seats}
                 />
               )}
               {impact.confirmed_bookings > 0 && (
                 <ImpactRow
-                  label="Confirmed bookings — stay valid regardless"
+                  label={t("impact.confirmedBookings")}
                   value={impact.confirmed_bookings}
                   preserved
                 />
@@ -200,16 +182,17 @@ export function ChannelDeactivateSheet({
                 <li className="flex items-start gap-2 px-3 py-2.5 text-xs text-amber-900">
                   <AlertCircleIcon className="size-3.5 shrink-0 mt-0.5" />
                   <span>
-                    <strong>{impact.only_channel_sessions}</strong>{" "}
-                    {impact.only_channel_sessions === 1 ? "session has" : "sessions have"}{" "}
-                    no other channel — they&apos;ll go to draft until re-published.
+                    {t.rich("onlyChannelWarning", {
+                      count: impact.only_channel_sessions,
+                      strong: (chunks) => <strong>{chunks}</strong>,
+                    })}
                   </span>
                 </li>
               )}
             </ul>
           ) : (
             <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-              No active sessions or allocations on this channel right now.
+              {t("noImpact")}
             </div>
           )}
         </section>
@@ -217,10 +200,10 @@ export function ChannelDeactivateSheet({
         {/* Policy picker */}
         <section>
           <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-            What should happen to those sessions?
+            {t("policyHeading")}
           </h3>
           <div className="space-y-2">
-            {POLICIES.map((p) => {
+            {POLICY_META.map((p) => {
               const Icon = p.icon;
               const active = policy === p.value;
               return (
@@ -243,15 +226,17 @@ export function ChannelDeactivateSheet({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Icon className="size-3.5 text-muted-foreground" />
-                      <span className="text-sm font-medium">{p.label}</span>
+                      <span className="text-sm font-medium">
+                        {t(`policies.${p.value}.label`)}
+                      </span>
                       {p.recommended && (
                         <span className="text-[10px] uppercase tracking-wider rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-700">
-                          Recommended
+                          {t("recommended")}
                         </span>
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                      {p.description}
+                      {t(`policies.${p.value}.description`)}
                     </p>
                   </div>
                 </label>

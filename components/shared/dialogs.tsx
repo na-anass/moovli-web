@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -60,12 +61,6 @@ type ModalState =
 
 const DialogsContext = createContext<DialogsApi | null>(null);
 
-const DEFAULT_TITLE: Record<NotifyVariant, string> = {
-  info: "Heads up",
-  error: "Something went wrong",
-  success: "Done",
-};
-
 const VARIANT_ICON = {
   info: InfoIcon,
   error: AlertTriangleIcon,
@@ -79,32 +74,44 @@ const VARIANT_ICON_CLASS: Record<NotifyVariant, string> = {
 };
 
 export function DialogsProvider({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("shared");
+  const tc = useTranslations("common");
   const [state, setState] = useState<ModalState>(null);
 
-  const notify = useCallback((message: string, opts?: NotifyOptions) => {
-    const variant = opts?.variant ?? "info";
-    setState({
-      kind: "notify",
-      title: opts?.title ?? DEFAULT_TITLE[variant],
-      message,
-      variant,
-    });
-  }, []);
+  const defaultTitle: Record<NotifyVariant, string> = {
+    info: t("dialogs.defaultTitle.info"),
+    error: t("dialogs.defaultTitle.error"),
+    success: t("dialogs.defaultTitle.success"),
+  };
+
+  const notify = useCallback(
+    (message: string, opts?: NotifyOptions) => {
+      const variant = opts?.variant ?? "info";
+      setState({
+        kind: "notify",
+        title: opts?.title ?? defaultTitle[variant],
+        message,
+        variant,
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t],
+  );
 
   const confirm = useCallback(
     (opts: ConfirmOptions) =>
       new Promise<boolean>((resolve) => {
         setState({
           kind: "confirm",
-          title: opts.title ?? "Are you sure?",
+          title: opts.title ?? t("dialogs.confirmTitle"),
           message: opts.message,
-          confirmLabel: opts.confirmLabel ?? "Confirm",
-          cancelLabel: opts.cancelLabel ?? "Cancel",
+          confirmLabel: opts.confirmLabel ?? tc("confirm"),
+          cancelLabel: opts.cancelLabel ?? tc("cancel"),
           destructive: !!opts.destructive,
           resolve,
         });
       }),
-    [],
+    [t, tc],
   );
 
   const api = useMemo<DialogsApi>(() => ({ notify, confirm }), [notify, confirm]);
@@ -147,7 +154,7 @@ export function DialogsProvider({ children }: { children: React.ReactNode }) {
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button onClick={() => setState(null)}>OK</Button>
+                <Button onClick={() => setState(null)}>{t("dialogs.ok")}</Button>
               </DialogFooter>
             </>
           )}

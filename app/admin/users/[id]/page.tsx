@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { formatDate } from "@/lib/datetime";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { adminApi } from "@/lib/api/admin";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { InfoTip } from "@/components/ui/info-tip";
 import { ArrowLeftIcon } from "lucide-react";
 
 export default function UserDetailPage() {
+  const t = useTranslations("admin");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -62,7 +65,7 @@ export default function UserDetailPage() {
   }
 
   if (!user) {
-    return <p className="text-muted-foreground">User not found.</p>;
+    return <p className="text-muted-foreground">{t("userDetail.notFound")}</p>;
   }
 
   return (
@@ -84,38 +87,38 @@ export default function UserDetailPage() {
         </Badge>
         {user.is_admin && (
           <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-            Admin
+            {t("userDetail.adminBadge")}
           </Badge>
         )}
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Profile</h2>
+        <h2 className="text-lg font-semibold">{t("userDetail.profile")}</h2>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-muted-foreground">Email</p>
+            <p className="text-muted-foreground">{t("userDetail.email")}</p>
             <p className="font-medium">{user.email}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Phone</p>
-            <p className="font-medium">{user.phone || "N/A"}</p>
+            <p className="text-muted-foreground">{t("userDetail.phone")}</p>
+            <p className="font-medium">{user.phone || t("userDetail.na")}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">City</p>
-            <p className="font-medium">{user.city || "N/A"}</p>
+            <p className="text-muted-foreground">{t("userDetail.city")}</p>
+            <p className="font-medium">{user.city || t("userDetail.na")}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Joined</p>
+            <p className="text-muted-foreground">{t("userDetail.joined")}</p>
             <p className="font-medium">
               {formatDate(user.created_at)}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground">Credit Balance</p>
+            <p className="text-muted-foreground">{t("userDetail.creditBalance")}</p>
             <p className="font-medium text-lg">{user.credit_balance}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Total Purchased</p>
+            <p className="text-muted-foreground">{t("userDetail.totalPurchased")}</p>
             <p className="font-medium">{user.total_credits_purchased}</p>
           </div>
         </div>
@@ -123,7 +126,7 @@ export default function UserDetailPage() {
 
       {user.entityRoles?.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-6 space-y-3">
-          <h2 className="text-lg font-semibold">Entity Roles</h2>
+          <h2 className="text-lg font-semibold">{t("userDetail.entityRoles")}</h2>
           {user.entityRoles.map((er: any) => (
             <div key={er.entity_id} className="flex items-center justify-between text-sm">
               <span>{er.entities?.name || er.entity_id}</span>
@@ -135,31 +138,34 @@ export default function UserDetailPage() {
 
       {user.instructorProfiles?.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-6 space-y-3">
-          <h2 className="text-lg font-semibold">Instructor Profiles</h2>
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-lg font-semibold">{t("userDetail.instructorProfiles")}</h2>
+            <InfoTip term="instructor" />
+          </div>
           {user.instructorProfiles.map((ip: any) => (
             <div key={ip.id} className="text-sm">
-              Provider ID: {ip.id} — Entity: {ip.primary_entity_id || "N/A"}
+              {t("userDetail.providerEntity", { providerId: ip.id, entity: ip.primary_entity_id || t("userDetail.na") })}
             </div>
           ))}
         </div>
       )}
 
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Actions</h2>
+        <h2 className="text-lg font-semibold">{t("userDetail.actions")}</h2>
         <div className="flex gap-3">
           <Button
             variant={user.status === "active" ? "destructive" : "default"}
             onClick={handleStatusToggle}
             disabled={actionLoading}
           >
-            {user.status === "active" ? "Suspend User" : "Activate User"}
+            {user.status === "active" ? t("userDetail.suspendUser") : t("userDetail.activateUser")}
           </Button>
           <Button
             variant="outline"
             onClick={handleAdminToggle}
             disabled={actionLoading}
           >
-            {user.is_admin ? "Revoke Admin" : "Grant Admin"}
+            {user.is_admin ? t("userDetail.revokeAdmin") : t("userDetail.grantAdmin")}
           </Button>
         </div>
       </div>

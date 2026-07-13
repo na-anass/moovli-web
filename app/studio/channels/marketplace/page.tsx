@@ -26,10 +26,14 @@ import {
   WalletIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InfoTip } from "@/components/ui/info-tip";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 export default function StudioChannelMarketplacePage() {
+  const t = useTranslations("studioChannels.marketplace");
+  const tc = useTranslations("common");
   const activeEntity = useActiveEntity();
   const currency = activeEntity.currencyCode;
   const entityId = activeEntity.entityId;
@@ -131,11 +135,11 @@ export default function StudioChannelMarketplacePage() {
   };
 
   if (!entityId) {
-    return <div className="p-8 text-muted-foreground">No studio access found.</div>;
+    return <div className="p-8 text-muted-foreground">{t("noAccess")}</div>;
   }
 
   if (loading) {
-    return <div className="p-8 text-muted-foreground">Loading…</div>;
+    return <div className="p-8 text-muted-foreground">{tc("loading")}</div>;
   }
 
   const planAllows = !!plan?.allowed_channel_types.includes("marketplace");
@@ -145,27 +149,24 @@ export default function StudioChannelMarketplacePage() {
 
   const faqItems: FaqItem[] = [
     {
-      question: `Why a ${DISCOUNT_FLOOR}% discount?`,
-      answer:
-        "It's what makes the offer attractive to subscribed members. In exchange, you reach new customers with no marketing effort.",
+      question: t("faq.whyDiscount.q", { floor: DISCOUNT_FLOOR }),
+      answer: t("faq.whyDiscount.a"),
     },
     {
-      question: "Will my existing clients go through the marketplace?",
-      answer:
-        "No. Your regular clients keep booking through your direct link at your normal price.",
+      question: t("faq.existingClients.q"),
+      answer: t("faq.existingClients.a"),
     },
     {
-      question: "Can I remove a class from the marketplace anytime?",
-      answer: "Yes. You stay in full control.",
+      question: t("faq.removeClass.q"),
+      answer: t("faq.removeClass.a"),
     },
     {
-      question: "How does it work?",
-      answer: `Your discount is the wholesale rate you give Moovli (minimum ${DISCOUNT_FLOOR}%). Moovli lists your session on the marketplace at its own price — set dynamically based on timing and demand — and keeps the difference. Recommended baseline: ${baseMarkup}%.`,
+      question: t("faq.howItWorks.q"),
+      answer: t("faq.howItWorks.a", { floor: DISCOUNT_FLOOR, baseline: baseMarkup }),
     },
     {
-      question: "How much do I earn?",
-      answer:
-        "You always receive your net — your list price minus your discount — no matter what price Moovli sells it at. The discount covers customer acquisition, payment processing, and discovery.",
+      question: t("faq.howMuchEarn.q"),
+      answer: t("faq.howMuchEarn.a"),
     },
   ];
 
@@ -174,19 +175,19 @@ export default function StudioChannelMarketplacePage() {
       icon={ShoppingBagIcon}
       iconAccent="violet"
       title="Marketplace"
-      subtitle="Your sessions discoverable in the Moovli mobile app."
+      subtitle={t("subtitle")}
       maxWidth="xl"
       action={
         planAllows && canManage ? (
           <>
             <span className="text-xs text-muted-foreground">
-              {isLive ? "Active" : "Off"}
+              {isLive ? t("active") : t("off")}
             </span>
             <Switch
               checked={marketplaceOn}
               disabled={toggling}
               onCheckedChange={toggleMarketplace}
-              aria-label="Toggle marketplace listing"
+              aria-label={t("toggleAria")}
             />
           </>
         ) : !planAllows ? (
@@ -194,7 +195,7 @@ export default function StudioChannelMarketplacePage() {
             variant="outline"
             className="border-amber-200 bg-amber-50 text-amber-700"
           >
-            <LockIcon className="size-2.5 mr-1" /> Plan upgrade required
+            <LockIcon className="size-2.5 mr-1" /> {t("planUpgradeRequired")}
           </Badge>
         ) : null
       }
@@ -208,16 +209,13 @@ export default function StudioChannelMarketplacePage() {
               <TrendingUpIcon className="size-4" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-sm">Unlock marketplace bookings</h3>
+              <h3 className="font-semibold text-sm">{t("gate.title")}</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Your current plan ({plan?.name ?? "Standard"}) doesn&apos;t include marketplace
-                distribution. Upgrade to Marketplace to start receiving bookings from Moovli
-                app users — you set a list price and a wholesale discount, and receive the net
-                on every marketplace booking.
+                {t("gate.body", { plan: plan?.name ?? "Standard" })}
               </p>
               <Button asChild size="sm" className="mt-3">
                 <Link href="/studio/billing">
-                  Upgrade plan
+                  {t("gate.upgradePlan")}
                   <ArrowRightIcon className="size-3.5 ml-1.5" />
                 </Link>
               </Button>
@@ -233,25 +231,26 @@ export default function StudioChannelMarketplacePage() {
           <div className="space-y-6 lg:col-span-2">
             <section className="rounded-xl border bg-card p-5 space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold">Listing status</h2>
+            <h2 className="text-sm font-semibold inline-flex items-center gap-1.5">
+              {t("listingStatus")}
+              <InfoTip term="marketplace" />
+            </h2>
             {isLive ? (
               <Badge
                 variant="outline"
                 className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]"
               >
                 <span className="size-1.5 rounded-full bg-emerald-500 mr-1" />
-                Live in app
+                {t("liveInApp")}
               </Badge>
             ) : (
               <Badge variant="outline" className="text-[10px]">
-                Paused
+                {t("paused")}
               </Badge>
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            {isLive
-              ? "Your published sessions appear in the Moovli app discovery feed and studio listings. Bookings are paid via Moovli and you receive payouts on the standard schedule."
-              : "Your sessions are not visible in the Moovli app. Existing marketplace bookings remain valid and will be honored — only future discoverability is paused."}
+            {isLive ? t("listingHelpLive") : t("listingHelpPaused")}
           </p>
         </section>
 
@@ -264,14 +263,14 @@ export default function StudioChannelMarketplacePage() {
                 <CoinsIcon className="size-4" />
               </span>
               <div>
-                <h2 className="text-sm font-semibold">Pricing on the marketplace</h2>
+                <h2 className="text-sm font-semibold">{t("pricingTitle")}</h2>
                 <p className="text-xs text-muted-foreground">
-                  You set your list price — Moovli takes a wholesale discount.
+                  {t("pricingSubtitle")}
                 </p>
               </div>
             </div>
             <Badge variant="outline" className="hidden shrink-0 items-center gap-1 sm:flex">
-              <TagIcon className="size-3" /> Wholesale
+              <TagIcon className="size-3" /> {t("wholesale")}
             </Badge>
           </div>
 
@@ -281,32 +280,31 @@ export default function StudioChannelMarketplacePage() {
               <PriceTile
                 icon={<TagIcon className="size-4" />}
                 tint="bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-                label="Your list price"
+                label={t("tile.listPrice")}
                 value={formatMoneyWhole(EXAMPLE_PRICE, currency)}
-                sub="You set this"
+                sub={t("tile.listPriceSub")}
               />
               <Operator symbol="−" />
               <PriceTile
                 icon={<TrendingDownIcon className="size-4" />}
                 tint="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                label="Discount to Moovli"
+                label={t("tile.discount")}
                 value={`${markup}%`}
-                sub="Your wholesale rate"
+                sub={t("tile.discountSub")}
               />
               <Operator symbol="=" />
               <PriceTile
                 highlight
                 icon={<WalletIcon className="size-4" />}
                 tint="bg-primary/15 text-primary"
-                label="You receive"
+                label={t("tile.youReceive")}
                 value={formatMoneyWhole(exampleNet, currency)}
-                sub={`Net · you keep ${youKeepPct}%`}
+                sub={t("tile.youReceiveSub", { pct: youKeepPct })}
               />
             </div>
             <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <InfoIcon className="size-3 shrink-0" />
-              Example for a {formatMoneyWhole(EXAMPLE_PRICE, currency)} session — your payout
-              scales with each price.
+              {t("exampleNote", { price: formatMoneyWhole(EXAMPLE_PRICE, currency) })}
             </p>
           </div>
 
@@ -319,10 +317,16 @@ export default function StudioChannelMarketplacePage() {
                   htmlFor="markup-input"
                 >
                   <PercentIcon className="size-3.5 text-muted-foreground" />
-                  Your discount to Moovli
+                  {t("yourDiscount")}
+                  <InfoTip term="commission" />
                 </label>
                 <span className="text-xs text-muted-foreground">
-                  You keep <strong className="text-foreground">{youKeepPct}%</strong>
+                  {t.rich("youKeep", {
+                    pct: youKeepPct,
+                    strong: (chunks) => (
+                      <strong className="text-foreground">{chunks}</strong>
+                    ),
+                  })}
                 </span>
               </div>
 
@@ -357,7 +361,7 @@ export default function StudioChannelMarketplacePage() {
                     onChange={(e) => setMarkup(Number(e.target.value))}
                     aria-invalid={belowFloor}
                     className="pl-8 pr-7"
-                    aria-label="Marketplace discount percentage"
+                    aria-label={t("discountAria")}
                   />
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                     %
@@ -373,10 +377,10 @@ export default function StudioChannelMarketplacePage() {
                   }
                 >
                   {savingMarkup ? (
-                    "Saving…"
+                    tc("saving")
                   ) : (
                     <>
-                      <CheckIcon className="mr-1 size-3.5" /> Save discount
+                      <CheckIcon className="mr-1 size-3.5" /> {t("saveDiscount")}
                     </>
                   )}
                 </Button>
@@ -385,18 +389,18 @@ export default function StudioChannelMarketplacePage() {
                     variant="outline"
                     className="border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700"
                   >
-                    Saved
+                    {t("saved")}
                   </Badge>
                 )}
               </div>
 
               {belowFloor ? (
                 <p className="mt-2 flex items-center gap-1 text-[11px] font-medium text-destructive">
-                  <InfoIcon className="size-3" /> Minimum discount is {DISCOUNT_FLOOR}%.
+                  <InfoIcon className="size-3" /> {t("minDiscountError", { floor: DISCOUNT_FLOOR })}
                 </p>
               ) : (
                 <p className="mt-2 text-[10px] text-muted-foreground">
-                  Minimum {DISCOUNT_FLOOR}% — no maximum.
+                  {t("minDiscountHint", { floor: DISCOUNT_FLOOR })}
                 </p>
               )}
             </div>
@@ -406,7 +410,7 @@ export default function StudioChannelMarketplacePage() {
 
           {/* FAQ sidebar — right column on desktop */}
           <aside className="space-y-3 lg:sticky lg:top-6">
-            <h2 className="text-sm font-semibold">FAQs</h2>
+            <h2 className="text-sm font-semibold">{t("faqsHeading")}</h2>
             <MarketplaceFaq items={faqItems} />
           </aside>
         </div>

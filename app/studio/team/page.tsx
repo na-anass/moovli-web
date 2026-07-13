@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { formatDate } from "@/lib/datetime";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { studioApi } from "@/lib/api/studio";
@@ -49,13 +50,14 @@ interface SearchUser {
   city: string | null;
 }
 
-const ROLE_CONFIG: Record<string, { color: string; icon: React.ElementType; label: string; description: string }> = {
-  owner: { color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200", icon: ShieldIcon, label: "Owner", description: "Full access — manage team, billing, delete studio" },
-  manager: { color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200", icon: Users2Icon, label: "Manager", description: "Manage sessions, pricing, instructors, insights" },
-  staff: { color: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200", icon: UserIcon, label: "Staff", description: "View dashboard, bookings, check in attendees" },
+const ROLE_CONFIG: Record<string, { color: string; icon: React.ElementType }> = {
+  owner: { color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200", icon: ShieldIcon },
+  manager: { color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200", icon: Users2Icon },
+  staff: { color: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200", icon: UserIcon },
 };
 
 export default function TeamPage() {
+  const t = useTranslations("studioMain");
   const { user: currentUser } = useAuth();
   const activeEntity = useActiveEntity();
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -117,7 +119,7 @@ export default function TeamPage() {
       setSearchQuery(""); setSearchResults([]); setSelectedUser(null); setInviteRole("staff");
       await fetchTeam();
     } catch (e: any) {
-      setError(e.message || "Failed to add team member");
+      setError(e.message || t("team.errors.addFailed"));
     } finally { setAdding(false); }
   };
 
@@ -128,22 +130,24 @@ export default function TeamPage() {
   };
 
   const handleRemove = async (userId: string, name: string) => {
-    if (!entityId || !confirm(`Remove ${name} from the team?`)) return;
+    if (!entityId || !confirm(t("team.removeConfirm", { name }))) return;
     try { await studioApi.removeTeamMember(entityId, userId); await fetchTeam(); }
     catch (e) { console.error(e); }
   };
 
   if (loading) {
     return (
-      <BaseLayout maxWidth="lg" title="Team">
+      <BaseLayout maxWidth="lg" title={t("team.title")}>
         <div className="h-48 rounded-xl border border-border bg-card animate-pulse" />
       </BaseLayout>
     );
   }
 
+  const roleKey = (role: string) => (ROLE_CONFIG[role] ? role : "staff");
+
   const memberColumns: Column<TeamMember>[] = [
     {
-      header: "Member",
+      header: t("team.columns.member"),
       cell: (member) => {
         const isCurrentUser = member.user_id === currentUser?.id;
         return (
@@ -157,8 +161,8 @@ export default function TeamPage() {
             )}
             <div>
               <p className="text-sm font-medium">
-                {member.user?.name || "Unknown"}
-                {isCurrentUser && <span className="text-muted-foreground font-normal ml-1">(you)</span>}
+                {member.user?.name || t("team.unknown")}
+                {isCurrentUser && <span className="text-muted-foreground font-normal ml-1">{t("team.you")}</span>}
               </p>
               <p className="text-xs text-muted-foreground">{member.user?.email || member.user_id}</p>
             </div>
@@ -167,19 +171,20 @@ export default function TeamPage() {
       },
     },
     {
-      header: "Role",
+      header: t("team.columns.role"),
       cell: (member) => {
-        const roleConfig = ROLE_CONFIG[member.role] || ROLE_CONFIG.staff;
+        const rk = roleKey(member.role);
+        const roleConfig = ROLE_CONFIG[rk];
         const isCurrentUser = member.user_id === currentUser?.id;
         return isCurrentUser ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge variant="outline" className={`${roleConfig.color} cursor-help`}>
-                {roleConfig.label}
+                {t(`team.roles.${rk}.label`)}
               </Badge>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p className="text-xs max-w-48">{roleConfig.description}</p>
+              <p className="text-xs max-w-48">{t(`team.roles.${rk}.description`)}</p>
             </TooltipContent>
           </Tooltip>
         ) : (
@@ -198,7 +203,7 @@ export default function TeamPage() {
                       <SelectItem key={key} value={key}>
                         <span className="flex items-center gap-1.5">
                           <cfg.icon className="size-3" />
-                          {cfg.label}
+                          {t(`team.roles.${key}.label`)}
                         </span>
                       </SelectItem>
                     ))}
@@ -207,14 +212,14 @@ export default function TeamPage() {
               </div>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p className="text-xs max-w-48">{roleConfig.description}</p>
+              <p className="text-xs max-w-48">{t(`team.roles.${rk}.description`)}</p>
             </TooltipContent>
           </Tooltip>
         );
       },
     },
     {
-      header: "Joined",
+      header: t("team.columns.joined"),
       cell: (member) => (
         <span className="text-sm text-muted-foreground">
           {formatDate(member.created_at)}
@@ -227,12 +232,12 @@ export default function TeamPage() {
     <TooltipProvider delayDuration={200}>
       <BaseLayout
         maxWidth="lg"
-        title="Team"
-        subtitle={`${members.length} member${members.length !== 1 ? "s" : ""}`}
+        title={t("team.title")}
+        subtitle={t("team.memberCount", { count: members.length })}
         action={
           <Button onClick={() => setDialogOpen(true)}>
             <UserPlusIcon className="size-4 mr-2" />
-            Invite Member
+            {t("team.inviteMember")}
           </Button>
         }
       >
@@ -245,11 +250,11 @@ export default function TeamPage() {
               ? []
               : [
                   {
-                    label: "Remove from team",
+                    label: t("team.removeFromTeam"),
                     icon: Trash2Icon,
                     variant: "destructive",
                     onClick: () =>
-                      handleRemove(member.user_id, member.user?.name || "this member"),
+                      handleRemove(member.user_id, member.user?.name || t("team.thisMember")),
                   },
                 ]
           }
@@ -267,18 +272,18 @@ export default function TeamPage() {
               setError(null);
             }
           }}
-          title="Invite team member"
-          subtitle="Search by email to add an existing Moovli user to your team."
+          title={t("team.invite.title")}
+          subtitle={t("team.invite.subtitle")}
           icon={UserPlusIcon}
           iconAccent="primary"
           footer={
             <>
               <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-                Cancel
+                {t("team.invite.cancel")}
               </Button>
               <Button onClick={handleAdd} disabled={adding || !selectedUser}>
                 <UserPlusIcon className="size-4 mr-1.5" />
-                {adding ? "Inviting…" : "Add to team"}
+                {adding ? t("team.invite.inviting") : t("team.invite.addToTeam")}
               </Button>
             </>
           }
@@ -288,19 +293,19 @@ export default function TeamPage() {
               <div className="relative">
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by email..."
+                  placeholder={t("team.invite.searchPlaceholder")}
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-9"
                 />
               </div>
 
-              {searching && <p className="text-sm text-muted-foreground text-center py-2">Searching...</p>}
+              {searching && <p className="text-sm text-muted-foreground text-center py-2">{t("team.invite.searching")}</p>}
 
               {!searching && searchQuery.length >= 3 && searchResults.length === 0 && !selectedUser && (
                 <div className="rounded-lg border border-dashed border-border p-4 text-center">
-                  <p className="text-sm text-muted-foreground">No users found for &quot;{searchQuery}&quot;</p>
-                  <p className="text-xs text-muted-foreground mt-1">They need a Moovli account first.</p>
+                  <p className="text-sm text-muted-foreground">{t("team.invite.noUsers", { query: searchQuery })}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t("team.invite.needAccount")}</p>
                 </div>
               )}
 
@@ -344,7 +349,7 @@ export default function TeamPage() {
                     </div>
                     <Button variant="ghost" size="sm" className="text-xs"
                       onClick={() => { setSelectedUser(null); setSearchQuery(""); }}>
-                      Change
+                      {t("team.invite.change")}
                     </Button>
                   </div>
                 </div>
@@ -352,7 +357,7 @@ export default function TeamPage() {
 
               {selectedUser && (
                 <div>
-                  <label className="text-sm font-medium">Role</label>
+                  <label className="text-sm font-medium">{t("team.invite.role")}</label>
                   <Select value={inviteRole} onValueChange={setInviteRole}>
                     <SelectTrigger className="mt-1.5">
                       <SelectValue />
@@ -362,8 +367,8 @@ export default function TeamPage() {
                         <SelectItem key={key} value={key}>
                           <span className="flex items-center gap-2">
                             <cfg.icon className="size-3.5" />
-                            {cfg.label}
-                            <span className="text-muted-foreground text-xs">— {cfg.description}</span>
+                            {t(`team.roles.${key}.label`)}
+                            <span className="text-muted-foreground text-xs">— {t(`team.roles.${key}.description`)}</span>
                           </span>
                         </SelectItem>
                       ))}

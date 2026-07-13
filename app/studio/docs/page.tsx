@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,64 +26,56 @@ import Link from "next/link";
 
 const TOPICS = [
   {
-    title: "Getting started",
-    description: "Quick-start guide for new studios — onboard, set up services, take your first booking.",
+    key: "gettingStarted",
     href: "/studio/onboarding",
     icon: PlayCircleIcon,
     accent: "primary" as const,
     badge: null,
   },
   {
-    title: "Services & pricing",
-    description: "How to structure services, set default capacity and price, and use categories.",
+    key: "servicesPricing",
     href: "/studio/services",
     icon: PackageIcon,
     accent: "violet" as const,
     badge: null,
   },
   {
-    title: "Scheduling sessions",
-    description: "Drag-to-create on the calendar, recurring sessions, per-channel allocation.",
+    key: "scheduling",
     href: "/studio/schedule",
     icon: CalendarIcon,
     accent: "emerald" as const,
     badge: null,
   },
   {
-    title: "Channels — Direct booking",
-    description: "Your public booking page: branding, link sharing, on/off control.",
+    key: "channelsDirect",
     href: "/studio/channels/direct",
     icon: GlobeIcon,
     accent: "emerald" as const,
     badge: null,
   },
   {
-    title: "Channels — Marketplace",
-    description: "Get discovered in the Moovli mobile app. Pricing breakdown + dynamic markup.",
+    key: "channelsMarketplace",
     href: "/studio/channels/marketplace",
     icon: ShoppingBagIcon,
     accent: "violet" as const,
     badge: null,
   },
   {
-    title: "Customers & CRM",
-    description: "How acquisition source is attributed, customer lifetime value, marketing consent.",
+    key: "customersCrm",
     href: "/studio/customers",
     icon: UsersIcon,
     accent: "amber" as const,
     badge: null,
   },
   {
-    title: "Billing & subscription",
-    description: "Plan switches, trial, payment method, invoices, cancellation.",
+    key: "billing",
     href: "/studio/billing",
     icon: CreditCardIcon,
     accent: "rose" as const,
     badge: null,
   },
   {
-    title: "Payouts",
-    description: "Bank details for receiving marketplace payouts. Verification flow.",
+    key: "payouts",
     href: "/studio/settings/payouts",
     icon: CoinsIcon,
     accent: "amber" as const,
@@ -91,41 +84,42 @@ const TOPICS = [
 ];
 
 export default function StudioDocsPage() {
+  const t = useTranslations("studioMain");
   return (
     <BaseLayout
       maxWidth="lg"
       icon={BookOpenIcon}
-      title="Help center"
-      subtitle="Guides, FAQs, and quick links to the most-asked questions. More long-form docs landing soon."
+      title={t("docs.title")}
+      subtitle={t("docs.subtitle")}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {TOPICS.map((t) => {
-          const Icon = t.icon;
+        {TOPICS.map((topic) => {
+          const Icon = topic.icon;
           return (
             <Link
-              key={t.href}
-              href={t.href}
+              key={topic.href}
+              href={topic.href}
               className="group rounded-xl border bg-card p-5 hover:border-primary/40 transition-all"
             >
               <div className="flex items-start gap-3">
                 <div
-                  className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${ACCENT_CLASS[t.accent]}`}
+                  className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${ACCENT_CLASS[topic.accent]}`}
                 >
                   <Icon className="size-4" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-sm group-hover:text-primary transition-colors">
-                      {t.title}
+                      {t(`docs.topics.${topic.key}.title`)}
                     </h3>
-                    {t.badge && (
+                    {topic.badge && (
                       <Badge variant="outline" className="text-[10px]">
-                        {t.badge}
+                        {topic.badge}
                       </Badge>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    {t.description}
+                    {t(`docs.topics.${topic.key}.description`)}
                   </p>
                 </div>
                 <ArrowRightIcon className="size-3.5 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
@@ -141,9 +135,9 @@ export default function StudioDocsPage() {
           <LifeBuoyIcon className="size-5" />
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold">Still stuck?</h3>
+          <h3 className="font-semibold">{t("docs.stillStuck")}</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Our team is here to help. Reach out and we&apos;ll get back to you within a business day.
+            {t("docs.stillStuckDesc")}
           </p>
           <div className="flex flex-wrap gap-2 mt-3">
             <Button variant="outline" size="sm" asChild>

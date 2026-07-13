@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { ProfilePanel } from "./ProfilePanel";
 import { PoliciesPanel } from "./PoliciesPanel";
@@ -10,11 +11,11 @@ import type { OnboardingData } from "../_lib/useOnboarding";
 
 export type StudioTab = "profile" | "policies" | "services" | "team";
 
-export const STUDIO_TABS: { key: StudioTab; label: string }[] = [
-  { key: "profile", label: "Profile" },
-  { key: "policies", label: "Policies" },
-  { key: "services", label: "Services" },
-  { key: "team", label: "Team" },
+export const STUDIO_TABS: { key: StudioTab }[] = [
+  { key: "profile" },
+  { key: "policies" },
+  { key: "services" },
+  { key: "team" },
 ];
 
 function isTabComplete(tab: StudioTab, data: OnboardingData): boolean {
@@ -39,7 +40,8 @@ export function StudioStage({
   activeTab: StudioTab;
   onTabChange: (tab: StudioTab) => void;
 }) {
-  const activeIndex = STUDIO_TABS.findIndex((t) => t.key === activeTab);
+  const t = useTranslations("onboarding");
+  const activeIndex = STUDIO_TABS.findIndex((tab) => tab.key === activeTab);
 
   return (
     <div>
@@ -72,7 +74,7 @@ export function StudioStage({
               >
                 {done ? <CheckIcon className="size-3" /> : idx + 1}
               </span>
-              {tab.label}
+              {t(`stepper.tabs.${tab.key}`)}
             </button>
           );
         })}

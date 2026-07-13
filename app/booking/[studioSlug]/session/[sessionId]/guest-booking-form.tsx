@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatMoneyWhole } from "@/lib/money";
 import { CheckCircleIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 interface Props {
@@ -26,6 +27,7 @@ export function GuestBookingForm({
   priceMad,
   currency,
 }: Props) {
+  const t = useTranslations("booking");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -55,13 +57,13 @@ export function GuestBookingForm({
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        setError(json.message || "Booking failed. Please try again.");
+        setError(json.message || t("guestForm.bookingFailed"));
         setSubmitting(false);
         return;
       }
       setConfirmation({ bookingId: json.data.bookingId });
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("guestForm.networkError"));
       setSubmitting(false);
     }
   };
@@ -70,13 +72,16 @@ export function GuestBookingForm({
     return (
       <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-6 text-center space-y-3">
         <CheckCircleIcon className="size-12 text-emerald-600 mx-auto" />
-        <h2 className="text-lg font-semibold">Reservation received</h2>
+        <h2 className="text-lg font-semibold">{t("guestForm.confirmationTitle")}</h2>
         <p className="text-sm text-muted-foreground">
-          The studio will confirm your booking by email shortly.
-          You'll pay <strong className="text-foreground">{formatMoneyWhole(priceMad, currency)}</strong> at the studio.
+          {t.rich("guestForm.confirmationBody", {
+            price: formatMoneyWhole(priceMad, currency),
+            strong: (chunks) => <strong className="text-foreground">{chunks}</strong>,
+          })}
         </p>
         <p className="text-xs text-muted-foreground">
-          Reference: <code className="font-mono">{confirmation.bookingId.slice(0, 8)}</code>
+          {t("guestForm.reference")}{" "}
+          <code className="font-mono">{confirmation.bookingId.slice(0, 8)}</code>
         </p>
       </div>
     );
@@ -85,56 +90,56 @@ export function GuestBookingForm({
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border p-6 space-y-4">
       <div>
-        <h2 className="text-lg font-semibold">Reserve your spot</h2>
+        <h2 className="text-lg font-semibold">{t("guestForm.title")}</h2>
         <p className="text-xs text-muted-foreground mt-1">
-          The studio will confirm your reservation by email. Pay {formatMoneyWhole(priceMad, currency)} at the studio.
+          {t("guestForm.subtitle", { price: formatMoneyWhole(priceMad, currency) })}
         </p>
       </div>
 
       <div className="space-y-3">
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Your name *</label>
+          <label className="text-xs font-medium text-muted-foreground">{t("guestForm.nameLabel")}</label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
             minLength={2}
             className="mt-1"
-            placeholder="Karima Tazi"
+            placeholder={t("guestForm.namePlaceholder")}
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Email *</label>
+          <label className="text-xs font-medium text-muted-foreground">{t("guestForm.emailLabel")}</label>
           <Input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             className="mt-1"
-            placeholder="you@example.com"
+            placeholder={t("guestForm.emailPlaceholder")}
           />
         </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground">
-            Phone <span className="text-[10px]">(optional)</span>
+            {t("guestForm.phoneLabel")} <span className="text-[10px]">{t("guestForm.optional")}</span>
           </label>
           <Input
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className="mt-1"
-            placeholder="+212 6 12 34 56 78"
+            placeholder={t("guestForm.phonePlaceholder")}
           />
         </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground">
-            Notes <span className="text-[10px]">(optional)</span>
+            {t("guestForm.notesLabel")} <span className="text-[10px]">{t("guestForm.optional")}</span>
           </label>
           <Input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="mt-1"
-            placeholder="First time, beginner level…"
+            placeholder={t("guestForm.notesPlaceholder")}
           />
         </div>
       </div>
@@ -146,11 +151,13 @@ export function GuestBookingForm({
       )}
 
       <Button type="submit" disabled={submitting || !name || !email} className="w-full">
-        {submitting ? "Reserving…" : `Reserve · ${formatMoneyWhole(priceMad, currency)} at studio`}
+        {submitting
+          ? t("guestForm.reserving")
+          : t("guestForm.reserveCta", { price: formatMoneyWhole(priceMad, currency) })}
       </Button>
 
       <p className="text-[10px] text-muted-foreground text-center">
-        By reserving, you agree to Moovli's terms.
+        {t("guestForm.terms")}
       </p>
     </form>
   );

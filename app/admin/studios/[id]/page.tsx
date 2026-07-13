@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { adminApi } from "@/lib/api/admin";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { InfoTip } from "@/components/ui/info-tip";
 import { ArrowLeftIcon } from "lucide-react";
 import {
   Select,
@@ -18,6 +20,7 @@ import {
 const STATUSES = ["draft", "pending_review", "active", "suspended", "inactive"];
 
 export default function StudioDetailPage() {
+  const t = useTranslations("admin");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [entity, setEntity] = useState<any>(null);
@@ -78,7 +81,7 @@ export default function StudioDetailPage() {
   }
 
   if (!entity) {
-    return <p className="text-muted-foreground">Entity not found.</p>;
+    return <p className="text-muted-foreground">{t("studioDetail.notFound")}</p>;
   }
 
   return (
@@ -93,32 +96,32 @@ export default function StudioDetailPage() {
 
       {/* Profile Info */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Entity Details</h2>
+        <h2 className="text-lg font-semibold">{t("studioDetail.entityDetails")}</h2>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-muted-foreground">City</p>
-            <p className="font-medium">{entity.city || "N/A"}</p>
+            <p className="text-muted-foreground">{t("studioDetail.city")}</p>
+            <p className="font-medium">{entity.city || t("studioDetail.na")}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Email</p>
-            <p className="font-medium">{entity.email || "N/A"}</p>
+            <p className="text-muted-foreground">{t("studioDetail.email")}</p>
+            <p className="font-medium">{entity.email || t("studioDetail.na")}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Phone</p>
-            <p className="font-medium">{entity.phone || "N/A"}</p>
+            <p className="text-muted-foreground">{t("studioDetail.phone")}</p>
+            <p className="font-medium">{entity.phone || t("studioDetail.na")}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Partnership</p>
+            <p className="text-muted-foreground">{t("studioDetail.partnership")}</p>
             <p className="font-medium">
-              {entity.is_partner ? entity.partnership_tier : "Not a partner"}
+              {entity.is_partner ? entity.partnership_tier : t("studioDetail.notPartner")}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground">Rating</p>
-            <p className="font-medium">{entity.platform_rating ?? "N/A"}</p>
+            <p className="text-muted-foreground">{t("studioDetail.rating")}</p>
+            <p className="font-medium">{entity.platform_rating ?? t("studioDetail.na")}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Reviews</p>
+            <p className="text-muted-foreground">{t("studioDetail.reviews")}</p>
             <p className="font-medium">{entity.total_reviews}</p>
           </div>
         </div>
@@ -126,7 +129,7 @@ export default function StudioDetailPage() {
 
       {/* Status Management */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Change Status</h2>
+        <h2 className="text-lg font-semibold">{t("studioDetail.changeStatus")}</h2>
         <div className="flex gap-3 items-center">
           <Select value={entity.status} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-[200px]">
@@ -135,24 +138,27 @@ export default function StudioDetailPage() {
             <SelectContent>
               {STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
-                  {s.replace("_", " ")}
+                  {t(`studioDetail.statuses.${s}`)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {saving && <span className="text-sm text-muted-foreground">Saving...</span>}
+          {saving && <span className="text-sm text-muted-foreground">{t("studioDetail.saving")}</span>}
         </div>
       </div>
 
       {/* Assign Owner */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Assign Owner</h2>
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-lg font-semibold">{t("studioDetail.assignOwner")}</h2>
+          <InfoTip term="team" />
+        </div>
         <p className="text-sm text-muted-foreground">
-          Enter the user ID to assign as owner/manager/staff of this entity.
+          {t("studioDetail.assignOwnerHint")}
         </p>
         <div className="flex gap-3">
           <Input
-            placeholder="User ID"
+            placeholder={t("studioDetail.userIdPlaceholder")}
             value={ownerEmail}
             onChange={(e) => setOwnerEmail(e.target.value)}
             className="flex-1"
@@ -162,13 +168,13 @@ export default function StudioDetailPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="owner">Owner</SelectItem>
-              <SelectItem value="manager">Manager</SelectItem>
-              <SelectItem value="staff">Staff</SelectItem>
+              <SelectItem value="owner">{t("studioDetail.roleOwner")}</SelectItem>
+              <SelectItem value="manager">{t("studioDetail.roleManager")}</SelectItem>
+              <SelectItem value="staff">{t("studioDetail.roleStaff")}</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={handleAssignOwner} disabled={saving || !ownerEmail}>
-            Assign
+            {t("studioDetail.assign")}
           </Button>
         </div>
       </div>

@@ -12,6 +12,7 @@ import { formatMoneyWhole } from "@/lib/money";
 import { formatDateFull, formatTimeRange } from "@/lib/datetime";
 import { ArrowUpRightIcon, CalendarIcon, ClockIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { GuestBookingForm } from "./session/[sessionId]/guest-booking-form";
 
 export interface BookingSheetSession {
@@ -48,6 +49,7 @@ export function BookingSheet({
   currency,
 }: Props) {
   const isMobile = useIsMobile();
+  const t = useTranslations("booking");
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -60,11 +62,11 @@ export function BookingSheet({
         }
       >
         {!session ? (
-          <div className="p-6 text-sm text-muted-foreground">No session selected.</div>
+          <div className="p-6 text-sm text-muted-foreground">{t("sheet.noSessionSelected")}</div>
         ) : (
           <>
             <SheetHeader className="space-y-1.5">
-              <SheetTitle className="text-xl">{session.service?.name ?? "Session"}</SheetTitle>
+              <SheetTitle className="text-xl">{session.service?.name ?? t("session.fallbackName")}</SheetTitle>
               <SheetDescription className="space-y-1">
                 <span className="flex items-center gap-1.5 text-sm">
                   <CalendarIcon className="size-3.5" />
@@ -83,19 +85,22 @@ export function BookingSheet({
                 {session.provider?.name && (
                   <span className="flex items-center gap-1.5 text-sm">
                     <span className="inline-block size-1 rounded-full bg-current opacity-50" />
-                    with {session.provider.name}
+                    {t("session.withInstructor", { name: session.provider.name })}
                   </span>
                 )}
                 <span className="flex items-center gap-1.5 text-sm">
                   <UsersIcon className="size-3.5" />
-                  {session.capacity - session.booked_count} of {session.capacity} spots remaining
+                  {t("session.spotsRemaining", {
+                    left: session.capacity - session.booked_count,
+                    capacity: session.capacity,
+                  })}
                 </span>
               </SheetDescription>
             </SheetHeader>
 
             <div className="px-4">
               <div className="border-y py-4 my-4 flex items-baseline justify-between">
-                <span className="text-sm text-muted-foreground">Price</span>
+                <span className="text-sm text-muted-foreground">{t("session.price")}</span>
                 <div className="text-right">
                   <div
                     className="text-2xl font-bold leading-none"
@@ -103,7 +108,7 @@ export function BookingSheet({
                   >
                     {formatMoneyWhole(session.price_mad, currency)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-1">Pay at studio</div>
+                  <div className="text-[10px] text-muted-foreground mt-1">{t("session.payAtStudioShort")}</div>
                 </div>
               </div>
 
@@ -121,7 +126,7 @@ export function BookingSheet({
                 href={`/booking/${studioSlug}/session/${session.id}`}
                 className="mt-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
               >
-                Open full session page <ArrowUpRightIcon className="size-3" />
+                {t("sheet.openFullPage")} <ArrowUpRightIcon className="size-3" />
               </Link>
             </div>
           </>

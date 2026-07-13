@@ -1,0 +1,1659 @@
+{
+  "common": {
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "discard": "Discard",
+    "edit": "Edit",
+    "delete": "Delete",
+    "remove": "Remove",
+    "add": "Add",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "search": "Search",
+    "loading": "Loading...",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None",
+    "all": "All",
+    "actions": "Actions",
+    "status": "Status",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "error": "Something went wrong",
+    "success": "Saved",
+    "retry": "Retry"
+  },
+  "nav": {
+    "editing": "Editing",
+    "unsavedChanges": "— unsaved changes",
+    "myAccount": "My Account",
+    "signOut": "Sign Out",
+    "language": "Language",
+    "notifications": "Notifications",
+    "switchRole": "Switch Role",
+    "statusActive": "Active",
+    "statusOff": "Off",
+    "statusLocked": "Plan upgrade required",
+    "crumbs": {
+      "admin": "Admin",
+      "studio": "Studio",
+      "instructor": "Instructor",
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "studios": "Studios",
+      "bookings": "Bookings",
+      "analytics": "Analytics",
+      "schedule": "Schedule",
+      "pricing": "Pricing",
+      "instructors": "Instructors",
+      "insights": "Insights",
+      "team": "Team",
+      "settings": "Settings",
+      "profile": "Profile",
+      "sessions": "Sessions",
+      "general": "General",
+      "branding": "Branding",
+      "hours": "Hours",
+      "policies": "Policies",
+      "payouts": "Payouts",
+      "account": "Account",
+      "services": "Services",
+      "channels": "Channels",
+      "marketplace": "Marketplace",
+      "direct": "Direct",
+      "customers": "Customers",
+      "billing": "Billing",
+      "docs": "Docs",
+      "onboarding": "Onboarding"
+    }
+  },
+  "account": {
+    "title": "My Account",
+    "loadFailed": "Failed to load profile.",
+    "dismiss": "Dismiss",
+    "changePhoto": "Change photo",
+    "admin": "Admin",
+    "studioRole": "Studio {role}",
+    "joined": "Joined {date}",
+    "errors": {
+      "saveFailed": "Couldn't save your changes. Please try again.",
+      "avatarFailed": "Couldn't upload your photo. Please try again.",
+      "passwordShort": "Password must be at least 8 characters.",
+      "passwordMismatch": "Passwords don't match.",
+      "passwordFailed": "Couldn't update your password. Please try again."
+    },
+    "personalInfo": "Personal Information",
+    "fullName": "Full Name",
+    "emailCannotChange": "Email cannot be changed here",
+    "dateOfBirth": "Date of Birth",
+    "gender": "Gender",
+    "selectPlaceholder": "Select",
+    "genderMale": "Male",
+    "genderFemale": "Female",
+    "genderUnspecified": "Prefer not to say",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell us a little about yourself",
+    "location": "Location",
+    "city": "City",
+    "region": "Region",
+    "country": "Country",
+    "countryMA": "Morocco",
+    "countryFR": "France",
+    "countryUS": "United States",
+    "language": "Language",
+    "security": "Security",
+    "newPassword": "New password",
+    "newPasswordPlaceholder": "At least 8 characters",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Re-enter new password",
+    "updatePassword": "Update password",
+    "updating": "Updating…",
+    "passwordUpdated": "Password updated"
+  },
+  "glossary": {
+    "studio": {
+      "term": "Studio",
+      "tip": "Your business (gym, yoga/pilates studio, etc.) selling sessions on Moovli."
+    },
+    "moovliPro": {
+      "term": "Moovli Pro",
+      "tip": "The dashboard where you manage your schedule and bookings."
+    },
+    "marketplace": {
+      "term": "Marketplace (channel)",
+      "tip": "Where your classes appear in the Moovli app. To list here, you sell classes at a discount."
+    },
+    "direct": {
+      "term": "Direct (booking page)",
+      "tip": "Your own booking page, shared by you. No commission, paid on-site."
+    },
+    "channel": {
+      "term": "Channel",
+      "tip": "How a session is sold: Marketplace or Direct. A session can be on both at once."
+    },
+    "commission": {
+      "term": "Commission (discount)",
+      "tip": "The minimum % (20%) you agree to give up on your normal price to sell on the Marketplace."
+    },
+    "fixedRate": {
+      "term": "Fixed rate",
+      "tip": "Your negotiated discount % stays stable over time — it won't change without your agreement."
+    },
+    "reconciliation": {
+      "term": "Reconciliation",
+      "tip": "A cross-check of your bookings before each payout, to catch any discrepancy."
+    },
+    "checkin": {
+      "term": "Check-in (QR)",
+      "tip": "Scanning a customer's QR code on arrival to confirm they showed up."
+    },
+    "payout": {
+      "term": "Payout",
+      "tip": "The transfer of your Marketplace earnings to your bank account."
+    },
+    "wallet": {
+      "term": "Wallet",
+      "tip": "Your Marketplace earnings balance, waiting to be paid out."
+    },
+    "payzone": {
+      "term": "Payzone",
+      "tip": "The provider that collects online payments for Moovli."
+    },
+    "service": {
+      "term": "Service",
+      "tip": "A class type (e.g. Yoga) with a default duration, capacity, and price."
+    },
+    "session": {
+      "term": "Session",
+      "tip": "A specific, dated occurrence of a service that customers can book."
+    },
+    "sessionStatus": {
+      "term": "Session status",
+      "tip": "A session's state: draft, upcoming, in progress, or completed."
+    },
+    "capacity": {
+      "term": "Capacity",
+      "tip": "The maximum number of spots available for a session."
+    },
+    "buffer": {
+      "term": "Buffer",
+      "tip": "The gap time you reserve before and/or after a session."
+    },
+    "booking": {
+      "term": "Booking",
+      "tip": "A spot taken by a customer for a session, via Marketplace or Direct."
+    },
+    "pendingBooking": {
+      "term": "Pending booking",
+      "tip": "A Direct booking you need to confirm yourself to lock in the spot."
+    },
+    "noShow": {
+      "term": "No-show",
+      "tip": "A customer who booked but didn't show up, without cancelling."
+    },
+    "customer": {
+      "term": "Customer",
+      "tip": "Anyone who has booked with you at least once."
+    },
+    "lifetimeValue": {
+      "term": "Lifetime value",
+      "tip": "The total a customer has spent with you since their first booking."
+    },
+    "instructor": {
+      "term": "Instructor",
+      "tip": "The teacher or coach assigned to a session."
+    },
+    "bookingPolicies": {
+      "term": "Booking policies",
+      "tip": "Your rules for cancellations, late fees, and booking cutoffs."
+    },
+    "freeCancellationWindow": {
+      "term": "Free cancellation window",
+      "tip": "The cutoff before a session below which cancellations aren't fully refunded."
+    },
+    "moovliProSubscription": {
+      "term": "Moovli Pro subscription",
+      "tip": "Your monthly plan to use the dashboard (Standard or Marketplace)."
+    },
+    "endCustomerSubscription": {
+      "term": "End-customer subscription",
+      "tip": "The subscription your customers pay to access the Marketplace."
+    },
+    "bookingWidget": {
+      "term": "Booking widget",
+      "tip": "A booking module you can embed on your own website."
+    },
+    "team": {
+      "term": "Team",
+      "tip": "Your team's accounts with dashboard access."
+    },
+    "analytics": {
+      "term": "Analytics",
+      "tip": "Your stats: bookings, cancellations, channel split."
+    }
+  },
+  "admin": {
+    "sidebar": {
+      "title": "Admin",
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "studios": "Studios",
+      "instructors": "Instructors",
+      "bookings": "Bookings",
+      "analytics": "Analytics",
+      "policies": "Policies",
+      "settings": "Settings"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "totalUsers": "Total Users",
+      "totalUsersDesc": "All registered users",
+      "activeStudios": "Active Studios",
+      "activeStudiosDesc": "Active entities on platform",
+      "bookingsThisWeek": "Bookings This Week",
+      "bookingsThisWeekDesc": "Last 7 days",
+      "creditsEarned": "Credits Earned",
+      "creditsEarnedDesc": "Last 30 days"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "totalUsers": "Total Users",
+      "totalBookings": "Total Bookings",
+      "activeStudios": "Active Studios",
+      "creditsEarned": "Credits Earned",
+      "bookingTrends": "Booking Trends (Last 30 Days)",
+      "noBookingData": "No booking data available.",
+      "topStudios": "Top Studios",
+      "noData": "No data available.",
+      "bookingsCount": "{count} bookings"
+    },
+    "bookings": {
+      "title": "Bookings",
+      "totalCount": "{count} total",
+      "studio": "Studio",
+      "service": "Service",
+      "credits": "Credits",
+      "sessionTime": "Session Time",
+      "booked": "Booked",
+      "na": "N/A",
+      "allStatuses": "All statuses",
+      "statusConfirmed": "Confirmed",
+      "statusPending": "Pending",
+      "statusCancelled": "Cancelled",
+      "statusCompleted": "Completed",
+      "statusNoShow": "No show"
+    },
+    "instructors": {
+      "title": "Instructors",
+      "totalCount": "{count} total",
+      "instructor": "Instructor",
+      "studio": "Studio",
+      "skills": "Skills",
+      "tier": "Tier",
+      "rating": "Rating",
+      "account": "Account",
+      "accountLinked": "Account",
+      "accountExternal": "External",
+      "active": "Active",
+      "inactive": "Inactive",
+      "searchPlaceholder": "Search by name or email..."
+    },
+    "policies": {
+      "title": "Policies",
+      "subtitle": "Tune platform-wide knobs without a deploy. Changes take effect within a minute (60s service cache).",
+      "loading": "Loading policies…",
+      "public": "Public",
+      "lastUpdated": "Last updated {date}",
+      "saved": "Saved",
+      "invalidNumber": "Not a valid number",
+      "invalidJson": "Not valid JSON",
+      "category": {
+        "credits": {
+          "label": "Credits",
+          "description": "How credits convert to currency and how long they last."
+        },
+        "pricing": {
+          "label": "Pricing",
+          "description": "Bounds on the dynamic marketplace markup."
+        },
+        "subscriptions": {
+          "label": "Subscriptions",
+          "description": "Trial duration, grace periods, plan defaults."
+        },
+        "bookings": {
+          "label": "Bookings",
+          "description": "Default windows and rules used when a service doesn't specify its own."
+        },
+        "general": {
+          "label": "General",
+          "description": "Platform-wide defaults like currency."
+        }
+      }
+    },
+    "studios": {
+      "title": "Studios",
+      "totalCount": "{count} total",
+      "city": "City",
+      "partner": "Partner",
+      "reviews": "Reviews",
+      "searchPlaceholder": "Search by name or city...",
+      "allStatuses": "All statuses",
+      "statusActive": "Active",
+      "statusDraft": "Draft",
+      "statusPendingReview": "Pending review",
+      "statusSuspended": "Suspended",
+      "statusInactive": "Inactive",
+      "viewStudio": "View studio",
+      "openDashboard": "Open dashboard (as studio)"
+    },
+    "studioDetail": {
+      "notFound": "Entity not found.",
+      "entityDetails": "Entity Details",
+      "city": "City",
+      "email": "Email",
+      "phone": "Phone",
+      "partnership": "Partnership",
+      "notPartner": "Not a partner",
+      "rating": "Rating",
+      "reviews": "Reviews",
+      "na": "N/A",
+      "changeStatus": "Change Status",
+      "saving": "Saving...",
+      "statuses": {
+        "draft": "draft",
+        "pending_review": "pending review",
+        "active": "active",
+        "suspended": "suspended",
+        "inactive": "inactive"
+      },
+      "assignOwner": "Assign Owner",
+      "assignOwnerHint": "Enter the user ID to assign as owner/manager/staff of this entity.",
+      "userIdPlaceholder": "User ID",
+      "roleOwner": "Owner",
+      "roleManager": "Manager",
+      "roleStaff": "Staff",
+      "assign": "Assign"
+    },
+    "users": {
+      "title": "Users",
+      "totalCount": "{count} total",
+      "credits": "Credits",
+      "joined": "Joined",
+      "searchPlaceholder": "Search by name or email...",
+      "allStatuses": "All statuses",
+      "statusActive": "Active",
+      "statusSuspended": "Suspended",
+      "statusPendingVerification": "Pending verification",
+      "viewProfile": "View profile"
+    },
+    "userDetail": {
+      "notFound": "User not found.",
+      "adminBadge": "Admin",
+      "profile": "Profile",
+      "email": "Email",
+      "phone": "Phone",
+      "city": "City",
+      "joined": "Joined",
+      "creditBalance": "Credit Balance",
+      "totalPurchased": "Total Purchased",
+      "na": "N/A",
+      "entityRoles": "Entity Roles",
+      "instructorProfiles": "Instructor Profiles",
+      "providerEntity": "Provider ID: {providerId} — Entity: {entity}",
+      "actions": "Actions",
+      "suspendUser": "Suspend User",
+      "activateUser": "Activate User",
+      "revokeAdmin": "Revoke Admin",
+      "grantAdmin": "Grant Admin"
+    }
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signingIn": "Signing in...",
+    "signOut": "Sign Out",
+    "loading": "Loading...",
+    "welcomeBack": "Welcome back",
+    "loginHeading": "Welcome back",
+    "dashboard": "Dashboard",
+    "signInSubtitle": "Sign in to access your dashboard",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "forgotPasswordLink": "Forgot password?",
+    "orContinueWith": "or continue with",
+    "continueWithGoogle": "Continue with Google",
+    "heroHeading": "Everything you need to<br></br>manage your studio",
+    "marketplaceTagline": "moovli.app — Fitness & wellness marketplace",
+    "legalNotice": "By signing in, you agree to the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>",
+    "chooseDashboard": "{email} — choose a dashboard",
+    "features": {
+      "studioManagement": {
+        "title": "Studio Management",
+        "desc": "Manage sessions, pricing, and your team"
+      },
+      "bookingOverview": {
+        "title": "Booking Overview",
+        "desc": "Track bookings and check-in attendees"
+      },
+      "teamCollaboration": {
+        "title": "Team Collaboration",
+        "desc": "Invite managers, staff, and instructors"
+      },
+      "insightsAnalytics": {
+        "title": "Insights & Analytics",
+        "desc": "Monitor performance and growth trends"
+      }
+    },
+    "roles": {
+      "admin": {
+        "title": "Admin Panel",
+        "description": "Manage users, studios, bookings, and platform analytics"
+      },
+      "studio": {
+        "title": "Studio Dashboard",
+        "description": "Manage {count, plural, one {# studio} other {# studios}} — sessions, bookings, team"
+      },
+      "instructor": {
+        "title": "Instructor Portal",
+        "description": "View your schedule, manage attendees, check in students"
+      }
+    },
+    "noAccess": {
+      "title": "No Dashboard Access",
+      "description": "The account <strong>{email}</strong> does not have access to any Moovli dashboard. You need to be assigned as a studio owner, manager, staff member, or instructor.",
+      "contact": "Contact your studio owner or the Moovli support team to get access."
+    },
+    "forgotPassword": {
+      "comingSoon": "Coming Soon",
+      "underConstruction": "This page is under construction."
+    }
+  },
+  "booking": {
+    "page": {
+      "metaTitle": "Book a session — Moovli",
+      "metaDescription": "Book your studio session in just a few clicks.",
+      "poweredBy": "Powered by",
+      "studioCollectsPayment": "Studio collects payment"
+    },
+    "sheet": {
+      "noSessionSelected": "No session selected.",
+      "openFullPage": "Open full session page"
+    },
+    "view": {
+      "searchPlaceholder": "Search by class, instructor, day…",
+      "sessionCount": "{count, plural, one {# session} other {# sessions}}",
+      "pickDate": "Pick a date",
+      "dateChips": {
+        "all": "All",
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "week": "This week"
+      },
+      "allServices": "All services",
+      "allInstructors": "All instructors",
+      "timeAny": "Any time",
+      "timeMorning": "Morning",
+      "timeAfternoon": "Afternoon",
+      "timeEvening": "Evening",
+      "availableOnly": "Available only",
+      "clearFilters": "Clear filters",
+      "list": "List",
+      "week": "Week",
+      "today": "Today",
+      "previousWeek": "Previous week",
+      "nextWeek": "Next week",
+      "emptyState": "No upcoming sessions match your filters."
+    },
+    "session": {
+      "fallbackName": "Session",
+      "withInstructor": "with {name}",
+      "spotsRemaining": "{left} of {capacity} spots remaining",
+      "spotsRemainingLabel": "Spots remaining",
+      "price": "Price",
+      "payAtStudioShort": "Pay at studio",
+      "payAtStudio": "Pay at the studio",
+      "atStudio": "at studio",
+      "durationMin": "{minutes} min",
+      "full": "Full",
+      "book": "Book",
+      "backToAll": "Back to all sessions",
+      "dateLabel": "Date",
+      "timeLabel": "Time",
+      "instructorLabel": "Instructor",
+      "locationLabel": "Location",
+      "fullyBooked": "This session is fully booked.",
+      "alreadyStarted": "This session has already started."
+    },
+    "guestForm": {
+      "title": "Reserve your spot",
+      "subtitle": "The studio will confirm your reservation by email. Pay {price} at the studio.",
+      "nameLabel": "Your name *",
+      "namePlaceholder": "Karima Tazi",
+      "emailLabel": "Email *",
+      "emailPlaceholder": "you@example.com",
+      "phoneLabel": "Phone",
+      "phonePlaceholder": "+212 6 12 34 56 78",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "First time, beginner level…",
+      "optional": "(optional)",
+      "reserving": "Reserving…",
+      "reserveCta": "Reserve · {price} at studio",
+      "terms": "By reserving, you agree to Moovli's terms.",
+      "bookingFailed": "Booking failed. Please try again.",
+      "networkError": "Network error. Please try again.",
+      "confirmationTitle": "Reservation received",
+      "confirmationBody": "The studio will confirm your booking by email shortly. You'll pay <strong>{price}</strong> at the studio.",
+      "reference": "Reference:"
+    },
+    "embed": {
+      "metaTitle": "Moovli embed",
+      "noSessions": "No sessions in the next 14 days.",
+      "bookArrow": "Book →"
+    }
+  },
+  "instructor": {
+    "sidebar": {
+      "title": "Instructor",
+      "dashboard": "Dashboard",
+      "schedule": "Schedule",
+      "profile": "Profile",
+      "settings": "Settings"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "myProfiles": "My Profiles",
+      "atStudio": "at {name}",
+      "upcomingSessions": "Upcoming Sessions ({count})",
+      "attendees": "Attendees",
+      "columns": {
+        "service": "Service",
+        "studio": "Studio",
+        "time": "Time",
+        "capacity": "Capacity"
+      }
+    },
+    "profile": {
+      "title": "My Profile",
+      "rating": "{rating} rating",
+      "studio": "Studio",
+      "totalSessions": "Total Sessions",
+      "totalReviews": "Total Reviews",
+      "editProfile": "Edit Profile",
+      "bio": "Bio",
+      "bioPlaceholder": "Tell students about yourself...",
+      "specializations": "Specializations (comma-separated)",
+      "specializationsPlaceholder": "Yoga, Pilates, HIIT",
+      "saveChanges": "Save Changes"
+    },
+    "schedule": {
+      "title": "My Schedule",
+      "summary": "Next 30 days — {count} sessions",
+      "empty": "No upcoming sessions.",
+      "minutes": "{minutes}min",
+      "sessionFallback": "Session",
+      "booked": "{booked}/{capacity} booked"
+    },
+    "session": {
+      "title": "Session Attendees",
+      "totalCount": "{count} total",
+      "confirmed": "Confirmed:",
+      "checkedIn": "Checked In:",
+      "empty": "No attendees for this session.",
+      "userLabel": "User {id}...",
+      "bookedOn": "Booked {date}",
+      "creditsCost": "{credits} credits",
+      "checkIn": "Check In"
+    }
+  },
+  "onboarding": {
+    "studioSetup": "Studio setup",
+    "setUpLater": "Set up later",
+    "common": {
+      "almostThere": "Almost there",
+      "continue": "Continue",
+      "skip": "Skip",
+      "saved": "Saved",
+      "finishing": "Finishing…"
+    },
+    "stepper": {
+      "studio": "Studio",
+      "planning": "Planning",
+      "publish": "Publish",
+      "tabs": {
+        "profile": "Profile",
+        "policies": "Policies",
+        "services": "Services",
+        "team": "Team"
+      }
+    },
+    "logoUpload": {
+      "logo": "Logo",
+      "browse": "browse",
+      "change": "Change",
+      "logoAlt": "Logo",
+      "errors": {
+        "notImage": "Please choose an image file.",
+        "unsupportedFile": "Unsupported file",
+        "tooLarge": "Image must be 8MB or smaller.",
+        "fileTooLarge": "File too large",
+        "uploadFailed": "Upload failed"
+      }
+    },
+    "profile": {
+      "title": "Tell us about your studio",
+      "subtitle": "This information appears on your public booking page.",
+      "studioName": "Studio name",
+      "studioNamePlaceholder": "e.g. FitZone",
+      "city": "City",
+      "cityPlaceholder": "e.g. Casablanca",
+      "description": "Description",
+      "descriptionPlaceholder": "One line to introduce your studio…",
+      "optional": "(optional)",
+      "brandColor": "Brand color",
+      "brandColorHelp": "Used for Book buttons, accents, and price highlights.",
+      "reset": "Reset",
+      "brandPresets": {
+        "moovliViolet": "Moovli violet",
+        "magenta": "Magenta",
+        "teal": "Teal",
+        "indigo": "Indigo",
+        "rose": "Rose",
+        "emerald": "Emerald",
+        "amber": "Amber",
+        "slate": "Slate"
+      }
+    },
+    "policies": {
+      "title": "Booking policies",
+      "subtitle": "Set your cancellation rules. They're shown to clients before every booking.",
+      "freeCancellationWindow": "Free cancellation window",
+      "bookingCloses": "Booking closes",
+      "defaultsNote": "These are studio-wide defaults — you can fine-tune them per service later in Settings.",
+      "cancelOptions": {
+        "none": "No free cancellation",
+        "h2": "2 hours before",
+        "h12": "12 hours before",
+        "h24": "24 hours before",
+        "h48": "48 hours before"
+      },
+      "cutoffOptions": {
+        "start": "Until start time",
+        "m30": "30 minutes before",
+        "h1": "1 hour before",
+        "h2": "2 hours before",
+        "d1": "1 day before"
+      }
+    },
+    "services": {
+      "title": "Your services",
+      "subtitle": "Add the classes or sessions you offer. You can add more later.",
+      "addService": "Add a service",
+      "emptyState": "Add at least one service to continue — tap a suggestion above to start.",
+      "editService": "Edit service",
+      "newService": "New service",
+      "formSubtitle": "What people book — a class, a session, a treatment.",
+      "updateService": "Update service",
+      "createService": "Create service",
+      "durationMin": "{minutes} min",
+      "spots": "{count, plural, one {# spot} other {# spots}}",
+      "quickAdd": {
+        "yoga": "Yoga",
+        "pilates": "Pilates",
+        "hiit": "HIIT",
+        "strength": "Strength",
+        "dance": "Dance",
+        "spa": "Spa & Wellness"
+      },
+      "errors": {
+        "fillFields": "Please fill in the name, duration, capacity and price."
+      }
+    },
+    "team": {
+      "title": "Your team",
+      "subtitle": "Add your instructors so you can assign them to classes. This step is optional.",
+      "inactive": "Inactive",
+      "instructor": "Instructor",
+      "addInstructor": "Add an instructor",
+      "editInstructor": "Edit instructor",
+      "updateInstructor": "Update instructor",
+      "editSubtitle": "Update this instructor's profile.",
+      "addSubtitle": "Add someone who teaches at your studio. Add an email to give them a login.",
+      "errors": {
+        "nameRequired": "Please enter the instructor's name."
+      }
+    },
+    "planning": {
+      "title": "Plan your classes",
+      "subtitle": "Here's a starter schedule based on your services — adjust times, move, or remove classes freely.",
+      "classesThisWeek": "<strong>{count}</strong> {count, plural, one {class} other {classes}} this week",
+      "addClass": "Add class",
+      "noServices": "Add a service first (Studio → Services) to schedule classes.",
+      "noClass": "No class",
+      "noInstructor": "No instructor",
+      "spots": "{count, plural, one {# spot} other {# spots}}",
+      "add": "Add",
+      "days": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      },
+      "editor": {
+        "title": "Class details",
+        "service": "Service",
+        "day": "Day",
+        "startTime": "Start time",
+        "instructor": "Instructor",
+        "capacity": "Capacity",
+        "price": "Price ({currency})",
+        "repeatWeekly": "Repeat weekly",
+        "repeatWeeklyHint": "Creates this class every week for the next 8 weeks.",
+        "remove": "Remove",
+        "done": "Done"
+      }
+    },
+    "publish": {
+      "title": "Your booking page is ready",
+      "subtitle": "Personalize your link and share it with your clients.",
+      "finishSetup": "Finish setup",
+      "bookingLink": "Booking link",
+      "yourStudio": "Your studio",
+      "copyLink": "Copy link",
+      "shareWhatsApp": "Share on WhatsApp",
+      "addToInstagram": "Add to Instagram bio",
+      "whatsappText": "Book with us: {url}",
+      "linkFinalizeNote": "Your booking link will be finalized when you finish setup — pick a plan below first to customize it now.",
+      "slug": {
+        "available": "Available",
+        "taken": "Taken",
+        "invalid": "Use 2–40 letters, numbers, hyphens"
+      },
+      "plans": {
+        "heading": "How do your clients pay?",
+        "description": "Choose how payment is collected for bookings. Start with a 14-day free trial — no card required during the trial.",
+        "currentNotice": "You're on the <strong>{plan}</strong> plan. You can change it anytime from Billing.",
+        "mostPopular": "Most popular",
+        "perMonth": "/month",
+        "freeTrial": "14-day free trial",
+        "currentPlan": "Current plan",
+        "redirecting": "Redirecting…",
+        "startTrial": "Start {plan} trial",
+        "standard": {
+          "title": "Pay at the studio",
+          "note": "Clients book online and pay on-site, in cash or by card.",
+          "features": {
+            "bookingPage": "Public booking page",
+            "branding": "Custom branding",
+            "reservations": "Reservation-based bookings",
+            "crm": "Studio CRM"
+          }
+        },
+        "marketplace": {
+          "title": "Pay online via Moovli",
+          "note": "Clients pay at booking time; you're listed in the Moovli app.",
+          "features": {
+            "everything": "Everything in Standard",
+            "listed": "Listed in the Moovli app",
+            "payments": "Online payments + payouts",
+            "discovery": "Customer discovery"
+          }
+        }
+      },
+      "payout": {
+        "title": "Where should we send your payouts?",
+        "subtitle": "Needed for online (marketplace) bookings. You can also add this later in Settings.",
+        "accountHolder": "Account holder",
+        "iban": "IBAN",
+        "bankName": "Bank name",
+        "save": "Save payout details",
+        "errors": {
+          "holderRequired": "Account holder is required."
+        }
+      }
+    }
+  },
+  "shared": {
+    "dataTable": {
+      "noResults": "No results found.",
+      "pagination": "Page {page} of {total} ({count} total)",
+      "rowActions": "Row actions"
+    },
+    "dialogs": {
+      "defaultTitle": {
+        "info": "Heads up",
+        "error": "Something went wrong",
+        "success": "Done"
+      },
+      "confirmTitle": "Are you sure?",
+      "ok": "OK"
+    },
+    "formLayout": {
+      "editing": "Editing {title}",
+      "notSet": "Not set"
+    },
+    "loader": {
+      "label": "Loading…"
+    }
+  },
+  "studioChannels": {
+    "direct": {
+      "title": "Direct booking page",
+      "subtitle": "Customize your studio's public hosted page.",
+      "active": "Active",
+      "off": "Off",
+      "live": "Live",
+      "planRequired": "Plan required",
+      "toggleAria": "Toggle direct booking page",
+      "noAccess": "No studio access found.",
+      "yourPage": "Your page",
+      "preview": "Preview",
+      "pageHelpLive": "Your page is visible to anyone with this link. Bookings show up in your Bookings inbox as pending — confirm to lock in the seat.",
+      "pageHelpConfiguredOff": "Your page is configured but the channel is currently off.",
+      "pageHelpPreview": "Preview your page, then publish to make it live.",
+      "publishing": "Publishing…",
+      "publishGoLive": "Publish page — go live",
+      "notProvisioned": "Default page hasn't been provisioned yet. Contact support.",
+      "branding": "Branding",
+      "brandingHelp": "Your brand color is used for the Book button, session highlights, and key accents on your public page.",
+      "colorHelp": "Click the swatch to pick, or type a hex code.",
+      "presets": {
+        "moovliViolet": "Moovli violet",
+        "magenta": "Magenta",
+        "teal": "Teal",
+        "indigo": "Indigo",
+        "rose": "Rose",
+        "emerald": "Emerald",
+        "amber": "Amber",
+        "slate": "Slate"
+      },
+      "previewLabel": "Preview",
+      "previewSessionTitle": "18:00 · Yoga Flow",
+      "previewSessionMeta": "60 min · with Sara",
+      "previewAtStudio": "at studio",
+      "book": "Book",
+      "resetToDefault": "Reset to default",
+      "saved": "Saved",
+      "saveChanges": "Save changes"
+    },
+    "marketplace": {
+      "subtitle": "Your sessions discoverable in the Moovli mobile app.",
+      "active": "Active",
+      "off": "Off",
+      "toggleAria": "Toggle marketplace listing",
+      "planUpgradeRequired": "Plan upgrade required",
+      "noAccess": "No studio access found.",
+      "gate": {
+        "title": "Unlock marketplace bookings",
+        "body": "Your current plan ({plan}) doesn't include marketplace distribution. Upgrade to Marketplace to start receiving bookings from Moovli app users — you set a list price and a wholesale discount, and receive the net on every marketplace booking.",
+        "upgradePlan": "Upgrade plan"
+      },
+      "listingStatus": "Listing status",
+      "liveInApp": "Live in app",
+      "paused": "Paused",
+      "listingHelpLive": "Your published sessions appear in the Moovli app discovery feed and studio listings. Bookings are paid via Moovli and you receive payouts on the standard schedule.",
+      "listingHelpPaused": "Your sessions are not visible in the Moovli app. Existing marketplace bookings remain valid and will be honored — only future discoverability is paused.",
+      "pricingTitle": "Pricing on the marketplace",
+      "pricingSubtitle": "You set your list price — Moovli takes a wholesale discount.",
+      "wholesale": "Wholesale",
+      "tile": {
+        "listPrice": "Your list price",
+        "listPriceSub": "You set this",
+        "discount": "Discount to Moovli",
+        "discountSub": "Your wholesale rate",
+        "youReceive": "You receive",
+        "youReceiveSub": "Net · you keep {pct}%"
+      },
+      "exampleNote": "Example for a {price} session — your payout scales with each price.",
+      "yourDiscount": "Your discount to Moovli",
+      "youKeep": "You keep <strong>{pct}%</strong>",
+      "discountAria": "Marketplace discount percentage",
+      "saveDiscount": "Save discount",
+      "saved": "Saved",
+      "minDiscountError": "Minimum discount is {floor}%.",
+      "minDiscountHint": "Minimum {floor}% — no maximum.",
+      "faqsHeading": "FAQs",
+      "faq": {
+        "whyDiscount": {
+          "q": "Why a {floor}% discount?",
+          "a": "It's what makes the offer attractive to subscribed members. In exchange, you reach new customers with no marketing effort."
+        },
+        "existingClients": {
+          "q": "Will my existing clients go through the marketplace?",
+          "a": "No. Your regular clients keep booking through your direct link at your normal price."
+        },
+        "removeClass": {
+          "q": "Can I remove a class from the marketplace anytime?",
+          "a": "Yes. You stay in full control."
+        },
+        "howItWorks": {
+          "q": "How does it work?",
+          "a": "Your discount is the wholesale rate you give Moovli (minimum {floor}%). Moovli lists your session on the marketplace at its own price — set dynamically based on timing and demand — and keeps the difference. Recommended baseline: {baseline}%."
+        },
+        "howMuchEarn": {
+          "q": "How much do I earn?",
+          "a": "You always receive your net — your list price minus your discount — no matter what price Moovli sells it at. The discount covers customer acquisition, payment processing, and discovery."
+        }
+      }
+    },
+    "billing": {
+      "title": "Billing",
+      "subtitle": "Manage your studio's subscription, payment method, and invoices.",
+      "noAccess": "No studio access found.",
+      "loadingBilling": "Loading billing…",
+      "checkoutError": "Could not start checkout. Please try again.",
+      "portalError": "Could not open billing portal.",
+      "statusActive": "Active",
+      "statusTrial": "Trial",
+      "statusPastDue": "Past due",
+      "statusCancelled": "Cancelled",
+      "statusPaused": "Paused",
+      "trialEndsIn": "Your trial ends in {days, plural, one {# day} other {# days}}",
+      "trialEndsBody": "Add a payment method by {date} to keep your subscription active.",
+      "paymentFailedTitle": "Payment failed",
+      "paymentFailedBody": "We couldn't process your last payment. Update your payment method to keep your subscription active. Your account will be cancelled if all retries fail.",
+      "cancelScheduledTitle": "Subscription scheduled to cancel",
+      "cancelScheduledBody": "Your subscription will end on {date}. You can reactivate any time before then in the billing portal.",
+      "currentPlan": "Current plan",
+      "noActivePlan": "No active plan",
+      "nextBill": "Next bill",
+      "trialEnds": "Trial ends",
+      "paymentAttempts": "Payment attempts",
+      "opening": "Opening…",
+      "managePayment": "Manage payment & subscription",
+      "plans": "Plans",
+      "plansDescNoCard": "Add a payment method to choose a plan",
+      "plansDesc": "Choose a plan that fits your studio",
+      "current": "Current",
+      "perMonth": "/mo",
+      "featureMarketplace": "Marketplace listing",
+      "featureBookingPage": "Public booking page",
+      "featureCalendarLinks": "Custom calendar links",
+      "featureWidget": "Embeddable widget",
+      "upgrade": "Upgrade",
+      "choosePlan": "Choose plan",
+      "billingHistory": "Billing history",
+      "invoiceCount": "{count, plural, one {# invoice} other {# invoices}}",
+      "colDate": "Date",
+      "colAmount": "Amount",
+      "colInvoice": "Invoice"
+    },
+    "deactivate": {
+      "channelLabel": {
+        "marketplace": "Marketplace",
+        "directHosted": "Direct booking page",
+        "customLink": "Custom link",
+        "widget": "Widget"
+      },
+      "title": "Turn off {channel}?",
+      "subtitle": "Decide what should happen to sessions already published here.",
+      "turningOff": "Turning off…",
+      "turnOff": "Turn off {channel}",
+      "impactHeading": "Impact on current data",
+      "checking": "Checking…",
+      "impact": {
+        "upcomingSessions": "Upcoming sessions published here",
+        "allocatedSeats": "Seats dedicated via split allocation",
+        "confirmedBookings": "Confirmed bookings — stay valid regardless"
+      },
+      "onlyChannelWarning": "<strong>{count}</strong> {count, plural, one {session has} other {sessions have}} no other channel — they'll go to draft until re-published.",
+      "noImpact": "No active sessions or allocations on this channel right now.",
+      "policyHeading": "What should happen to those sessions?",
+      "recommended": "Recommended",
+      "policies": {
+        "release": {
+          "label": "Release to remaining channels",
+          "description": "Sessions stay published; dedicated seats merge into the shared pool so other channels can book them."
+        },
+        "unpublish": {
+          "label": "Unpublish from this channel only",
+          "description": "Sessions stay live on other channels they're published to. If this was a session's only channel, it goes to draft until re-published."
+        },
+        "keep": {
+          "label": "Keep everything as-is, just hide the surface",
+          "description": "Sessions stay published in the database but no one can find the channel. Use this for short pauses (e.g. closing for a week)."
+        }
+      }
+    }
+  },
+  "studioMain": {
+    "sidebar": {
+      "title": "Studio",
+      "sectionOverview": "Overview",
+      "sectionDailyOps": "Daily ops",
+      "sectionCatalog": "Catalog",
+      "sectionChannels": "Channels",
+      "sectionInsights": "Insights",
+      "sectionTeam": "Team",
+      "dashboard": "Dashboard",
+      "schedule": "Schedule",
+      "bookings": "Bookings",
+      "customers": "Customers",
+      "services": "Services",
+      "instructors": "Instructors",
+      "marketplace": "Marketplace",
+      "direct": "Direct",
+      "analytics": "Analytics",
+      "members": "Members",
+      "billing": "Billing",
+      "docs": "Docs",
+      "settings": "Settings"
+    },
+    "impersonation": {
+      "banner": "Viewing {studio} as admin",
+      "thisStudio": "this studio",
+      "exit": "Exit"
+    },
+    "switcher": {
+      "selectEntity": "Select entity"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "newSession": "New Session",
+      "pendingBanner": "{count, plural, one {# pending booking needs your action} other {# pending bookings need your action}}",
+      "pendingBannerSub": "Direct page reservations awaiting confirm or decline",
+      "stats": {
+        "marketplaceRevenue": "Marketplace revenue",
+        "last7Days": "Last 7 days",
+        "bookingsThisWeek": "Bookings this week",
+        "vsLastWeek": "vs last week",
+        "uniqueMembers": "Unique members",
+        "allTime": "All time",
+        "activeSessions": "Active sessions",
+        "availableOrFull": "Available or full"
+      },
+      "next24Hours": "Next 24 hours",
+      "viewSchedule": "View schedule",
+      "noUpcoming": "No sessions scheduled in the next 24 hours.",
+      "createSession": "Create a session",
+      "today": "Today",
+      "sessionFallback": "Session",
+      "sessionStatus": {
+        "available": "Available",
+        "full": "Full"
+      },
+      "channelMix": "Channel mix",
+      "last30Days": "Last 30 days",
+      "noBookings30": "No bookings yet in the last 30 days.",
+      "marketplace": "Marketplace",
+      "directPage": "Direct page",
+      "totalBookings30": "{count, plural, one {# total booking in the last 30 days} other {# total bookings in the last 30 days}}",
+      "quickLinks": {
+        "manageBookings": "Manage bookings",
+        "manageBookingsDesc": "Check in attendees, confirm pending direct bookings",
+        "servicesPricing": "Services & pricing",
+        "servicesPricingDesc": "Edit duration, capacity, and price defaults",
+        "customers": "Customers",
+        "customersDesc": "See who has booked with you and their history"
+      }
+    },
+    "insights": {
+      "title": "Insights",
+      "stats": {
+        "totalBookings": "Total Bookings",
+        "last30Days": "Last 30 days",
+        "cancelled": "Cancelled",
+        "cancelledDesc": "Cancelled bookings",
+        "cancellationRate": "Cancellation Rate",
+        "ofTotalBookings": "Of total bookings"
+      },
+      "dailyBookings": "Daily Bookings (Last 30 Days)",
+      "noData": "No booking data available."
+    },
+    "bookings": {
+      "title": "Bookings",
+      "subtitle": "Manage incoming reservations and check in arrivals.",
+      "sessionFallback": "Session",
+      "marketplace": "Marketplace",
+      "direct": "Direct",
+      "atStudio": "at studio",
+      "noAccess": "No studio access found.",
+      "declinePrompt": "Reason for declining (optional)",
+      "tabs": {
+        "all": "All",
+        "pending": "Pending",
+        "today": "Today",
+        "marketplace": "Marketplace",
+        "direct": "Direct page"
+      },
+      "columns": {
+        "customer": "Customer",
+        "session": "Session",
+        "channel": "Channel",
+        "price": "Price",
+        "status": "Status"
+      },
+      "status": {
+        "pending": "Pending",
+        "confirmed": "Confirmed",
+        "checked_in": "Checked in",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "no_show": "No-show"
+      },
+      "actions": {
+        "confirm": "Confirm",
+        "decline": "Decline",
+        "checkin": "Check in"
+      },
+      "errors": {
+        "confirmFailed": "Failed to confirm",
+        "declineFailed": "Failed to decline",
+        "checkinFailed": "Failed to check in"
+      }
+    },
+    "customers": {
+      "title": "Customers",
+      "subtitle": "Everyone who has booked a session with you. {total} total.",
+      "searchPlaceholder": "Search by name or email...",
+      "allSources": "All sources",
+      "viewCustomer": "View customer",
+      "account": "Account",
+      "guest": "Guest",
+      "noAccess": "No studio access found.",
+      "totalCount": "{count} total",
+      "columns": {
+        "name": "Name",
+        "contact": "Contact",
+        "source": "Source",
+        "bookings": "Bookings",
+        "lifetimeValue": "Lifetime value",
+        "lastBooking": "Last booking",
+        "status": "Status"
+      },
+      "source": {
+        "marketplace": "Marketplace",
+        "direct": "Direct",
+        "manual": "Manual",
+        "unknown": "—"
+      }
+    },
+    "docs": {
+      "title": "Help center",
+      "subtitle": "Guides, FAQs, and quick links to the most-asked questions. More long-form docs landing soon.",
+      "stillStuck": "Still stuck?",
+      "stillStuckDesc": "Our team is here to help. Reach out and we'll get back to you within a business day.",
+      "topics": {
+        "gettingStarted": {
+          "title": "Getting started",
+          "description": "Quick-start guide for new studios — onboard, set up services, take your first booking."
+        },
+        "servicesPricing": {
+          "title": "Services & pricing",
+          "description": "How to structure services, set default capacity and price, and use categories."
+        },
+        "scheduling": {
+          "title": "Scheduling sessions",
+          "description": "Drag-to-create on the calendar, recurring sessions, per-channel allocation."
+        },
+        "channelsDirect": {
+          "title": "Channels — Direct booking",
+          "description": "Your public booking page: branding, link sharing, on/off control."
+        },
+        "channelsMarketplace": {
+          "title": "Channels — Marketplace",
+          "description": "Get discovered in the Moovli mobile app. Pricing breakdown + dynamic markup."
+        },
+        "customersCrm": {
+          "title": "Customers & CRM",
+          "description": "How acquisition source is attributed, customer lifetime value, marketing consent."
+        },
+        "billing": {
+          "title": "Billing & subscription",
+          "description": "Plan switches, trial, payment method, invoices, cancellation."
+        },
+        "payouts": {
+          "title": "Payouts",
+          "description": "Bank details for receiving marketplace payouts. Verification flow."
+        }
+      }
+    },
+    "services": {
+      "title": "Services",
+      "subtitle": "{active} active · {inactive} inactive",
+      "newService": "New service",
+      "searchPlaceholder": "Search services…",
+      "clear": "Clear",
+      "showing": "Showing {shown} of {total}",
+      "minutes": "{n} min",
+      "columns": {
+        "name": "Name",
+        "category": "Category",
+        "duration": "Duration",
+        "capacity": "Capacity",
+        "price": "Price",
+        "active": "Active"
+      },
+      "filters": {
+        "category": "Category",
+        "allCategories": "All categories",
+        "uncategorized": "Uncategorized",
+        "allStatuses": "All statuses",
+        "active": "Active",
+        "inactive": "Inactive",
+        "allServices": "All services",
+        "featured": "Featured",
+        "notFeatured": "Not featured"
+      },
+      "form": {
+        "editTitle": "Edit service",
+        "newTitle": "New service",
+        "subtitle": "What people book — a class, a session, a treatment.",
+        "cancel": "Cancel",
+        "saving": "Saving…",
+        "updateService": "Update service",
+        "createService": "Create service"
+      },
+      "delete": {
+        "title": "Delete service?",
+        "subtitle": "This action cannot be undone.",
+        "deleting": "Deleting…",
+        "confirm": "Delete service",
+        "prompt": "Permanently delete <strong>{name}</strong>?",
+        "hint": "If the service has any sessions, the delete will be blocked — deactivate it instead, which hides it from new schedules without breaking existing bookings."
+      },
+      "empty": {
+        "noServicesTitle": "No services yet",
+        "noServicesDesc": "Create your first service to start scheduling sessions.",
+        "createService": "Create service",
+        "noMatch": "No services match your filters.",
+        "clearFilters": "Clear filters"
+      }
+    },
+    "team": {
+      "title": "Team",
+      "memberCount": "{count, plural, one {# member} other {# members}}",
+      "inviteMember": "Invite Member",
+      "unknown": "Unknown",
+      "you": "(you)",
+      "removeFromTeam": "Remove from team",
+      "thisMember": "this member",
+      "removeConfirm": "Remove {name} from the team?",
+      "columns": {
+        "member": "Member",
+        "role": "Role",
+        "joined": "Joined"
+      },
+      "roles": {
+        "owner": {
+          "label": "Owner",
+          "description": "Full access — manage team, billing, delete studio"
+        },
+        "manager": {
+          "label": "Manager",
+          "description": "Manage sessions, pricing, instructors, insights"
+        },
+        "staff": {
+          "label": "Staff",
+          "description": "View dashboard, bookings, check in attendees"
+        }
+      },
+      "errors": {
+        "addFailed": "Failed to add team member"
+      },
+      "invite": {
+        "title": "Invite team member",
+        "subtitle": "Search by email to add an existing Moovli user to your team.",
+        "cancel": "Cancel",
+        "inviting": "Inviting…",
+        "addToTeam": "Add to team",
+        "searchPlaceholder": "Search by email...",
+        "searching": "Searching...",
+        "noUsers": "No users found for \"{query}\"",
+        "needAccount": "They need a Moovli account first.",
+        "change": "Change",
+        "role": "Role"
+      }
+    },
+    "schedule": {
+      "title": "Schedule",
+      "sessionCount": "{count, plural, one {# session} other {# sessions}}",
+      "newSession": "New Session",
+      "sessionActions": "Session actions",
+      "sessionFallback": "Session",
+      "notAvailable": "N/A",
+      "draftPrefix": "[Draft]",
+      "fillBooked": "{fill} booked",
+      "today": "Today",
+      "loading": "Loading…",
+      "noMatch": "No sessions match your filters.",
+      "working": "Working…",
+      "ok": "OK",
+      "dismiss": "Dismiss",
+      "searchPlaceholder": "Search service or instructor…",
+      "shownCount": "{shown} of {total} shown",
+      "daySessionCount": "{count, plural, one {# session} other {# sessions}}",
+      "waitlistShort": "+{count} wl",
+      "showMore": "Show more ({count} more)",
+      "plusMore": "+{count} more",
+      "views": {
+        "day": "Day",
+        "week": "Week",
+        "list": "List"
+      },
+      "filters": {
+        "visibility": "Visibility",
+        "allVisibility": "All visibility",
+        "draft": "Draft",
+        "published": "Published",
+        "status": "Status",
+        "allStatuses": "All statuses"
+      },
+      "displayStatus": {
+        "draft": "Draft",
+        "scheduled": "Scheduled",
+        "full": "Full",
+        "cancelled": "Cancelled",
+        "completed": "Completed"
+      },
+      "sort": {
+        "label": "Sort",
+        "soonest": "Soonest first",
+        "latest": "Latest first",
+        "priceHighLow": "Price: high to low",
+        "mostBooked": "Most booked",
+        "recentlyUpdated": "Recently updated"
+      },
+      "rowActions": {
+        "edit": "Edit",
+        "publish": "Publish",
+        "delete": "Delete",
+        "deleteEllipsis": "Delete…",
+        "cancelSession": "Cancel session",
+        "cancelEllipsis": "Cancel…"
+      },
+      "toast": {
+        "updated": "Session updated.",
+        "published": "Session published — now live on your channels.",
+        "draftSaved": "Draft saved — not visible to customers until you publish it.",
+        "deleted": "Session deleted.",
+        "cancelled": "Session cancelled."
+      },
+      "errors": {
+        "saveTitle": "Couldn't save session",
+        "createTitle": "Couldn't create session",
+        "checkDetails": "Please check the details and try again.",
+        "deleteTitle": "Couldn't delete session",
+        "publishTitle": "Couldn't publish session",
+        "cancelTitle": "Couldn't cancel session",
+        "moveTitle": "Couldn't move session",
+        "tryAgain": "Please try again."
+      },
+      "delete": {
+        "draftTitle": "Delete draft session",
+        "title": "Delete session",
+        "draftDesc": "This permanently deletes the draft. This can't be undone.",
+        "desc": "This permanently removes the session from your schedule. This can't be undone.",
+        "confirm": "Delete",
+        "skippedTitle": "Some sessions skipped"
+      },
+      "cancel": {
+        "title": "Cancel session",
+        "desc": "Attendees keep their booking history. This can't be undone.",
+        "confirm": "Cancel session"
+      },
+      "scope": {
+        "single": "This event",
+        "following": "This and following events",
+        "series": "All events"
+      },
+      "detail": {
+        "srTitle": "Session details",
+        "booked": "{booked}/{capacity} booked",
+        "waitlisted": "{count} waitlisted",
+        "recurringSeries": "Part of a recurring series",
+        "cancel": "Cancel"
+      },
+      "more": {
+        "title": "More sessions",
+        "srDesc": "Sessions that overlap this time slot"
+      },
+      "form": {
+        "editTitle": "Edit session",
+        "newTitle": "New session",
+        "editSubtitle": "Update the details of this session.",
+        "newSubtitle": "Schedule a session and choose where it's published.",
+        "deleteDraft": "Delete draft",
+        "cancelSession": "Cancel session",
+        "close": "Close",
+        "publish": "Publish",
+        "updateTitle": "Update session",
+        "applyChangesTo": "Apply these changes to…",
+        "update": "Update",
+        "saving": "Saving…",
+        "saveAsDraft": "Save as draft",
+        "creatingSessions": "Creating sessions…",
+        "publishing": "Publishing…",
+        "what": "What",
+        "selectService": "Select a service",
+        "serviceMeta": "{duration}min · {price} · {capacity} spots",
+        "whoTeaches": "Who teaches",
+        "noInstructor": "No instructor assigned",
+        "when": "When",
+        "startTime": "Start time",
+        "endTime": "End time",
+        "duration": "Duration: {min} min",
+        "serviceDefaultDuration": "(service default: {min} min)",
+        "repeats": "Repeats",
+        "doesntRepeat": "Doesn't repeat",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "every": "Every",
+        "dayUnit": "{count, plural, one {day} other {days}}",
+        "weekUnit": "{count, plural, one {week} other {weeks}}",
+        "onTheseDays": "On these days",
+        "weekday": {
+          "mon": "M",
+          "tue": "T",
+          "wed": "W",
+          "thu": "T",
+          "fri": "F",
+          "sat": "S",
+          "sun": "S"
+        },
+        "weekdayHint": "Leave empty to use the start date's weekday only.",
+        "ends": "Ends",
+        "endsOn": "On",
+        "endsAfter": "After",
+        "occurrences": "occurrences",
+        "allOccurrencesNote": "All occurrences will be created at once with the same channel publication and capacity.",
+        "capacity": "Capacity",
+        "spots": "spots",
+        "serviceDefaultCapacity": "Service default: {count} spots",
+        "pricing": "Pricing",
+        "inheritedFrom": "Inherited from {name}",
+        "serviceWord": "service",
+        "serviceDefaultPrice": "Service default: {price}",
+        "override": "Override",
+        "customPrice": "Custom price for this session ({currency})",
+        "selectServicePricing": "Select a service to see pricing",
+        "publishTo": "Publish to",
+        "directLabel": "Direct booking page",
+        "directDesc": "Visible on your studio's public booking page — paid at studio",
+        "marketplaceLabel": "Marketplace",
+        "marketplaceDesc": "Visible in the Moovli mobile app — paid via Moovli",
+        "offInSettings": "Off in channel settings",
+        "planUpgrade": "Plan upgrade required",
+        "channelOff": "Channel is off.",
+        "enable": "Enable →",
+        "notInPlan": "This channel isn't in your current plan.",
+        "upgrade": "Upgrade →",
+        "noChannelWarning": "⚠ At least one channel should be selected, otherwise the session won't be visible to anyone.",
+        "capacityAllocation": "Capacity allocation",
+        "sharedInventory": "Shared inventory",
+        "sharedInventoryDesc": "Any channel can book any of the {capacity} spots",
+        "splitPerChannel": "Split per channel",
+        "splitPerChannelDesc": "Reserve a fixed number of spots per channel",
+        "youSet": "you set",
+        "auto": "auto",
+        "allocatedTotal": "Allocated · {total} total",
+        "reset5050": "Reset to 50/50",
+        "releaseUnused": "Release unused spots to other channels",
+        "unitMinutes": "minutes",
+        "unitHours": "hours",
+        "unitDays": "days",
+        "beforeSession": "before session starts",
+        "releaseHint": "At that point, unused spots from any channel become bookable by the other.",
+        "notes": "Notes (optional)",
+        "notesPlaceholder": "Internal notes for this session..."
+      }
+    }
+  },
+  "studioSettings": {
+    "nav": {
+      "title": "Settings",
+      "general": "General",
+      "branding": "Branding",
+      "hours": "Hours",
+      "policies": "Policies",
+      "payouts": "Payouts"
+    },
+    "general": {
+      "title": "General",
+      "description": "Your studio's name, contact details, and location.",
+      "entityNotFound": "Entity not found.",
+      "studioInfo": "Studio Information",
+      "studioName": "Studio Name",
+      "descriptionLabel": "Description",
+      "shortDescription": "Short Description",
+      "website": "Website",
+      "location": "Location",
+      "address": "Address",
+      "addressLine2": "Address Line 2",
+      "city": "City",
+      "region": "Region",
+      "postalCode": "Postal Code",
+      "country": "Country"
+    },
+    "branding": {
+      "title": "Branding",
+      "description": "Your logo, cover image, and photo gallery.",
+      "entityNotFound": "Entity not found.",
+      "coverAlt": "Cover",
+      "logoAndCover": "Logo & Cover",
+      "logoUrl": "Logo URL",
+      "coverImageUrl": "Cover Image URL",
+      "photoGallery": "Photo gallery",
+      "uploadPhoto": "Upload photo",
+      "uploading": "Uploading…",
+      "uploadHint": "JPG/PNG, up to 8MB",
+      "pasteUrlPlaceholder": "…or paste an image URL",
+      "add": "Add",
+      "cover": "Cover",
+      "noPhotos": "No photos yet.",
+      "noPhotosHint": "Add image URLs to build your gallery.",
+      "chooseImageFile": "Please choose an image file.",
+      "imageTooLarge": "Image must be 8MB or smaller.",
+      "uploadFailed": "Upload failed",
+      "removePhotoConfirm": "Remove this photo?"
+    },
+    "hours": {
+      "title": "Operating Hours",
+      "description": "When your studio is open. Shown to customers on your booking pages.",
+      "entityNotFound": "Entity not found.",
+      "weeklySchedule": "Weekly Schedule",
+      "open": "Open",
+      "closed": "Closed",
+      "to": "to",
+      "days": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+      }
+    },
+    "policies": {
+      "title": "Booking Policies",
+      "description": "Studio-wide booking rules the platform enforces on every channel.",
+      "noStudioAccess": "No studio access found.",
+      "sectionTitle": "Booking policies",
+      "freeCancellationWindow": "Free-cancellation window (hours)",
+      "freeCancellationHint": "Customers who cancel at least this many hours before the session get a full refund; later cancellations incur the late fee.",
+      "bookingCutoff": "Booking cutoff (minutes before start)",
+      "bookingCutoffHint": "New bookings close this many minutes before a session starts. 0 = open until start.",
+      "savePolicies": "Save policies",
+      "savingPolicies": "Saving…",
+      "saved": "Saved"
+    },
+    "payouts": {
+      "title": "Payouts",
+      "subtitle": "The bank account Moovli sends your marketplace earnings to. Direct booking payments are collected at your studio — they don't go through Moovli.",
+      "noStudioAccess": "No studio access found.",
+      "loading": "Loading…",
+      "verifiedTitle": "Verified payout account",
+      "verifiedDesc": "Marketplace earnings will be sent to {account}",
+      "pendingTitle": "Pending verification",
+      "pendingDesc": "Moovli will verify this account before your first payout. You can still accept marketplace bookings; earnings accrue until verification completes.",
+      "noAccountTitle": "No payout account on file",
+      "noAccountDesc": "Add your bank account below so we can send you your marketplace earnings.",
+      "bankDetails": "Bank account details",
+      "verified": "Verified",
+      "pending": "Pending",
+      "accountHolder": "Account holder name *",
+      "accountHolderPlaceholder": "Full legal name or business name",
+      "iban": "IBAN",
+      "ibanHint": "Moroccan IBAN: 28 characters starting with MA64.",
+      "bankName": "Bank name",
+      "swiftBic": "SWIFT / BIC",
+      "optional": "(optional)",
+      "resetNotice": "Updating these details resets verification. We'll re-verify before the next payout.",
+      "saved": "Saved",
+      "saving": "Saving…",
+      "update": "Update",
+      "saveBankDetails": "Save bank details",
+      "whenPayoutsTitle": "When do payouts happen?",
+      "whenPayoutsDesc": "Payout schedule, frequency, and minimum thresholds will be configured by Moovli once Spec D (wallet + payout engine) ships. In the meantime, your earnings accrue and we'll send them manually based on the bank details above."
+    },
+    "providerForm": {
+      "name": "Name *",
+      "namePlaceholder": "Instructor name",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. Senior Pilates Coach",
+      "email": "Email",
+      "emailHint": "Adding an email provisions an instructor login.",
+      "phone": "Phone",
+      "experience": "Experience (yrs)",
+      "rate": "Rate ({currency})",
+      "specializations": "Specializations",
+      "specializationsPlaceholder": "Pilates, Yoga, HIIT (comma-separated)",
+      "shortBio": "Short bio",
+      "shortBioPlaceholder": "One-line summary",
+      "bio": "Bio",
+      "bioPlaceholder": "Detailed bio…",
+      "avatarUrl": "Avatar URL",
+      "instagram": "Instagram",
+      "instagramPlaceholder": "@handle or URL",
+      "facebook": "Facebook",
+      "facebookPlaceholder": "profile or URL",
+      "displayOrder": "Display order",
+      "featured": "Featured",
+      "active": "Active"
+    },
+    "serviceForm": {
+      "name": "Name *",
+      "namePlaceholder": "e.g. Megaformer Pilates",
+      "category": "Category",
+      "categoryPlaceholder": "Pick a category…",
+      "uncategorized": "Uncategorized",
+      "categoryHint": "Helps consumers discover your service by type (yoga, HIIT, spa…).",
+      "shortDescription": "Short description",
+      "shortDescriptionPlaceholder": "One-line summary",
+      "description": "Description",
+      "descriptionPlaceholder": "Detailed description…",
+      "duration": "Duration (min) *",
+      "capacity": "Capacity *",
+      "price": "Price ({currency}) *",
+      "featured": "Featured"
+    }
+  }
+}

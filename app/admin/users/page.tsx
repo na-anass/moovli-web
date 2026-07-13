@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { formatDate } from "@/lib/datetime";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { InfoTip } from "@/components/ui/info-tip";
 import { adminApi } from "@/lib/api/admin";
 import { Badge } from "@/components/ui/badge";
 import { EyeIcon } from "lucide-react";
@@ -24,6 +26,8 @@ const statusColors: Record<string, string> = {
 };
 
 export default function UsersPage() {
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [data, setData] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
@@ -55,10 +59,10 @@ export default function UsersPage() {
   }, [fetchUsers]);
 
   const columns: Column<User>[] = [
-    { header: "Name", accessorKey: "name" },
-    { header: "Email", accessorKey: "email" },
+    { header: tc("name"), accessorKey: "name" },
+    { header: tc("email"), accessorKey: "email" },
     {
-      header: "Status",
+      header: tc("status"),
       cell: (row) => (
         <Badge variant="outline" className={statusColors[row.status] || ""}>
           {row.status}
@@ -66,11 +70,11 @@ export default function UsersPage() {
       ),
     },
     {
-      header: "Credits",
+      header: t("users.credits"),
       cell: (row) => <span className="font-medium">{row.credit_balance}</span>,
     },
     {
-      header: "Joined",
+      header: t("users.joined"),
       cell: (row) => formatDate(row.created_at),
     },
   ];
@@ -78,8 +82,8 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Users</h1>
-        <p className="text-sm text-muted-foreground">{total} total</p>
+        <h1 className="text-2xl font-bold">{t("users.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("users.totalCount", { count: total })}</p>
       </div>
 
       <DataTable
@@ -90,27 +94,27 @@ export default function UsersPage() {
         pageSize={20}
         onPageChange={setPage}
         onSearch={setSearch}
-        searchPlaceholder="Search by name or email..."
+        searchPlaceholder={t("users.searchPlaceholder")}
         filters={[
           {
-            label: "Status",
+            label: tc("status"),
             value: status,
             onChange: (v) => {
               setStatus(v);
               setPage(1);
             },
             options: [
-              { label: "All statuses", value: "all" },
-              { label: "Active", value: "active" },
-              { label: "Suspended", value: "suspended" },
-              { label: "Pending verification", value: "pending_verification" },
+              { label: t("users.allStatuses"), value: "all" },
+              { label: t("users.statusActive"), value: "active" },
+              { label: t("users.statusSuspended"), value: "suspended" },
+              { label: t("users.statusPendingVerification"), value: "pending_verification" },
             ],
           },
         ]}
         isLoading={loading}
         rowActions={(row) => [
           {
-            label: "View profile",
+            label: t("users.viewProfile"),
             icon: EyeIcon,
             onClick: () => router.push(`/admin/users/${row.id}`),
           },

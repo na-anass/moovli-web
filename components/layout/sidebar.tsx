@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   ArrowLeftRightIcon,
   ChevronLeftIcon,
@@ -48,10 +49,10 @@ interface SidebarProps {
   className?: string;
 }
 
-const STATUS_STYLES: Record<NavItemStatus, { dot: string; tooltip: string }> = {
-  on: { dot: "bg-emerald-500", tooltip: "Active" },
-  off: { dot: "bg-muted-foreground/40", tooltip: "Off" },
-  locked: { dot: "", tooltip: "Plan upgrade required" },
+const STATUS_STYLES: Record<NavItemStatus, { dot: string; tooltipKey: string }> = {
+  on: { dot: "bg-emerald-500", tooltipKey: "statusActive" },
+  off: { dot: "bg-muted-foreground/40", tooltipKey: "statusOff" },
+  locked: { dot: "", tooltipKey: "statusLocked" },
 };
 
 export function Sidebar({
@@ -64,6 +65,7 @@ export function Sidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const { roles } = useAuth();
   const router = useRouter();
 
@@ -94,7 +96,7 @@ export function Sidebar({
     return (
       <span
         className={cn("ml-auto size-1.5 rounded-full", STATUS_STYLES[status].dot)}
-        aria-label={STATUS_STYLES[status].tooltip}
+        aria-label={t(STATUS_STYLES[status].tooltipKey)}
       />
     );
   };
@@ -260,7 +262,7 @@ export function Sidebar({
                         }}
                       >
                         <ArrowLeftRightIcon className="size-4 mr-2" />
-                        Switch Role
+                        {t("switchRole")}
                       </Button>
                     </div>
                   )}
@@ -334,7 +336,7 @@ export function Sidebar({
                         <ArrowLeftRightIcon className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="right">Switch Role</TooltipContent>
+                    <TooltipContent side="right">{t("switchRole")}</TooltipContent>
                   </Tooltip>
                 ) : (
                   <Button
@@ -343,7 +345,7 @@ export function Sidebar({
                     onClick={() => router.push("/role-switcher")}
                   >
                     <ArrowLeftRightIcon className="h-4 w-4 mr-3" />
-                    Switch Role
+                    {t("switchRole")}
                   </Button>
                 )}
               </>

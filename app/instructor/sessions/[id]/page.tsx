@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { formatDate } from "@/lib/datetime";
 import { useParams, useRouter } from "next/navigation";
 import { instructorApi } from "@/lib/api/instructor";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { InfoTip } from "@/components/ui/info-tip";
 import { ArrowLeftIcon, CheckCircleIcon } from "lucide-react";
 
 interface Attendee {
@@ -25,6 +27,8 @@ const statusColors: Record<string, string> = {
 };
 
 export default function SessionAttendeesPage() {
+  const t = useTranslations("instructor");
+  const tc = useTranslations("common");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [attendees, setAttendees] = useState<Attendee[]>([]);
@@ -73,25 +77,30 @@ export default function SessionAttendeesPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label={tc("back")}>
           <ArrowLeftIcon className="size-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Session Attendees</h1>
-        <Badge variant="outline">{attendees.length} total</Badge>
+        <h1 className="text-2xl font-bold inline-flex items-center gap-1.5">
+          {t("session.title")}
+          <InfoTip term="checkin" />
+        </h1>
+        <Badge variant="outline">{t("session.totalCount", { count: attendees.length })}</Badge>
       </div>
 
       <div className="flex gap-4 text-sm">
         <span className="text-muted-foreground">
-          Confirmed: <span className="font-medium text-foreground">{confirmed}</span>
+          {t("session.confirmed")}{" "}
+          <span className="font-medium text-foreground">{confirmed}</span>
         </span>
         <span className="text-muted-foreground">
-          Checked In: <span className="font-medium text-foreground">{checkedIn}</span>
+          {t("session.checkedIn")}{" "}
+          <span className="font-medium text-foreground">{checkedIn}</span>
         </span>
       </div>
 
       {attendees.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
-          <p className="text-muted-foreground">No attendees for this session.</p>
+          <p className="text-muted-foreground">{t("session.empty")}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -105,10 +114,13 @@ export default function SessionAttendeesPage() {
                   {attendee.user_id.substring(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-medium">User {attendee.user_id.substring(0, 8)}...</p>
+                  <p className="text-sm font-medium">
+                    {t("session.userLabel", { id: attendee.user_id.substring(0, 8) })}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    Booked {formatDate(attendee.created_at)}
-                    {attendee.credits_cost > 0 && ` — ${attendee.credits_cost} credits`}
+                    {t("session.bookedOn", { date: formatDate(attendee.created_at) })}
+                    {attendee.credits_cost > 0 &&
+                      ` — ${t("session.creditsCost", { credits: attendee.credits_cost })}`}
                   </p>
                 </div>
               </div>
@@ -123,7 +135,7 @@ export default function SessionAttendeesPage() {
                     disabled={checkingIn === attendee.id}
                   >
                     <CheckCircleIcon className="size-4 mr-1" />
-                    {checkingIn === attendee.id ? "..." : "Check In"}
+                    {checkingIn === attendee.id ? "..." : t("session.checkIn")}
                   </Button>
                 )}
               </div>

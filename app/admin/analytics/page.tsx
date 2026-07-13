@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { StatsCard } from "@/components/shared/stats-card";
+import { InfoTip } from "@/components/ui/info-tip";
 import { adminApi } from "@/lib/api/admin";
 import {
   UsersIcon,
@@ -29,6 +31,7 @@ interface TopStudio {
 }
 
 export default function AnalyticsPage() {
+  const t = useTranslations("admin");
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [trends, setTrends] = useState<TrendPoint[]>([]);
   const [topStudios, setTopStudios] = useState<TopStudio[]>([]);
@@ -52,7 +55,7 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Analytics</h1>
+        <h1 className="text-2xl font-bold">{t("analytics.title")}</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />
@@ -64,26 +67,29 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Analytics</h1>
+      <div className="flex items-center gap-1.5">
+        <h1 className="text-2xl font-bold">{t("analytics.title")}</h1>
+        <InfoTip term="analytics" />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
-          title="Total Users"
+          title={t("analytics.totalUsers")}
           value={overview?.totalUsers ?? 0}
           icon={<UsersIcon className="size-5" />}
         />
         <StatsCard
-          title="Total Bookings"
+          title={t("analytics.totalBookings")}
           value={overview?.totalBookings ?? 0}
           icon={<CalendarIcon className="size-5" />}
         />
         <StatsCard
-          title="Active Studios"
+          title={t("analytics.activeStudios")}
           value={overview?.activeStudios ?? 0}
           icon={<BuildingIcon className="size-5" />}
         />
         <StatsCard
-          title="Credits Earned"
+          title={t("analytics.creditsEarned")}
           value={overview?.totalCreditsEarned ?? 0}
           icon={<CoinsIcon className="size-5" />}
         />
@@ -91,9 +97,9 @@ export default function AnalyticsPage() {
 
       {/* Booking Trends */}
       <div className="rounded-xl border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Booking Trends (Last 30 Days)</h2>
+        <h2 className="text-lg font-semibold mb-4">{t("analytics.bookingTrends")}</h2>
         {trends.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No booking data available.</p>
+          <p className="text-muted-foreground text-sm">{t("analytics.noBookingData")}</p>
         ) : (
           <div className="space-y-2">
             {trends.slice(-10).map((point) => (
@@ -119,9 +125,9 @@ export default function AnalyticsPage() {
 
       {/* Top Studios */}
       <div className="rounded-xl border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Top Studios</h2>
+        <h2 className="text-lg font-semibold mb-4">{t("analytics.topStudios")}</h2>
         {topStudios.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No data available.</p>
+          <p className="text-muted-foreground text-sm">{t("analytics.noData")}</p>
         ) : (
           <div className="space-y-3">
             {topStudios.map((studio, i) => (
@@ -136,7 +142,7 @@ export default function AnalyticsPage() {
                   <span className="font-medium">{studio.name}</span>
                 </div>
                 <span className="text-muted-foreground">
-                  {studio.bookings} bookings
+                  {t("analytics.bookingsCount", { count: studio.bookings })}
                 </span>
               </div>
             ))}

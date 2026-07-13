@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 interface RoleCard {
   title: string;
@@ -22,11 +23,12 @@ interface RoleCard {
 export default function RoleSwitcherPage() {
   const { roles, user, loading, signOut } = useAuth();
   const router = useRouter();
+  const t = useTranslations("auth");
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t("loading")}</p>
       </div>
     );
   }
@@ -35,8 +37,8 @@ export default function RoleSwitcherPage() {
 
   if (roles?.isAdmin) {
     cards.push({
-      title: "Admin Panel",
-      description: "Manage users, studios, bookings, and platform analytics",
+      title: t("roles.admin.title"),
+      description: t("roles.admin.description"),
       icon: <ShieldIcon className="size-8" />,
       href: "/admin/dashboard",
       color: "from-purple-500 to-indigo-600",
@@ -45,8 +47,8 @@ export default function RoleSwitcherPage() {
 
   if (roles && roles.ownedEntities.length > 0) {
     cards.push({
-      title: "Studio Dashboard",
-      description: `Manage ${roles.ownedEntities.length} studio${roles.ownedEntities.length > 1 ? "s" : ""} — sessions, bookings, team`,
+      title: t("roles.studio.title"),
+      description: t("roles.studio.description", { count: roles.ownedEntities.length }),
       icon: <BuildingIcon className="size-8" />,
       href: "/studio/dashboard",
       color: "from-orange-500 to-red-500",
@@ -55,8 +57,8 @@ export default function RoleSwitcherPage() {
 
   if (roles && roles.instructorEntities.length > 0) {
     cards.push({
-      title: "Instructor Portal",
-      description: `View your schedule, manage attendees, check in students`,
+      title: t("roles.instructor.title"),
+      description: t("roles.instructor.description"),
       icon: <GraduationCapIcon className="size-8" />,
       href: "/instructor/dashboard",
       color: "from-emerald-500 to-teal-600",
@@ -69,9 +71,9 @@ export default function RoleSwitcherPage() {
         <div className="flex flex-col items-center space-y-3">
           <Image src="/img/moovli-icon.png" alt="Moovli" width={56} height={56} className="rounded-xl" />
           <div className="text-center space-y-1">
-            <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
+            <h1 className="text-2xl font-bold text-foreground">{t("welcomeBack")}</h1>
             <p className="text-sm text-muted-foreground">
-              {user?.email} — choose a dashboard
+              {t("chooseDashboard", { email: user?.email ?? "" })}
             </p>
           </div>
         </div>
@@ -116,7 +118,7 @@ export default function RoleSwitcherPage() {
         <div className="text-center">
           <Button variant="ghost" onClick={() => signOut()} className="text-muted-foreground">
             <LogOutIcon className="size-4 mr-2" />
-            Sign Out
+            {t("signOut")}
           </Button>
         </div>
       </div>

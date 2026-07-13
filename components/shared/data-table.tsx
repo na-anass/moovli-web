@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Table,
   TableBody,
@@ -92,7 +93,7 @@ export function DataTable<T extends Record<string, any>>({
   page = 1,
   pageSize = 20,
   onPageChange,
-  searchPlaceholder = "Search...",
+  searchPlaceholder,
   onSearch,
   filters,
   rowActions,
@@ -101,6 +102,8 @@ export function DataTable<T extends Record<string, any>>({
   sortDir,
   onSortChange,
 }: DataTableProps<T>) {
+  const t = useTranslations("shared");
+  const tc = useTranslations("common");
   const [searchQuery, setSearchQuery] = useState("");
   const totalPages = Math.ceil(total / pageSize);
 
@@ -121,7 +124,7 @@ export function DataTable<T extends Record<string, any>>({
               <div className="relative flex-1 max-w-sm">
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
-                  placeholder={searchPlaceholder}
+                  placeholder={searchPlaceholder ?? `${tc("search")}...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -129,7 +132,7 @@ export function DataTable<T extends Record<string, any>>({
                 />
               </div>
               <Button variant="outline" onClick={handleSearch}>
-                Search
+                {tc("search")}
               </Button>
             </div>
           )}
@@ -180,13 +183,13 @@ export function DataTable<T extends Record<string, any>>({
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={colCount} className="text-center py-8 text-muted-foreground">
-                  Loading...
+                  {tc("loading")}
                 </TableCell>
               </TableRow>
             ) : data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={colCount} className="text-center py-8 text-muted-foreground">
-                  No results found.
+                  {t("dataTable.noResults")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -216,7 +219,7 @@ export function DataTable<T extends Record<string, any>>({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages} ({total} total)
+            {t("dataTable.pagination", { page, total: totalPages, count: total })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -243,11 +246,12 @@ export function DataTable<T extends Record<string, any>>({
 }
 
 function RowActionsMenu({ actions }: { actions: RowAction[] }) {
+  const t = useTranslations("shared");
   if (!actions.length) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-8" aria-label="Row actions">
+        <Button variant="ghost" size="icon" className="size-8" aria-label={t("dataTable.rowActions")}>
           <MoreVerticalIcon className="size-4" />
         </Button>
       </DropdownMenuTrigger>

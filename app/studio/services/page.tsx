@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { FormSheet } from "@/components/shared/form-sheet";
@@ -61,6 +62,7 @@ type StatusFilter = "all" | "active" | "inactive";
 type FeaturedFilter = "all" | "featured" | "regular";
 
 export default function ServicesPage() {
+  const t = useTranslations("studioMain");
   const activeEntity = useActiveEntity();
   const currency = activeEntity.currencyCode;
   const [services, setServices] = useState<Service[]>([]);
@@ -214,11 +216,11 @@ export default function ServicesPage() {
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
-  const subtitle = `${activeCount} active · ${services.length - activeCount} inactive`;
+  const subtitle = t("services.subtitle", { active: activeCount, inactive: services.length - activeCount });
 
   const serviceColumns: Column<Service>[] = [
     {
-      header: "Name",
+      header: t("services.columns.name"),
       cell: (s) => (
         <div className={!s.is_active ? "opacity-60" : ""}>
           <div className="flex items-center gap-2 min-w-0">
@@ -236,7 +238,7 @@ export default function ServicesPage() {
       ),
     },
     {
-      header: "Category",
+      header: t("services.columns.category"),
       cell: (s) => {
         const cat = s.category_id ? categoryById.get(s.category_id) : null;
         return cat ? (
@@ -250,15 +252,15 @@ export default function ServicesPage() {
       },
     },
     {
-      header: "Duration",
-      cell: (s) => <span className="text-sm tabular-nums">{s.duration_minutes} min</span>,
+      header: t("services.columns.duration"),
+      cell: (s) => <span className="text-sm tabular-nums">{t("services.minutes", { n: s.duration_minutes })}</span>,
     },
     {
-      header: "Capacity",
+      header: t("services.columns.capacity"),
       cell: (s) => <span className="text-sm tabular-nums">{s.capacity}</span>,
     },
     {
-      header: "Price",
+      header: t("services.columns.price"),
       cell: (s) => (
         <span className="text-sm font-medium tabular-nums">
           {formatMoneyWhole(s.base_price, currency)}
@@ -266,7 +268,7 @@ export default function ServicesPage() {
       ),
     },
     {
-      header: "Active",
+      header: t("services.columns.active"),
       cell: (s) => (
         <Switch
           checked={s.is_active}
@@ -280,13 +282,13 @@ export default function ServicesPage() {
   return (
     <BaseLayout
       maxWidth="xl"
-      title="Services"
+      title={t("services.title")}
       subtitle={subtitle}
       action={
         canManage ? (
           <Button onClick={openCreate}>
             <PlusIcon className="size-4 mr-2" />
-            New service
+            {t("services.newService")}
           </Button>
         ) : undefined
       }
@@ -296,7 +298,7 @@ export default function ServicesPage() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search services…"
+            placeholder={t("services.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-9"
@@ -305,11 +307,11 @@ export default function ServicesPage() {
 
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger className="h-9 w-[170px]">
-            <SelectValue placeholder="Category" />
+            <SelectValue placeholder={t("services.filters.category")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            <SelectItem value="uncategorized">Uncategorized</SelectItem>
+            <SelectItem value="all">{t("services.filters.allCategories")}</SelectItem>
+            <SelectItem value="uncategorized">{t("services.filters.uncategorized")}</SelectItem>
             {categories.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.icon ? `${c.icon} ` : ""}
@@ -324,9 +326,9 @@ export default function ServicesPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="all">{t("services.filters.allStatuses")}</SelectItem>
+            <SelectItem value="active">{t("services.filters.active")}</SelectItem>
+            <SelectItem value="inactive">{t("services.filters.inactive")}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -338,20 +340,20 @@ export default function ServicesPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All services</SelectItem>
-            <SelectItem value="featured">Featured</SelectItem>
-            <SelectItem value="regular">Not featured</SelectItem>
+            <SelectItem value="all">{t("services.filters.allServices")}</SelectItem>
+            <SelectItem value="featured">{t("services.filters.featured")}</SelectItem>
+            <SelectItem value="regular">{t("services.filters.notFeatured")}</SelectItem>
           </SelectContent>
         </Select>
 
         {hasAnyFilter && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <XIcon className="size-3.5 mr-1" /> Clear
+            <XIcon className="size-3.5 mr-1" /> {t("services.clear")}
           </Button>
         )}
 
         <div className="ml-auto text-xs text-muted-foreground">
-          Showing {filtered.length} of {services.length}
+          {t("services.showing", { shown: filtered.length, total: services.length })}
         </div>
       </div>
 
@@ -398,15 +400,15 @@ export default function ServicesPage() {
       <FormSheet
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={editingService ? "Edit service" : "New service"}
-        subtitle="What people book — a class, a session, a treatment."
+        title={editingService ? t("services.form.editTitle") : t("services.form.newTitle")}
+        subtitle={t("services.form.subtitle")}
         icon={PackageIcon}
         iconAccent="violet"
         width="md"
         footer={
           <>
             <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-              Cancel
+              {t("services.form.cancel")}
             </Button>
             <Button
               onClick={handleSave}
@@ -419,10 +421,10 @@ export default function ServicesPage() {
               }
             >
               {saving
-                ? "Saving…"
+                ? t("services.form.saving")
                 : editingService
-                  ? "Update service"
-                  : "Create service"}
+                  ? t("services.form.updateService")
+                  : t("services.form.createService")}
             </Button>
           </>
         }
@@ -444,8 +446,8 @@ export default function ServicesPage() {
             setDeleteError(null);
           }
         }}
-        title="Delete service?"
-        subtitle="This action cannot be undone."
+        title={t("services.delete.title")}
+        subtitle={t("services.delete.subtitle")}
         icon={Trash2Icon}
         iconAccent="destructive"
         width="sm"
@@ -459,27 +461,27 @@ export default function ServicesPage() {
               }}
               disabled={deleting}
             >
-              Cancel
+              {t("services.form.cancel")}
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
               disabled={deleting}
             >
-              {deleting ? "Deleting…" : "Delete service"}
+              {deleting ? t("services.delete.deleting") : t("services.delete.confirm")}
             </Button>
           </>
         }
       >
         <div className="space-y-3">
           <p className="text-sm">
-            Permanently delete{" "}
-            <span className="font-semibold">{deletingService?.name}</span>?
+            {t.rich("services.delete.prompt", {
+              name: deletingService?.name ?? "",
+              strong: (chunks) => <span className="font-semibold">{chunks}</span>,
+            })}
           </p>
           <p className="text-xs text-muted-foreground">
-            If the service has any sessions, the delete will be blocked — deactivate
-            it instead, which hides it from new schedules without breaking existing
-            bookings.
+            {t("services.delete.hint")}
           </p>
           {deleteError && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
@@ -504,20 +506,21 @@ function EmptyState({
   onCreate: () => void;
   onClear: () => void;
 }) {
+  const t = useTranslations("studioMain");
   if (!hasServices) {
     return (
       <div className="text-center">
         <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
           <PackageIcon className="size-5 text-primary" />
         </div>
-        <h3 className="font-semibold text-sm">No services yet</h3>
+        <h3 className="font-semibold text-sm">{t("services.empty.noServicesTitle")}</h3>
         <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-          Create your first service to start scheduling sessions.
+          {t("services.empty.noServicesDesc")}
         </p>
         {canManage && (
           <Button size="sm" className="mt-3" onClick={onCreate}>
             <PlusIcon className="size-3.5 mr-1.5" />
-            Create service
+            {t("services.empty.createService")}
           </Button>
         )}
       </div>
@@ -525,9 +528,9 @@ function EmptyState({
   }
   return (
     <div className="text-center text-sm text-muted-foreground">
-      No services match your filters.
+      {t("services.empty.noMatch")}
       <Button variant="link" size="sm" onClick={onClear} className="ml-2">
-        Clear filters
+        {t("services.empty.clearFilters")}
       </Button>
     </div>
   );

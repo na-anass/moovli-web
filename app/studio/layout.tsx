@@ -9,6 +9,7 @@ import { ActiveEntityProvider, useActiveEntity } from "@/lib/studio/active-entit
 import { entityPlansApi } from "@/lib/api/entityPlans";
 import { studioApi } from "@/lib/api/studio";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import {
   BarChart3Icon,
@@ -101,6 +102,7 @@ export default function StudioLayout({
 /** Studio sidebar/topbar chrome — reads the active studio (selection or admin impersonation). */
 function StudioChrome({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const t = useTranslations("studioMain");
   const {
     entityId,
     entityName,
@@ -152,44 +154,44 @@ function StudioChrome({ children }: { children: React.ReactNode }) {
 
   const navItems = useMemo((): NavItem[] => {
     const items: NavItem[] = [
-      { section: "Overview", label: "Dashboard", icon: LayoutDashboardIcon, href: "/studio/dashboard" },
-      { section: "Daily ops", label: "Schedule", icon: CalendarIcon, href: "/studio/schedule" },
-      { label: "Bookings", icon: BookOpenIcon, href: "/studio/bookings" },
-      { label: "Customers", icon: UserCircle2Icon, href: "/studio/customers" },
-      { section: "Catalog", label: "Services", icon: PackageIcon, href: "/studio/services" },
-      { label: "Instructors", icon: UsersIcon, href: "/studio/instructors" },
+      { section: t("sidebar.sectionOverview"), label: t("sidebar.dashboard"), icon: LayoutDashboardIcon, href: "/studio/dashboard" },
+      { section: t("sidebar.sectionDailyOps"), label: t("sidebar.schedule"), icon: CalendarIcon, href: "/studio/schedule" },
+      { label: t("sidebar.bookings"), icon: BookOpenIcon, href: "/studio/bookings" },
+      { label: t("sidebar.customers"), icon: UserCircle2Icon, href: "/studio/customers" },
+      { section: t("sidebar.sectionCatalog"), label: t("sidebar.services"), icon: PackageIcon, href: "/studio/services" },
+      { label: t("sidebar.instructors"), icon: UsersIcon, href: "/studio/instructors" },
       {
-        section: "Channels",
-        label: "Marketplace",
+        section: t("sidebar.sectionChannels"),
+        label: t("sidebar.marketplace"),
         icon: ShoppingBagIcon,
         href: "/studio/channels/marketplace",
         status: channelStatuses.marketplace,
       },
-      { label: "Direct", icon: GlobeIcon, href: "/studio/channels/direct", status: channelStatuses.direct },
+      { label: t("sidebar.direct"), icon: GlobeIcon, href: "/studio/channels/direct", status: channelStatuses.direct },
     ];
 
     if (role === "manager" || role === "owner") {
-      items.push({ section: "Insights", label: "Analytics", icon: BarChart3Icon, href: "/studio/insights" });
+      items.push({ section: t("sidebar.sectionInsights"), label: t("sidebar.analytics"), icon: BarChart3Icon, href: "/studio/insights" });
     }
     if (role === "owner") {
-      items.push({ section: "Team", label: "Members", icon: Users2Icon, href: "/studio/team" });
+      items.push({ section: t("sidebar.sectionTeam"), label: t("sidebar.members"), icon: Users2Icon, href: "/studio/team" });
     }
     return items;
-  }, [role, channelStatuses]);
+  }, [role, channelStatuses, t]);
 
   const bottomItems: NavItem[] = useMemo(() => {
     const items: NavItem[] = [];
     if (role === "owner" || role === "manager") {
-      items.push({ label: "Billing", icon: CreditCardIcon, href: "/studio/billing" });
+      items.push({ label: t("sidebar.billing"), icon: CreditCardIcon, href: "/studio/billing" });
     }
-    items.push({ label: "Docs", icon: LifeBuoyIcon, href: "/studio/docs" });
-    items.push({ label: "Settings", icon: SettingsIcon, href: "/studio/settings" });
+    items.push({ label: t("sidebar.docs"), icon: LifeBuoyIcon, href: "/studio/docs" });
+    items.push({ label: t("sidebar.settings"), icon: SettingsIcon, href: "/studio/settings" });
     return items;
-  }, [role]);
+  }, [role, t]);
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar navItems={navItems} bottomItems={bottomItems} title="Studio" subtitle={entityName ?? undefined} />
+      <Sidebar navItems={navItems} bottomItems={bottomItems} title={t("sidebar.title")} subtitle={entityName ?? undefined} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar />
 
@@ -198,7 +200,7 @@ function StudioChrome({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-6 py-2 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
             <span className="flex items-center gap-2 text-xs font-medium">
               <EyeIcon className="size-3.5" />
-              Viewing {entityName ?? "this studio"} as admin
+              {t("impersonation.banner", { studio: entityName ?? t("impersonation.thisStudio") })}
             </span>
             <Button
               variant="ghost"
@@ -209,7 +211,7 @@ function StudioChrome({ children }: { children: React.ReactNode }) {
                 router.push("/admin/studios");
               }}
             >
-              <XIcon className="size-3.5 mr-1" /> Exit
+              <XIcon className="size-3.5 mr-1" /> {t("impersonation.exit")}
             </Button>
           </div>
         )}
@@ -219,7 +221,7 @@ function StudioChrome({ children }: { children: React.ReactNode }) {
           <div className="border-b border-border px-6 py-2 shrink-0">
             <Select value={entityId ?? ""} onValueChange={setSelectedEntityId}>
               <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder="Select entity" />
+                <SelectValue placeholder={t("switcher.selectEntity")} />
               </SelectTrigger>
               <SelectContent>
                 {entities.map((e) => (

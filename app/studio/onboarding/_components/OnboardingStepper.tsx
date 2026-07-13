@@ -1,14 +1,15 @@
 "use client";
 
 import { CheckIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 export type StageKey = "studio" | "planning" | "publish";
 
-export const STAGES: { key: StageKey; label: string }[] = [
-  { key: "studio", label: "Studio" },
-  { key: "planning", label: "Planning" },
-  { key: "publish", label: "Publish" },
+export const STAGES: { key: StageKey }[] = [
+  { key: "studio" },
+  { key: "planning" },
+  { key: "publish" },
 ];
 
 /**
@@ -23,6 +24,7 @@ export function OnboardingStepper({
   current: StageKey;
   onJump?: (key: StageKey) => void;
 }) {
+  const t = useTranslations("onboarding");
   const currentIndex = STAGES.findIndex((s) => s.key === current);
 
   return (
@@ -59,7 +61,7 @@ export function OnboardingStepper({
                   isCurrent ? "text-foreground" : "text-muted-foreground",
                 )}
               >
-                {stage.label}
+                {t(`stepper.${stage.key}`)}
               </span>
             </button>
 
