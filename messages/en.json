@@ -613,6 +613,11 @@
   "onboarding": {
     "studioSetup": "Studio setup",
     "setUpLater": "Set up later",
+    "skipConfirm": {
+      "title": "Set up later?",
+      "body": "You can finish anytime from the checklist on your dashboard.",
+      "confirm": "Skip for now"
+    },
     "common": {
       "almostThere": "Almost there",
       "continue": "Continue",
@@ -1024,6 +1029,21 @@
     }
   },
   "studioMain": {
+    "setup": {
+      "title": "Finish setting up your studio",
+      "subtitle": "A few steps left before you're ready to take bookings.",
+      "progress": "{done} of {total} complete",
+      "resume": "Resume guided setup",
+      "dismiss": "Dismiss",
+      "steps": {
+        "profile": "Complete your studio profile",
+        "services": "Add your first service",
+        "schedule": "Schedule and publish a session",
+        "team": "Add your team",
+        "policies": "Set your booking policies",
+        "payout": "Add your payout details"
+      }
+    },
     "sidebar": {
       "title": "Studio",
       "sectionOverview": "Overview",

@@ -613,6 +613,11 @@
   "onboarding": {
     "studioSetup": "Configuration du studio",
     "setUpLater": "Configurer plus tard",
+    "skipConfirm": {
+      "title": "Configurer plus tard ?",
+      "body": "Vous pourrez terminer à tout moment depuis la liste de configuration sur votre tableau de bord.",
+      "confirm": "Ignorer pour l'instant"
+    },
     "common": {
       "almostThere": "Presque terminé",
       "continue": "Continuer",
@@ -1024,6 +1029,21 @@
     }
   },
   "studioMain": {
+    "setup": {
+      "title": "Terminez la configuration de votre studio",
+      "subtitle": "Encore quelques étapes avant de pouvoir accepter des réservations.",
+      "progress": "{done} sur {total} terminées",
+      "resume": "Reprendre la configuration guidée",
+      "dismiss": "Ignorer",
+      "steps": {
+        "profile": "Complétez le profil de votre studio",
+        "services": "Ajoutez votre premier service",
+        "schedule": "Planifiez et publiez une séance",
+        "team": "Ajoutez votre équipe",
+        "policies": "Définissez vos règles de réservation",
+        "payout": "Ajoutez vos coordonnées de versement"
+      }
+    },
     "sidebar": {
       "title": "Studio",
       "sectionOverview": "Vue d'ensemble",

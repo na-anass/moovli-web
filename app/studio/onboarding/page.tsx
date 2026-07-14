@@ -31,7 +31,7 @@ function OnboardingInner() {
   const { roles, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { notify } = useDialogs();
+  const { notify, confirm } = useDialogs();
   const t = useTranslations("onboarding");
   const tc = useTranslations("common");
 
@@ -41,10 +41,12 @@ function OnboardingInner() {
   const onboardedAt = owned?.onboardedAt;
   const currency = owned?.currencyCode ?? "MAD";
 
-  // Already onboarded → leave.
+  // Already onboarded → leave, UNLESS the user explicitly re-opened the wizard
+  // to resume setup from the dashboard checklist (?reopen=true).
+  const reopen = searchParams.get("reopen") === "true";
   useEffect(() => {
-    if (!authLoading && onboardedAt) router.replace("/studio/dashboard");
-  }, [authLoading, onboardedAt, router]);
+    if (!authLoading && onboardedAt && !reopen) router.replace("/studio/dashboard");
+  }, [authLoading, onboardedAt, reopen, router]);
 
   const initialStage = (searchParams.get("stage") as StageKey) || "studio";
   const [stage, setStage] = useState<StageKey>(
@@ -60,6 +62,13 @@ function OnboardingInner() {
 
   const skip = async () => {
     if (!entityId) return;
+    const ok = await confirm({
+      title: t("skipConfirm.title"),
+      message: t("skipConfirm.body"),
+      confirmLabel: t("skipConfirm.confirm"),
+      cancelLabel: tc("cancel"),
+    });
+    if (!ok) return;
     setFinishing(true);
     try {
       await studioApi.completeOnboarding(entityId);

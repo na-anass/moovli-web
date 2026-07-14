@@ -9,6 +9,26 @@ import type { PaginatedResponse } from "./admin";
  */
 export type SessionScope = "single" | "following" | "series";
 
+export type SetupStepKey =
+  | "profile"
+  | "services"
+  | "schedule"
+  | "team"
+  | "policies"
+  | "payout";
+
+export interface SetupStep {
+  key: SetupStepKey;
+  complete: boolean;
+  required: boolean;
+}
+
+export interface SetupStatus {
+  overallComplete: boolean;
+  completionPercentage: number;
+  steps: SetupStep[];
+}
+
 export interface StudioDashboardMetrics {
   bookingsThisWeek: number;
   bookingsLastWeek: number;
@@ -56,6 +76,11 @@ export const studioApi = {
   getDashboard: (entityId: string) =>
     apiClient<{ success: boolean; data: StudioDashboardMetrics }>(
       `/api/studio/${entityId}/dashboard`
+    ),
+
+  getSetupStatus: (entityId: string) =>
+    apiClient<{ success: boolean; data: SetupStatus }>(
+      `/api/studio/${entityId}/setup-status`
     ),
 
   getSessions: (

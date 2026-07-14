@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { StatsCard } from "@/components/shared/stats-card";
+import { SetupChecklist } from "@/components/studio/setup-checklist";
 import { studioApi, type StudioDashboardMetrics } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
 import { formatMoneyWhole } from "@/lib/money";
@@ -90,6 +91,9 @@ export default function StudioDashboardPage() {
         </>
       }
     >
+      {/* Finish-setting-up checklist (hides itself when complete or dismissed) */}
+      {entityId && <SetupChecklist entityId={entityId} />}
+
       {/* Action-required banner */}
       {pendingCount > 0 && (
         <Link
