@@ -48,7 +48,7 @@ export default function StudioLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { roles, loading } = useAuth();
+  const { roles, loading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const isOnboarding = pathname?.startsWith("/studio/onboarding") ?? false;
@@ -61,6 +61,8 @@ export default function StudioLayout({
   // studio never sees the dashboard flash before the wizard. null = stay.
   const redirectTarget = useMemo<string | null>(() => {
     if (loading) return null;
+    // Not signed in (e.g. just signed out) → login, NOT /no-access.
+    if (!user) return "/login";
     if (!roles?.isAdmin && entities.length === 0) return "/no-access";
     if (
       !isOnboarding &&
@@ -71,7 +73,7 @@ export default function StudioLayout({
       return "/studio/onboarding";
     }
     return null;
-  }, [loading, roles, entities, isOnboarding]);
+  }, [loading, user, roles, entities, isOnboarding]);
 
   useEffect(() => {
     if (redirectTarget) router.replace(redirectTarget);

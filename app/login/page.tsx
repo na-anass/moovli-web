@@ -24,7 +24,12 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/";
+  // Never honor a redirectTo that would loop the user straight back to an auth
+  // dead-end (a stale ?redirectTo=/no-access is what previously stranded users
+  // after sign-out → sign-in). Fall back to the root router in those cases.
+  const rawRedirect = searchParams.get("redirectTo");
+  const redirectTo =
+    rawRedirect && !["/login", "/no-access"].includes(rawRedirect) ? rawRedirect : "/";
   const t = useTranslations("auth");
 
   const handleLogin = async (e: React.FormEvent) => {

@@ -19,7 +19,7 @@ export default function InstructorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { roles, loading } = useAuth();
+  const { roles, loading, user } = useAuth();
   const router = useRouter();
   const t = useTranslations("instructor");
 
@@ -33,10 +33,13 @@ export default function InstructorLayout({
     { label: t("sidebar.settings"), icon: SettingsIcon, href: "/instructor/settings" },
   ];
 
-  const redirectTarget =
-    !loading && !roles?.isAdmin && (roles?.instructorEntities ?? []).length === 0
-      ? "/no-access"
-      : null;
+  const redirectTarget = loading
+    ? null
+    : !user
+      ? "/login"
+      : !roles?.isAdmin && (roles?.instructorEntities ?? []).length === 0
+        ? "/no-access"
+        : null;
 
   useEffect(() => {
     if (redirectTarget) router.replace(redirectTarget);

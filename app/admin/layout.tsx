@@ -23,7 +23,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { roles, loading } = useAuth();
+  const { roles, loading, user } = useAuth();
   const router = useRouter();
   const t = useTranslations("admin");
 
@@ -41,7 +41,13 @@ export default function AdminLayout({
     { label: t("sidebar.settings"), icon: SettingsIcon, href: "/admin/settings" },
   ];
 
-  const redirectTarget = !loading && !roles?.isAdmin ? "/no-access" : null;
+  const redirectTarget = loading
+    ? null
+    : !user
+      ? "/login"
+      : !roles?.isAdmin
+        ? "/no-access"
+        : null;
 
   useEffect(() => {
     if (redirectTarget) router.replace(redirectTarget);

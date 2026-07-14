@@ -89,6 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setRoles(null);
+    // Hard-navigate to a clean login screen. Without this, the just-cleared
+    // roles make the client route guards treat the user as "no access" and
+    // bounce them to /no-access — which then gets captured as ?redirectTo, so
+    // the next sign-in lands back on /no-access and strands them.
+    if (typeof window !== "undefined") window.location.href = "/login";
   };
 
   return (
