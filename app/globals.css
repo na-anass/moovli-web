@@ -45,6 +45,36 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/*
+ * Brand color ramps (fixed shades) — enables bg-/text-/border-primary-<n> and
+ * -secondary-<n>. The base `--color-primary` / `--color-secondary` above are
+ * theme-aware (shift in dark mode via :root/.dark); these numbered shades are
+ * the fixed violet / mint scales. Source of truth for brand colors in v4.
+ */
+@theme {
+  --color-primary-50: #f5f3ff;
+  --color-primary-100: #ede9fe;
+  --color-primary-200: #ddd6fe;
+  --color-primary-300: #c4b5fd;
+  --color-primary-400: #a78bfa;
+  --color-primary-500: #8b5cf6;
+  --color-primary-600: #7c3aed;
+  --color-primary-700: #6d28d9;
+  --color-primary-800: #5b21b6;
+  --color-primary-900: #4c1d95;
+
+  --color-secondary-50: #ecfdf5;
+  --color-secondary-100: #d1fae5;
+  --color-secondary-200: #a7f3d0;
+  --color-secondary-300: #6ee7b7;
+  --color-secondary-400: #34d399;
+  --color-secondary-500: #10b981;
+  --color-secondary-600: #059669;
+  --color-secondary-700: #0e9e76;
+  --color-secondary-800: #065f46;
+  --color-secondary-900: #064e3b;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
