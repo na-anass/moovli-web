@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useAuth } from "@/lib/auth/provider";
+import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeftRightIcon,
   ChevronLeftIcon,
@@ -11,18 +18,11 @@ import {
   MenuIcon,
   XIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/auth/provider";
-import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 
 export type NavItemStatus = "on" | "off" | "locked";
 
@@ -234,7 +234,7 @@ export function Sidebar({
               >
                 <div className="flex h-full flex-col">
                   <div className="flex h-14 items-center gap-2.5 px-4 border-b border-border">
-                    <div className="flex size-8 items-center justify-center rounded-lg bg-primary-50 p-1 shrink-0">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-secondary-50 p-1 shrink-0">
                       <Image src="/img/moovli-icon.png" alt="Moovli" width={24} height={24} />
                     </div>
                     <span className="text-sm font-semibold">{title}</span>
@@ -284,7 +284,7 @@ export function Sidebar({
           <div className="flex h-14 items-center justify-between px-3 border-b border-border relative shrink-0">
             {!isCollapsed ? (
               <div className="flex items-center gap-2.5">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-primary-50 p-1 shrink-0">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-secondary-50 p-1 shrink-0">
                   <Image src="/img/moovli-icon.png" alt="Moovli" width={24} height={24} />
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -297,7 +297,7 @@ export function Sidebar({
                 </div>
               </div>
             ) : (
-              <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-primary-50 p-1">
+              <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-secondary-50 p-1">
                 <Image src="/img/moovli-icon.png" alt="Moovli" width={24} height={24} />
               </div>
             )}
