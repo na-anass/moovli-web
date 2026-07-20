@@ -166,6 +166,7 @@ export const studioApi = {
       status?: string;
       channel_type?: string;
       channel_id?: string;
+      search?: string;
     },
   ) => {
     const query = new URLSearchParams();
@@ -174,6 +175,7 @@ export const studioApi = {
     if (params?.status) query.set("status", params.status);
     if (params?.channel_type) query.set("channel_type", params.channel_type);
     if (params?.channel_id) query.set("channel_id", params.channel_id);
+    if (params?.search) query.set("search", params.search);
     return apiClient<PaginatedResponse<StudioBookingRow>>(`/api/studio/${entityId}/bookings?${query}`);
   },
 
@@ -194,6 +196,14 @@ export const studioApi = {
       `/api/studio/${entityId}/bookings/${bookingId}/decline`,
       { method: "POST", body: JSON.stringify({ reason }) },
     ),
+
+  // Scan a guest QR (or type its BK- code) at the desk: a pending direct
+  // reservation is confirmed AND checked in one step.
+  scanBooking: (entityId: string, code: string) =>
+    apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/bookings/scan`, {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
 
   updatePricing: (entityId: string, serviceId: string, pricing: { credit_price?: number }) =>
     apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/services/${serviceId}/pricing`, {

@@ -548,7 +548,37 @@
       "networkError": "Network error. Please try again.",
       "confirmationTitle": "Reservation received",
       "confirmationBody": "The studio will confirm your booking by email shortly. You'll pay <strong>{price}</strong> at the studio.",
-      "reference": "Reference:"
+      "reference": "Reference:",
+      "qrHint": "Show this QR code at the studio to check in.",
+      "viewTicket": "View my ticket"
+    },
+    "ticket": {
+      "title": "Your booking",
+      "qrHint": "Show this QR code at the studio to check in.",
+      "service": "Class",
+      "date": "Date",
+      "time": "Time",
+      "instructor": "Instructor",
+      "name": "Name",
+      "price": "Price",
+      "payAtStudio": "pay at studio",
+      "reference": "Reference",
+      "status": {
+        "pending": "Pending studio confirmation",
+        "confirmed": "Confirmed",
+        "checked_in": "Checked in",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "no_show": "Missed"
+      },
+      "cancel": {
+        "action": "Cancel my reservation",
+        "confirmQuestion": "Cancel this reservation? This can't be undone.",
+        "confirmYes": "Yes, cancel",
+        "keep": "Keep it",
+        "cancelling": "Cancelling…",
+        "error": "Could not cancel. Please try again."
+      }
     },
     "embed": {
       "metaTitle": "Moovli embed",
@@ -1167,6 +1197,20 @@
         "confirmFailed": "Failed to confirm",
         "declineFailed": "Failed to decline",
         "checkinFailed": "Failed to check in"
+      },
+      "searchPlaceholder": "Search by reference, name or email",
+      "scan": {
+        "placeholder": "Scan or type booking code (BK-…)",
+        "action": "Check in",
+        "checking": "Checking…",
+        "success": "Checked in · {code}",
+        "errors": {
+          "INVALID_CODE": "No booking found for that code.",
+          "ALREADY_CHECKED_IN": "This booking is already checked in.",
+          "BOOKING_NOT_ACTIVE": "This booking is cancelled or already finished.",
+          "MARKETPLACE_BOOKINGS_AUTO_CONFIRMED": "Use the marketplace check-in for this booking.",
+          "generic": "Could not check in. Please try again."
+        }
       }
     },
     "customers": {
