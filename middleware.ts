@@ -9,8 +9,9 @@ const PUBLIC_ROUTES = ["/login", "/forgot-password"];
  *   /booking/<studio-slug>           — direct hosted page
  *   /c/<custom-link-slug>            — custom calendar link
  *   /embed/<embed-slug>              — embeddable widget iframe target
+ *   /t/<qr-code>                     — guest booking ticket (QR landing)
  */
-const PUBLIC_PATH_PREFIXES = ["/booking/", "/c/", "/embed/"];
+const PUBLIC_PATH_PREFIXES = ["/booking/", "/c/", "/embed/", "/t/"];
 
 /**
  * On `booking.*` subdomain, rewrite the path so it lands in the public routes.

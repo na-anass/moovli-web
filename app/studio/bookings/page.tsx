@@ -45,7 +45,18 @@ export default function StudioBookingsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [scanCode, setScanCode] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [scanMsg, setScanMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const pageSize = 25;
+
+  // Debounce the search box so we don't refetch on every keystroke.
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput.trim()), 350);
+    return () => clearTimeout(id);
+  }, [searchInput]);
 
   const fetchBookings = useCallback(async () => {
     if (!entityId) return;
@@ -58,6 +69,7 @@ export default function StudioBookingsPage() {
       if (tab === "pending") params.status = "pending";
       if (tab === "marketplace") params.channel_type = "marketplace";
       if (tab === "direct") params.channel_type = "direct_hosted";
+      if (search) params.search = search;
 
       const res = await studioApi.getBookings(entityId, params);
       let data = res.data;
@@ -77,7 +89,7 @@ export default function StudioBookingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [entityId, page, tab]);
+  }, [entityId, page, tab, search]);
 
   useEffect(() => {
     fetchBookings();
@@ -85,7 +97,7 @@ export default function StudioBookingsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [tab]);
+  }, [tab, search]);
 
   const handleConfirm = async (bookingId: string) => {
     if (!entityId) return;
@@ -125,6 +137,26 @@ export default function StudioBookingsPage() {
       alert((e as Error).message || t("bookings.errors.checkinFailed"));
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleScan = async () => {
+    if (!entityId || !scanCode.trim()) return;
+    setScanning(true);
+    setScanMsg(null);
+    try {
+      await studioApi.scanBooking(entityId, scanCode.trim());
+      setScanMsg({ ok: true, text: t("bookings.scan.success", { code: scanCode.trim() }) });
+      setScanCode("");
+      await fetchBookings();
+    } catch (e) {
+      const msg = (e as Error).message;
+      const known = t.has(`bookings.scan.errors.${msg}`)
+        ? t(`bookings.scan.errors.${msg}`)
+        : t("bookings.scan.errors.generic");
+      setScanMsg({ ok: false, text: known });
+    } finally {
+      setScanning(false);
     }
   };
 
@@ -191,8 +223,10 @@ export default function StudioBookingsPage() {
   const rowActions = (b: StudioBookingRow): RowAction[] => {
     const isPendingDirect =
       b.status === "pending" && b.channel?.type !== "marketplace";
-    const isConfirmedMarketplace =
-      b.status === "confirmed" && b.channel?.type === "marketplace";
+    // Any confirmed booking can be checked in — the studio check-in endpoint is
+    // channel-agnostic and windowless. Direct bookings need this too, otherwise
+    // they never leave `confirmed` and bookingStatus.job marks them `no_show`.
+    const isConfirmed = b.status === "confirmed";
     const busy = actionLoading === b.id;
 
     if (isPendingDirect) {
@@ -212,7 +246,7 @@ export default function StudioBookingsPage() {
         },
       ];
     }
-    if (isConfirmedMarketplace) {
+    if (isConfirmed) {
       return [
         {
           label: t("bookings.actions.checkin"),
@@ -239,6 +273,40 @@ export default function StudioBookingsPage() {
       title={t("bookings.title")}
       subtitle={t("bookings.subtitle")}
     >
+      {/* Desk check-in: scan or type a guest's BK- code */}
+      <div className="rounded-lg border bg-card p-3">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleScan();
+          }}
+          className="flex flex-wrap items-center gap-2"
+        >
+          <ClipboardCheckIcon className="size-4 text-muted-foreground" />
+          <input
+            value={scanCode}
+            onChange={(e) => {
+              setScanCode(e.target.value);
+              setScanMsg(null);
+            }}
+            placeholder={t("bookings.scan.placeholder")}
+            className="flex-1 min-w-45 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-mono outline-none focus:ring-2 focus:ring-ring"
+          />
+          <button
+            type="submit"
+            disabled={scanning || !scanCode.trim()}
+            className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background disabled:opacity-50"
+          >
+            {scanning ? t("bookings.scan.checking") : t("bookings.scan.action")}
+          </button>
+        </form>
+        {scanMsg && (
+          <p className={`mt-2 text-xs ${scanMsg.ok ? "text-emerald-600" : "text-destructive"}`}>
+            {scanMsg.text}
+          </p>
+        )}
+      </div>
+
       {/* Tab chips */}
       <div className="flex flex-wrap gap-2">
         {([
@@ -261,6 +329,14 @@ export default function StudioBookingsPage() {
           </button>
         ))}
       </div>
+
+      {/* Search by reference / guest name / email */}
+      <input
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+        placeholder={t("bookings.searchPlaceholder")}
+        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+      />
 
       <DataTable
         columns={columns}

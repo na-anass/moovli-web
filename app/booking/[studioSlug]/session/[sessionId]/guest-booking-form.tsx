@@ -6,6 +6,7 @@ import { formatMoneyWhole } from "@/lib/money";
 import { CheckCircleIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
 interface Props {
   sessionId: string;
@@ -18,6 +19,7 @@ interface Props {
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const BOOKING_BASE = process.env.NEXT_PUBLIC_BOOKING_BASE_URL || "http://localhost:3001";
 
 export function GuestBookingForm({
   sessionId,
@@ -34,7 +36,10 @@ export function GuestBookingForm({
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmation, setConfirmation] = useState<{ bookingId: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{
+    bookingId: string;
+    qrCode: string;
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +66,7 @@ export function GuestBookingForm({
         setSubmitting(false);
         return;
       }
-      setConfirmation({ bookingId: json.data.bookingId });
+      setConfirmation({ bookingId: json.data.bookingId, qrCode: json.data.qrCode });
     } catch {
       setError(t("guestForm.networkError"));
       setSubmitting(false);
@@ -79,10 +84,32 @@ export function GuestBookingForm({
             strong: (chunks) => <strong className="text-foreground">{chunks}</strong>,
           })}
         </p>
+        {confirmation.qrCode && (
+          <div className="flex flex-col items-center gap-2 pt-2">
+            <div className="rounded-lg bg-white p-3">
+              <QRCodeSVG
+                value={`${BOOKING_BASE}/t/${confirmation.qrCode}`}
+                size={148}
+                level="M"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {t("guestForm.qrHint")}
+            </p>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">
           {t("guestForm.reference")}{" "}
-          <code className="font-mono">{confirmation.bookingId.slice(0, 8)}</code>
+          <code className="font-mono">{confirmation.qrCode || confirmation.bookingId.slice(0, 8)}</code>
         </p>
+        {confirmation.qrCode && (
+          <a
+            href={`${BOOKING_BASE}/t/${confirmation.qrCode}`}
+            className="inline-block text-xs font-medium text-primary underline underline-offset-2"
+          >
+            {t("guestForm.viewTicket")}
+          </a>
+        )}
       </div>
     );
   }

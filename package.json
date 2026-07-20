@@ -39,6 +39,7 @@
     "motion": "^12.23.26",
     "next": "16.0.10",
     "next-intl": "^4.13.2",
+    "qrcode.react": "^4.2.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.1",
     "react-dom": "19.2.1",

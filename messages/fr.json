@@ -548,7 +548,37 @@
       "networkError": "Erreur réseau. Veuillez réessayer.",
       "confirmationTitle": "Réservation reçue",
       "confirmationBody": "Le studio confirmera votre réservation par e-mail sous peu. Vous paierez <strong>{price}</strong> au studio.",
-      "reference": "Référence :"
+      "reference": "Référence :",
+      "qrHint": "Présentez ce QR code au studio pour vous enregistrer.",
+      "viewTicket": "Voir mon billet"
+    },
+    "ticket": {
+      "title": "Votre réservation",
+      "qrHint": "Présentez ce QR code au studio pour vous enregistrer.",
+      "service": "Cours",
+      "date": "Date",
+      "time": "Heure",
+      "instructor": "Intervenant",
+      "name": "Nom",
+      "price": "Prix",
+      "payAtStudio": "à payer au studio",
+      "reference": "Référence",
+      "status": {
+        "pending": "En attente de confirmation",
+        "confirmed": "Confirmée",
+        "checked_in": "Enregistrée",
+        "completed": "Terminée",
+        "cancelled": "Annulée",
+        "no_show": "Manquée"
+      },
+      "cancel": {
+        "action": "Annuler ma réservation",
+        "confirmQuestion": "Annuler cette réservation ? Cette action est irréversible.",
+        "confirmYes": "Oui, annuler",
+        "keep": "Conserver",
+        "cancelling": "Annulation…",
+        "error": "Annulation impossible. Veuillez réessayer."
+      }
     },
     "embed": {
       "metaTitle": "Widget Moovli",
@@ -1167,6 +1197,20 @@
         "confirmFailed": "Échec de la confirmation",
         "declineFailed": "Échec du refus",
         "checkinFailed": "Échec de l'enregistrement"
+      },
+      "searchPlaceholder": "Rechercher par référence, nom ou e-mail",
+      "scan": {
+        "placeholder": "Scannez ou saisissez le code (BK-…)",
+        "action": "Enregistrer",
+        "checking": "Vérification…",
+        "success": "Enregistré · {code}",
+        "errors": {
+          "INVALID_CODE": "Aucune réservation trouvée pour ce code.",
+          "ALREADY_CHECKED_IN": "Cette réservation est déjà enregistrée.",
+          "BOOKING_NOT_ACTIVE": "Cette réservation est annulée ou déjà terminée.",
+          "MARKETPLACE_BOOKINGS_AUTO_CONFIRMED": "Utilisez l'enregistrement marketplace pour cette réservation.",
+          "generic": "Enregistrement impossible. Veuillez réessayer."
+        }
       }
     },
     "customers": {
