@@ -7,7 +7,8 @@ import { DataTable, type Column } from "@/components/shared/data-table";
 import { InfoTip } from "@/components/ui/info-tip";
 import { adminApi } from "@/lib/api/admin";
 import { Badge } from "@/components/ui/badge";
-import { EyeIcon, ExternalLinkIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EyeIcon, ExternalLinkIcon, PlusIcon } from "lucide-react";
 
 interface Entity {
   id: string;
@@ -94,7 +95,15 @@ export default function StudiosPage() {
           <h1 className="text-2xl font-bold">{t("studios.title")}</h1>
           <InfoTip term="studio" />
         </div>
-        <p className="text-sm text-muted-foreground">{t("studios.totalCount", { count: total })}</p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            {t("studios.totalCount", { count: total })}
+          </p>
+          <Button size="sm" onClick={() => router.push("/admin/studios/new")}>
+            <PlusIcon className="size-4" />
+            {t("studios.setUpStudio")}
+          </Button>
+        </div>
       </div>
 
       <DataTable

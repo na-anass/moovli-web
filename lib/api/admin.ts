@@ -19,6 +19,47 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export interface EntityType {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export type StudioTypeSlug =
+  | "fitness_studio"
+  | "yoga_studio"
+  | "pilates_studio"
+  | "dance_studio"
+  | "boxing_gym"
+  | "crossfit_box"
+  | "beauty_salon"
+  | "spa_wellness";
+
+export interface ProvisionStudioInput {
+  ownerEmail: string;
+  ownerName?: string;
+  ownerPhone?: string;
+  studioName: string;
+  studioTypeSlug: StudioTypeSlug;
+  slug?: string;
+  city?: string;
+  country?: string;
+  currencyCode?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  credentialMode: "invite" | "temp_password";
+  planSlug?: "standard" | "marketplace";
+}
+
+export interface ProvisionStudioResult {
+  entityId: string;
+  slug: string;
+  ownerUserId: string;
+  ownerAlreadyExisted: boolean;
+  tempPassword?: string;
+  subscriptionId: string;
+}
+
 export const adminApi = {
   getDashboard: () =>
     apiClient<{ success: boolean; data: DashboardMetrics }>("/api/admin/dashboard"),
@@ -78,6 +119,15 @@ export const adminApi = {
     apiClient<{ success: boolean; data: any }>(`/api/admin/entities/${entityId}/assign-owner`, {
       method: "POST",
       body: JSON.stringify({ userId, role }),
+    }),
+
+  getEntityTypes: () =>
+    apiClient<{ success: boolean; data: EntityType[] }>("/api/admin/entity-types"),
+
+  provisionStudio: (input: ProvisionStudioInput) =>
+    apiClient<{ success: boolean; data: ProvisionStudioResult }>("/api/admin/studios/provision", {
+      method: "POST",
+      body: JSON.stringify(input),
     }),
 
   getBookings: (params?: { page?: number; limit?: number; status?: string; entity_id?: string }) => {

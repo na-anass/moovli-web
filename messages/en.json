@@ -348,7 +348,8 @@
       "statusSuspended": "Suspended",
       "statusInactive": "Inactive",
       "viewStudio": "View studio",
-      "openDashboard": "Open dashboard (as studio)"
+      "openDashboard": "Open dashboard (as studio)",
+      "setUpStudio": "Set up a studio"
     },
     "studioDetail": {
       "notFound": "Entity not found.",
@@ -409,6 +410,47 @@
       "activateUser": "Activate User",
       "revokeAdmin": "Revoke Admin",
       "grantAdmin": "Grant Admin"
+    },
+    "provision": {
+      "title": "Set up a studio",
+      "subtitle": "Provision a demo studio — creates the owner account, the studio, and a trial plan.",
+      "ownerSection": "Studio owner",
+      "ownerEmail": "Owner email",
+      "ownerName": "Owner name",
+      "ownerPhone": "Owner phone",
+      "studioSection": "Studio",
+      "studioName": "Studio name",
+      "studioType": "Studio type",
+      "selectType": "Select a type…",
+      "slug": "Booking URL slug",
+      "slugHint": "Public booking page: /booking/<slug>. Auto-filled from the name; editable.",
+      "city": "City",
+      "country": "Country (2-letter)",
+      "currency": "Currency",
+      "contactEmail": "Studio contact email",
+      "contactPhone": "Studio contact phone",
+      "optional": "optional",
+      "credentialSection": "Owner access",
+      "credentialMode": "How should the owner get access?",
+      "credentialInvite": "Send invite email",
+      "credentialInviteHint": "The owner gets an invite link and sets their own password.",
+      "credentialTemp": "Generate a temporary password",
+      "credentialTempHint": "You share the password with the owner (shown once after setup).",
+      "plan": "Trial plan",
+      "planStandard": "Standard — direct booking",
+      "planMarketplace": "Marketplace — + app exposure",
+      "submit": "Set up studio",
+      "submitting": "Setting up…",
+      "successTitle": "Studio provisioned",
+      "successNewOwner": "A new owner account was created for {email}.",
+      "successExistingOwner": "Linked the existing Moovli account for {email} as owner.",
+      "tempPasswordLabel": "Temporary password (shown once — copy it now)",
+      "copy": "Copy",
+      "copied": "Copied",
+      "viewStudio": "View studio",
+      "openDashboard": "Open dashboard (as studio)",
+      "provisionAnother": "Set up another studio",
+      "errorTitle": "Could not set up the studio"
     }
   },
   "auth": {
@@ -470,7 +512,27 @@
     },
     "forgotPassword": {
       "comingSoon": "Coming Soon",
-      "underConstruction": "This page is under construction."
+      "underConstruction": "This page is under construction.",
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we’ll send you a link to set a new password.",
+      "emailLabel": "Email",
+      "submit": "Send reset link",
+      "submitting": "Sending…",
+      "sent": "If an account exists for that email, a reset link is on its way. Check your inbox.",
+      "backToLogin": "Back to sign in"
+    },
+    "setPassword": {
+      "title": "Set your password",
+      "subtitle": "Choose a password to activate your account.",
+      "newPassword": "New password",
+      "confirm": "Confirm password",
+      "submit": "Set password & continue",
+      "submitting": "Saving…",
+      "tooShort": "Password must be at least 8 characters.",
+      "mismatch": "The two passwords don’t match.",
+      "noSession": "This link has expired or was already used.",
+      "noSessionHint": "Ask your Moovli contact to send a fresh invite, or use “forgot password” from the sign-in page.",
+      "genericError": "Could not set the password. Please try again."
     }
   },
   "booking": {

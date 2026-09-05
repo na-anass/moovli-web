@@ -348,7 +348,8 @@
       "statusSuspended": "Suspendu",
       "statusInactive": "Inactif",
       "viewStudio": "Voir le studio",
-      "openDashboard": "Ouvrir le tableau de bord (en tant que studio)"
+      "openDashboard": "Ouvrir le tableau de bord (en tant que studio)",
+      "setUpStudio": "Configurer un studio"
     },
     "studioDetail": {
       "notFound": "Entité introuvable.",
@@ -409,6 +410,47 @@
       "activateUser": "Activer l'utilisateur",
       "revokeAdmin": "Révoquer l'admin",
       "grantAdmin": "Accorder l'admin"
+    },
+    "provision": {
+      "title": "Configurer un studio",
+      "subtitle": "Provisionner un studio de démo — crée le compte propriétaire, le studio et un plan d’essai.",
+      "ownerSection": "Propriétaire du studio",
+      "ownerEmail": "E-mail du propriétaire",
+      "ownerName": "Nom du propriétaire",
+      "ownerPhone": "Téléphone du propriétaire",
+      "studioSection": "Studio",
+      "studioName": "Nom du studio",
+      "studioType": "Type de studio",
+      "selectType": "Sélectionnez un type…",
+      "slug": "Identifiant d’URL de réservation",
+      "slugHint": "Page de réservation publique : /booking/<slug>. Pré-rempli depuis le nom ; modifiable.",
+      "city": "Ville",
+      "country": "Pays (2 lettres)",
+      "currency": "Devise",
+      "contactEmail": "E-mail de contact du studio",
+      "contactPhone": "Téléphone de contact du studio",
+      "optional": "facultatif",
+      "credentialSection": "Accès du propriétaire",
+      "credentialMode": "Comment le propriétaire obtient-il l’accès ?",
+      "credentialInvite": "Envoyer un e-mail d’invitation",
+      "credentialInviteHint": "Le propriétaire reçoit un lien d’invitation et définit son mot de passe.",
+      "credentialTemp": "Générer un mot de passe temporaire",
+      "credentialTempHint": "Vous partagez le mot de passe avec le propriétaire (affiché une seule fois).",
+      "plan": "Plan d’essai",
+      "planStandard": "Standard — réservation directe",
+      "planMarketplace": "Marketplace — + visibilité appli",
+      "submit": "Configurer le studio",
+      "submitting": "Configuration…",
+      "successTitle": "Studio provisionné",
+      "successNewOwner": "Un nouveau compte propriétaire a été créé pour {email}.",
+      "successExistingOwner": "Le compte Moovli existant de {email} a été lié comme propriétaire.",
+      "tempPasswordLabel": "Mot de passe temporaire (affiché une seule fois — copiez-le)",
+      "copy": "Copier",
+      "copied": "Copié",
+      "viewStudio": "Voir le studio",
+      "openDashboard": "Ouvrir le tableau de bord (en tant que studio)",
+      "provisionAnother": "Configurer un autre studio",
+      "errorTitle": "Impossible de configurer le studio"
     }
   },
   "auth": {
@@ -470,7 +512,27 @@
     },
     "forgotPassword": {
       "comingSoon": "Bientôt disponible",
-      "underConstruction": "Cette page est en cours de construction."
+      "underConstruction": "Cette page est en cours de construction.",
+      "title": "Réinitialisez votre mot de passe",
+      "subtitle": "Saisissez votre e-mail et nous vous enverrons un lien pour définir un nouveau mot de passe.",
+      "emailLabel": "E-mail",
+      "submit": "Envoyer le lien",
+      "submitting": "Envoi…",
+      "sent": "Si un compte existe pour cet e-mail, un lien de réinitialisation arrive. Vérifiez votre boîte de réception.",
+      "backToLogin": "Retour à la connexion"
+    },
+    "setPassword": {
+      "title": "Définissez votre mot de passe",
+      "subtitle": "Choisissez un mot de passe pour activer votre compte.",
+      "newPassword": "Nouveau mot de passe",
+      "confirm": "Confirmez le mot de passe",
+      "submit": "Définir et continuer",
+      "submitting": "Enregistrement…",
+      "tooShort": "Le mot de passe doit contenir au moins 8 caractères.",
+      "mismatch": "Les deux mots de passe ne correspondent pas.",
+      "noSession": "Ce lien a expiré ou a déjà été utilisé.",
+      "noSessionHint": "Demandez à votre contact Moovli un nouveau lien d’invitation, ou utilisez « mot de passe oublié » sur la page de connexion.",
+      "genericError": "Impossible de définir le mot de passe. Réessayez."
     }
   },
   "booking": {
