@@ -423,7 +423,7 @@
       "studioType": "Studio type",
       "selectType": "Select a type…",
       "slug": "Booking URL slug",
-      "slugHint": "Public booking page: /booking/<slug>. Auto-filled from the name; editable.",
+      "slugHint": "Public booking page: /booking/your-slug. Auto-filled from the name; editable.",
       "city": "City",
       "country": "Country (2-letter)",
       "currency": "Currency",

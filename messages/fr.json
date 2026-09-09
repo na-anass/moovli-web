@@ -423,7 +423,7 @@
       "studioType": "Type de studio",
       "selectType": "Sélectionnez un type…",
       "slug": "Identifiant d’URL de réservation",
-      "slugHint": "Page de réservation publique : /booking/<slug>. Pré-rempli depuis le nom ; modifiable.",
+      "slugHint": "Page de réservation publique : /booking/votre-slug. Pré-rempli depuis le nom ; modifiable.",
       "city": "Ville",
       "country": "Pays (2 lettres)",
       "currency": "Devise",

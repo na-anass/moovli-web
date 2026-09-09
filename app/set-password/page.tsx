@@ -19,14 +19,30 @@ export default function SetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // The invite / recovery link lands here with an active session (established by
-  // /auth/callback exchanging the code). No session → the link expired or was reused.
+  // Invite / recovery links (GoTrue /verify) redirect here with the session in
+  // the URL hash (#access_token=…&refresh_token=…). Pick those up and establish
+  // the session, then confirm it. No session → the link expired or was reused.
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.location.hash.includes("access_token")) {
+          const p = new URLSearchParams(window.location.hash.slice(1));
+          const access_token = p.get("access_token");
+          const refresh_token = p.get("refresh_token");
+          if (access_token && refresh_token) {
+            await supabase.auth.setSession({ access_token, refresh_token });
+            // clear the tokens from the address bar
+            window.history.replaceState(null, "", window.location.pathname + window.location.search);
+          }
+        }
+      } catch {
+        /* fall through to the getUser check */
+      }
+      const { data } = await supabase.auth.getUser();
       setHasSession(!!data.user);
       setChecking(false);
-    });
+    })();
   }, []);
 
   const onSubmit = async (e: React.FormEvent) => {

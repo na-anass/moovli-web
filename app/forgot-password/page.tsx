@@ -17,10 +17,10 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
     const supabase = createClient();
-    // Recovery links come back through /auth/callback, which exchanges the code
-    // and forwards to /set-password — the same screen invited owners use.
+    // Recovery links land on /set-password (same screen invited owners use); it
+    // reads the session tokens from the URL hash.
     await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/callback?redirectTo=/set-password`,
+      redirectTo: `${window.location.origin}/set-password`,
     });
     // Always show the same confirmation (don't reveal whether the email exists).
     setSent(true);
