@@ -37,7 +37,7 @@
     "switchRole": "Changer de rôle",
     "statusActive": "Actif",
     "statusOff": "Inactif",
-    "statusLocked": "Mise à niveau requise",
+    "statusLocked": "Abonnement supérieur",
     "crumbs": {
       "admin": "Admin",
       "studio": "Studio",
@@ -985,12 +985,12 @@
       "active": "Actif",
       "off": "Désactivé",
       "toggleAria": "Activer/désactiver la mise en ligne sur la Marketplace",
-      "planUpgradeRequired": "Mise à niveau de l'abonnement requise",
+      "planUpgradeRequired": "Abonnement supérieur requis",
       "noAccess": "Aucun accès studio trouvé.",
       "gate": {
         "title": "Débloquez les réservations Marketplace",
-        "body": "Votre plan Standard n’inclut pas la Marketplace. Activez-la pour capter les réservations des utilisateurs Moovli : vous définissez votre prix et votre remise partenaire, et touchez le net à chaque réservation.",
-        "upgradePlan": "Mettre à niveau l'abonnement"
+        "body": "Votre abonnement Standard n’inclut pas la Marketplace. Activez-la pour capter les réservations des utilisateurs Moovli : vous définissez votre prix et votre remise partenaire, et touchez le net à chaque réservation.",
+        "upgradePlan": "Passer à l’abonnement Marketplace"
       },
       "listingStatus": "Statut de mise en ligne",
       "liveInApp": "En ligne dans l'app",
@@ -1606,7 +1606,7 @@
         "marketplaceLabel": "Marketplace",
         "marketplaceDesc": "Visible dans l'app mobile Moovli — payé via Moovli",
         "offInSettings": "Désactivé dans les paramètres du canal",
-        "planUpgrade": "Mise à niveau requise",
+        "planUpgrade": "Abonnement supérieur requis",
         "channelOff": "Le canal est désactivé.",
         "enable": "Activer →",
         "notInPlan": "Ce canal n'est pas inclus dans votre formule actuelle.",
