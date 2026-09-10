@@ -118,7 +118,7 @@ export default function StudioDashboardPage() {
       {/* Stats — 4 columns: revenue, bookings, members, active sessions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
-          title={t("dashboard.stats.marketplaceRevenue")}
+          title={t("dashboard.stats.revenue")}
           value={formatMoneyWhole(metrics?.revenueMadThisWeek ?? 0, currency)}
           icon={<WalletIcon className="size-5" />}
           description={t("dashboard.stats.last7Days")}

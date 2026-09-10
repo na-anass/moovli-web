@@ -1172,7 +1172,7 @@
       "pendingBanner": "{count, plural, one {# réservation en attente requiert votre action} other {# réservations en attente requièrent votre action}}",
       "pendingBannerSub": "Réservations Direct en attente de confirmation ou de refus",
       "stats": {
-        "marketplaceRevenue": "Revenus Marketplace",
+        "revenue": "Revenus",
         "last7Days": "7 derniers jours",
         "bookingsThisWeek": "Réservations cette semaine",
         "vsLastWeek": "vs semaine dernière",
