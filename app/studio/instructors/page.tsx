@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { DataTable, type Column, type RowAction } from "@/components/shared/data-table";
 import { FormSheet } from "@/components/shared/form-sheet";
@@ -70,6 +71,7 @@ const getInitials = (name: string) =>
 const PAGE_SIZE = 20;
 
 export default function InstructorsPage() {
+  const t = useTranslations("studioMain.instructorsPage");
   const activeEntity = useActiveEntity();
   const entityId = activeEntity.entityId;
   const currency = activeEntity.currencyCode;
@@ -181,7 +183,7 @@ export default function InstructorsPage() {
       fetchProviders();
     } catch (e) {
       console.error(e);
-      setSaveError((e as Error).message || "Couldn't save instructor. Please try again.");
+      setSaveError((e as Error).message || t("form.saveError"));
     } finally {
       setSaving(false);
     }
@@ -209,7 +211,7 @@ export default function InstructorsPage() {
       fetchProviders();
     } catch (e) {
       console.error(e);
-      setDeleteError((e as Error).message || "Couldn't delete instructor.");
+      setDeleteError((e as Error).message || t("del.error"));
     } finally {
       setDeleteBusy(false);
     }
@@ -218,7 +220,7 @@ export default function InstructorsPage() {
   // ── columns ────────────────────────────────────────────────────────────────
   const columns: Column<Provider>[] = [
     {
-      header: "Instructor",
+      header: t("col.instructor"),
       sortKey: "name",
       cell: (p) => (
         <div className={`flex items-center gap-3 ${!p.is_active ? "opacity-60" : ""}`}>
@@ -241,7 +243,7 @@ export default function InstructorsPage() {
       ),
     },
     {
-      header: "Contact",
+      header: t("col.contact"),
       cell: (p) => (
         <div className="text-xs text-muted-foreground space-y-0.5">
           {p.email && <p className="flex items-center gap-1 truncate"><MailIcon className="size-3 shrink-0" />{p.email}</p>}
@@ -251,7 +253,7 @@ export default function InstructorsPage() {
       ),
     },
     {
-      header: "Tier",
+      header: t("col.tier"),
       sortKey: "tier",
       cell: (p) => (
         <Badge variant="outline" className={tierColors[p.tier ?? "standard"]}>
@@ -260,12 +262,12 @@ export default function InstructorsPage() {
       ),
     },
     {
-      header: "Sessions",
+      header: t("col.sessions"),
       sortKey: "total_sessions",
       cell: (p) => <span className="text-sm tabular-nums">{p.total_sessions ?? 0}</span>,
     },
     {
-      header: "Rating",
+      header: t("col.rating"),
       sortKey: "rating",
       cell: (p) =>
         p.rating != null ? (
@@ -279,7 +281,7 @@ export default function InstructorsPage() {
         ),
     },
     {
-      header: "Active",
+      header: t("col.active"),
       cell: (p) => (
         <Switch checked={p.is_active} disabled={!canManage} onCheckedChange={() => handleToggleActive(p)} />
       ),
@@ -287,10 +289,10 @@ export default function InstructorsPage() {
   ];
 
   const rowActions = (p: Provider): RowAction[] => [
-    { label: "Preview", icon: EyeIcon, onClick: () => setPreview(p) },
-    { label: "Edit", icon: PencilIcon, onClick: () => openEdit(p) },
+    { label: t("action.preview"), icon: EyeIcon, onClick: () => setPreview(p) },
+    { label: t("action.edit"), icon: PencilIcon, onClick: () => openEdit(p) },
     {
-      label: "Delete",
+      label: t("action.delete"),
       icon: Trash2Icon,
       variant: "destructive",
       separatorBefore: true,
@@ -301,12 +303,12 @@ export default function InstructorsPage() {
   return (
     <BaseLayout
       maxWidth="full"
-      title="Instructors"
-      subtitle={`${providers.length} instructor${providers.length !== 1 ? "s" : ""}`}
+      title={t("title")}
+      subtitle={t("count", { count: providers.length })}
       action={
         canManage ? (
           <Button onClick={openCreate}>
-            <PlusIcon className="size-4 mr-1.5" /> Add instructor
+            <PlusIcon className="size-4 mr-1.5" /> {t("add")}
           </Button>
         ) : undefined
       }
@@ -317,19 +319,19 @@ export default function InstructorsPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, email or title…"
+            placeholder={t("searchPlaceholder")}
             className="h-8 text-sm"
           />
         </div>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-          <SelectTrigger size="sm" className="w-auto min-w-32"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger size="sm" className="w-auto min-w-32"><SelectValue placeholder={t("statusPlaceholder")} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="active">{t("statusActive")}</SelectItem>
+            <SelectItem value="inactive">{t("statusInactive")}</SelectItem>
           </SelectContent>
         </Select>
-        <span className="text-xs text-muted-foreground">{filtered.length} of {providers.length} shown</span>
+        <span className="text-xs text-muted-foreground">{t("shown", { filtered: filtered.length, total: providers.length })}</span>
       </div>
 
       <DataTable
@@ -350,16 +352,16 @@ export default function InstructorsPage() {
       <FormSheet
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={editing ? "Edit instructor" : "Add instructor"}
-        subtitle={editing ? "Update this instructor's profile." : "Add someone who teaches at your studio. Add an email to give them a login."}
+        title={editing ? t("form.editTitle") : t("form.addTitle")}
+        subtitle={editing ? t("form.editSubtitle") : t("form.addSubtitle")}
         icon={editing ? PencilIcon : UserPlusIcon}
         iconAccent="primary"
         width="lg"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>{t("form.cancel")}</Button>
             <Button onClick={handleSave} disabled={saving || !form.name.trim()}>
-              {saving ? "Saving…" : editing ? "Update instructor" : "Add instructor"}
+              {saving ? t("form.saving") : editing ? t("form.update") : t("form.add")}
             </Button>
           </>
         }
@@ -376,28 +378,28 @@ export default function InstructorsPage() {
       <FormSheet
         open={!!deleting}
         onOpenChange={(open) => { if (!open) { setDeleting(null); setDeleteError(null); } }}
-        title="Delete instructor?"
-        subtitle="This action cannot be undone."
+        title={t("del.title")}
+        subtitle={t("del.subtitle")}
         icon={Trash2Icon}
         iconAccent="destructive"
         width="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => { setDeleting(null); setDeleteError(null); }} disabled={deleteBusy}>Cancel</Button>
+            <Button variant="ghost" onClick={() => { setDeleting(null); setDeleteError(null); }} disabled={deleteBusy}>{t("del.cancel")}</Button>
             <Button variant="destructive" onClick={handleConfirmDelete} disabled={deleteBusy}>
-              {deleteBusy ? "Deleting…" : "Delete instructor"}
+              {deleteBusy ? t("del.deleting") : t("del.confirm")}
             </Button>
           </>
         }
       >
         <div className="space-y-3">
           <p className="text-sm">
-            Permanently delete <span className="font-semibold">{deleting?.name}</span>?
+            {t.rich("del.confirmText", {
+              name: deleting?.name ?? "",
+              b: (chunks) => <span className="font-semibold">{chunks}</span>,
+            })}
           </p>
-          <p className="text-xs text-muted-foreground">
-            If they&apos;re assigned to any sessions, the delete is blocked — deactivate them instead
-            (toggle Active off), which hides them without breaking existing bookings.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("del.hint")}</p>
           {deleteError && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">{deleteError}</div>
           )}
@@ -408,17 +410,17 @@ export default function InstructorsPage() {
       <FormSheet
         open={!!preview}
         onOpenChange={(open) => { if (!open) setPreview(null); }}
-        title="Instructor preview"
-        subtitle="How this instructor's profile reads."
+        title={t("preview.title")}
+        subtitle={t("preview.subtitle")}
         icon={EyeIcon}
         iconAccent="slate"
         width="md"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setPreview(null)}>Close</Button>
+            <Button variant="ghost" onClick={() => setPreview(null)}>{t("preview.close")}</Button>
             {canManage && preview && (
               <Button onClick={() => { const p = preview; setPreview(null); openEdit(p); }}>
-                <PencilIcon className="size-4 mr-1.5" /> Edit
+                <PencilIcon className="size-4 mr-1.5" /> {t("preview.edit")}
               </Button>
             )}
           </>
@@ -443,7 +445,7 @@ export default function InstructorsPage() {
                 {preview.title && <p className="text-sm text-muted-foreground">{preview.title}</p>}
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <Badge variant="outline" className={tierColors[preview.tier ?? "standard"]}>{preview.tier ?? "standard"}</Badge>
-                  <Badge variant="outline" className={preview.is_active ? "" : "opacity-70"}>{preview.is_active ? "Active" : "Inactive"}</Badge>
+                  <Badge variant="outline" className={preview.is_active ? "" : "opacity-70"}>{preview.is_active ? t("preview.statusActive") : t("preview.statusInactive")}</Badge>
                   {preview.rating != null && (
                     <span className="flex items-center gap-1 text-sm text-muted-foreground">
                       <StarIcon className="size-3 fill-amber-400 text-amber-400" />
@@ -455,17 +457,17 @@ export default function InstructorsPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-xs text-muted-foreground">Email</p><p className="truncate">{preview.email || "—"}</p></div>
-              <div><p className="text-xs text-muted-foreground">Phone</p><p className="truncate">{preview.phone || "—"}</p></div>
-              <div><p className="text-xs text-muted-foreground">Experience</p><p>{preview.experience_years != null ? `${preview.experience_years} yrs` : "—"}</p></div>
-              <div><p className="text-xs text-muted-foreground">Rate</p><p>{preview.base_rate != null ? formatMoneyWhole(preview.base_rate, currency) : "—"}</p></div>
-              <div><p className="text-xs text-muted-foreground">Sessions</p><p>{preview.total_sessions ?? 0}</p></div>
-              <div><p className="text-xs text-muted-foreground">Display order</p><p>{preview.display_order ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">{t("preview.email")}</p><p className="truncate">{preview.email || "—"}</p></div>
+              <div><p className="text-xs text-muted-foreground">{t("preview.phone")}</p><p className="truncate">{preview.phone || "—"}</p></div>
+              <div><p className="text-xs text-muted-foreground">{t("preview.experience")}</p><p>{preview.experience_years != null ? t("preview.years", { n: preview.experience_years }) : "—"}</p></div>
+              <div><p className="text-xs text-muted-foreground">{t("preview.rate")}</p><p>{preview.base_rate != null ? formatMoneyWhole(preview.base_rate, currency) : "—"}</p></div>
+              <div><p className="text-xs text-muted-foreground">{t("preview.sessions")}</p><p>{preview.total_sessions ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">{t("preview.displayOrder")}</p><p>{preview.display_order ?? 0}</p></div>
             </div>
 
             {preview.specializations && preview.specializations.length > 0 && (
               <div>
-                <p className="text-xs text-muted-foreground mb-1.5">Specializations</p>
+                <p className="text-xs text-muted-foreground mb-1.5">{t("preview.specializations")}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {preview.specializations.map((s) => (
                     <span key={s} className="text-xs bg-muted px-2 py-0.5 rounded-full">{s}</span>
@@ -475,10 +477,10 @@ export default function InstructorsPage() {
             )}
 
             {preview.short_bio && (
-              <div><p className="text-xs text-muted-foreground mb-1">Short bio</p><p className="text-sm">{preview.short_bio}</p></div>
+              <div><p className="text-xs text-muted-foreground mb-1">{t("preview.shortBio")}</p><p className="text-sm">{preview.short_bio}</p></div>
             )}
             {preview.bio && (
-              <div><p className="text-xs text-muted-foreground mb-1">Bio</p><p className="text-sm whitespace-pre-wrap">{preview.bio}</p></div>
+              <div><p className="text-xs text-muted-foreground mb-1">{t("preview.bio")}</p><p className="text-sm whitespace-pre-wrap">{preview.bio}</p></div>
             )}
 
             {preview.social_links && Object.keys(preview.social_links).length > 0 && (

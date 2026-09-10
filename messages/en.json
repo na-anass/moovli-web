@@ -1149,7 +1149,7 @@
       "bookings": "Bookings",
       "customers": "Customers",
       "services": "Services",
-      "instructors": "Instructors",
+      "instructors": "Instructors or coaches",
       "marketplace": "Marketplace",
       "direct": "Direct",
       "analytics": "Analytics",
@@ -1629,6 +1629,69 @@
         "releaseHint": "At that point, unused spots from any channel become bookable by the other.",
         "notes": "Notes (optional)",
         "notesPlaceholder": "Internal notes for this session..."
+      }
+    },
+    "instructorsPage": {
+      "title": "Instructors or coaches",
+      "count": "{count, plural, =0 {No instructors} one {# instructor} other {# instructors}}",
+      "add": "Add instructor",
+      "searchPlaceholder": "Search name, email or title…",
+      "statusPlaceholder": "Status",
+      "allStatuses": "All statuses",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "shown": "{filtered} of {total} shown",
+      "col": {
+        "instructor": "Instructor",
+        "contact": "Contact",
+        "tier": "Tier",
+        "sessions": "Sessions",
+        "rating": "Rating",
+        "active": "Active"
+      },
+      "action": {
+        "preview": "Preview",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "form": {
+        "editTitle": "Edit instructor",
+        "addTitle": "Add instructor",
+        "editSubtitle": "Update this instructor’s profile.",
+        "addSubtitle": "Add someone who teaches at your studio. Add an email to give them a login.",
+        "cancel": "Cancel",
+        "saving": "Saving…",
+        "update": "Update instructor",
+        "add": "Add instructor",
+        "saveError": "Couldn’t save instructor. Please try again."
+      },
+      "del": {
+        "title": "Delete instructor?",
+        "subtitle": "This action cannot be undone.",
+        "cancel": "Cancel",
+        "deleting": "Deleting…",
+        "confirm": "Delete instructor",
+        "confirmText": "Permanently delete <b>{name}</b>?",
+        "hint": "If they’re assigned to any sessions, the delete is blocked — deactivate them instead (toggle Active off), which hides them without breaking existing bookings.",
+        "error": "Couldn’t delete instructor."
+      },
+      "preview": {
+        "title": "Instructor preview",
+        "subtitle": "How this instructor’s profile reads.",
+        "close": "Close",
+        "edit": "Edit",
+        "email": "Email",
+        "phone": "Phone",
+        "experience": "Experience",
+        "years": "{n} yrs",
+        "rate": "Rate",
+        "sessions": "Sessions",
+        "displayOrder": "Display order",
+        "specializations": "Specializations",
+        "shortBio": "Short bio",
+        "bio": "Bio",
+        "statusActive": "Active",
+        "statusInactive": "Inactive"
       }
     }
   },

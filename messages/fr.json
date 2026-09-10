@@ -989,7 +989,7 @@
       "noAccess": "Aucun accès studio trouvé.",
       "gate": {
         "title": "Débloquez les réservations Marketplace",
-        "body": "Votre abonnement actuel ({plan}) n'inclut pas la distribution sur la Marketplace. Passez à Marketplace pour recevoir des réservations des utilisateurs de l'application Moovli — vous fixez un prix de vente et une remise de gros, et recevez le net sur chaque réservation Marketplace.",
+        "body": "Votre plan Standard n’inclut pas la Marketplace. Activez-la pour capter les réservations des utilisateurs Moovli : vous définissez votre prix et votre remise partenaire, et touchez le net à chaque réservation.",
         "upgradePlan": "Mettre à niveau l'abonnement"
       },
       "listingStatus": "Statut de mise en ligne",
@@ -1142,14 +1142,14 @@
       "sectionDailyOps": "Opérations",
       "sectionCatalog": "Catalogue",
       "sectionChannels": "Canaux",
-      "sectionInsights": "Analyses",
+      "sectionInsights": "KPIs",
       "sectionTeam": "Équipe",
       "dashboard": "Tableau de bord",
       "schedule": "Planning",
       "bookings": "Réservations",
       "customers": "Clients",
       "services": "Services",
-      "instructors": "Intervenants",
+      "instructors": "Instructeurs ou coachs",
       "marketplace": "Marketplace",
       "direct": "Direct",
       "analytics": "Analytics",
@@ -1207,7 +1207,7 @@
       }
     },
     "insights": {
-      "title": "Analyses",
+      "title": "KPIs",
       "stats": {
         "totalBookings": "Total des réservations",
         "last30Days": "30 derniers jours",
@@ -1629,6 +1629,69 @@
         "releaseHint": "À ce moment-là, les places inutilisées de n'importe quel canal deviennent réservables par l'autre.",
         "notes": "Notes (facultatif)",
         "notesPlaceholder": "Notes internes pour cette séance..."
+      }
+    },
+    "instructorsPage": {
+      "title": "Instructeurs ou coachs",
+      "count": "{count, plural, =0 {Aucun instructeur} one {# instructeur} other {# instructeurs}}",
+      "add": "Ajouter un instructeur",
+      "searchPlaceholder": "Rechercher par nom, e-mail ou titre…",
+      "statusPlaceholder": "Statut",
+      "allStatuses": "Tous les statuts",
+      "statusActive": "Actif",
+      "statusInactive": "Inactif",
+      "shown": "{filtered} sur {total} affichés",
+      "col": {
+        "instructor": "Instructeur",
+        "contact": "Contact",
+        "tier": "Niveau",
+        "sessions": "Séances",
+        "rating": "Note",
+        "active": "Actif"
+      },
+      "action": {
+        "preview": "Aperçu",
+        "edit": "Modifier",
+        "delete": "Supprimer"
+      },
+      "form": {
+        "editTitle": "Modifier l’instructeur",
+        "addTitle": "Ajouter un instructeur",
+        "editSubtitle": "Mettez à jour le profil de cet instructeur.",
+        "addSubtitle": "Ajoutez une personne qui enseigne dans votre studio. Ajoutez un e-mail pour lui créer un accès.",
+        "cancel": "Annuler",
+        "saving": "Enregistrement…",
+        "update": "Mettre à jour",
+        "add": "Ajouter un instructeur",
+        "saveError": "Impossible d’enregistrer l’instructeur. Réessayez."
+      },
+      "del": {
+        "title": "Supprimer l’instructeur ?",
+        "subtitle": "Cette action est irréversible.",
+        "cancel": "Annuler",
+        "deleting": "Suppression…",
+        "confirm": "Supprimer l’instructeur",
+        "confirmText": "Supprimer définitivement <b>{name}</b> ?",
+        "hint": "S’il est assigné à des séances, la suppression est bloquée — désactivez-le plutôt (bouton Actif), ce qui le masque sans affecter les réservations existantes.",
+        "error": "Impossible de supprimer l’instructeur."
+      },
+      "preview": {
+        "title": "Aperçu de l’instructeur",
+        "subtitle": "Aperçu du profil de cet instructeur.",
+        "close": "Fermer",
+        "edit": "Modifier",
+        "email": "E-mail",
+        "phone": "Téléphone",
+        "experience": "Expérience",
+        "years": "{n} ans",
+        "rate": "Tarif",
+        "sessions": "Séances",
+        "displayOrder": "Ordre d’affichage",
+        "specializations": "Spécialités",
+        "shortBio": "Bio courte",
+        "bio": "Bio",
+        "statusActive": "Actif",
+        "statusInactive": "Inactif"
       }
     }
   },
