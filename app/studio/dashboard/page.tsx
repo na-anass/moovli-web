@@ -69,12 +69,27 @@ export default function StudioDashboardPage() {
         )
       : 0;
 
-  const channels = metrics?.channelSplitLast30Days ?? { marketplace: 0, direct: 0, other: 0 };
+  // TODO(remove-mock): temporary mock data for a landing-page screenshot — restore
+  // the real metrics (revert to `metrics?.…`) before shipping. See the matching
+  // TODO on the stats grid below.
+  const _day = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const _at = (h: number, m: number) =>
+    `${_day}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
+
+  const channels = { marketplace: 128, direct: 88, other: 0 }; // MOCK
   const channelTotal = channels.marketplace + channels.direct;
   const marketplacePct = channelTotal > 0 ? Math.round((channels.marketplace / channelTotal) * 100) : 0;
 
-  const upcoming = metrics?.upcomingSessions ?? [];
-  const pendingCount = metrics?.pendingDirectBookings ?? 0;
+  const upcoming = [
+    { id: "m1", start_time: _at(10, 0), end_time: _at(11, 0), capacity: 12, booked_count: 8, status: "available", service: { name: "Pilates Mat" }, provider: { name: "Leïla M." } },
+    { id: "m2", start_time: _at(12, 30), end_time: _at(13, 15), capacity: 15, booked_count: 12, status: "available", service: { name: "HIIT Express" }, provider: { name: "Karim T." } },
+    { id: "m3", start_time: _at(18, 0), end_time: _at(19, 0), capacity: 20, booked_count: 20, status: "full", service: { name: "Yoga Vinyasa" }, provider: { name: "Sara B." } },
+    { id: "m4", start_time: _at(19, 30), end_time: _at(20, 15), capacity: 18, booked_count: 18, status: "full", service: { name: "Spin · Soirée" }, provider: { name: "Yassine E." } },
+  ] as any[]; // MOCK
+  const pendingCount = 0; // MOCK (hide the action-required banner for a clean shot)
 
   return (
     <BaseLayout
@@ -116,29 +131,30 @@ export default function StudioDashboardPage() {
       )}
 
       {/* Stats — 4 columns: revenue, bookings, members, active sessions */}
+      {/* TODO(remove-mock): temporary mock stat values for a landing-page screenshot — restore `metrics?.…` before shipping */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title={t("dashboard.stats.revenue")}
-          value={formatMoneyWhole(metrics?.revenueMadThisWeek ?? 0, currency)}
+          value={formatMoneyWhole(1600, currency) /* MOCK */}
           icon={<WalletIcon className="size-5" />}
           description={t("dashboard.stats.last7Days")}
         />
         <StatsCard
           title={t("dashboard.stats.bookingsThisWeek")}
-          value={metrics?.bookingsThisWeek ?? 0}
+          value={54 /* MOCK */}
           icon={<CalendarIcon className="size-5" />}
           trend={weekChange !== 0 ? { value: weekChange, isPositive: weekChange > 0 } : undefined}
           description={t("dashboard.stats.vsLastWeek")}
         />
         <StatsCard
           title={t("dashboard.stats.uniqueMembers")}
-          value={metrics?.uniqueMembers ?? 0}
+          value={12 /* MOCK */}
           icon={<UsersIcon className="size-5" />}
           description={t("dashboard.stats.allTime")}
         />
         <StatsCard
           title={t("dashboard.stats.activeSessions")}
-          value={metrics?.activeSessions ?? 0}
+          value={30 /* MOCK */}
           icon={<ClockIcon className="size-5" />}
           description={t("dashboard.stats.availableOrFull")}
         />
