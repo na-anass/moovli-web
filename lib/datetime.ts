@@ -52,6 +52,26 @@ const fmt = (value: DateInput, options: Intl.DateTimeFormatOptions): string => {
   return d.toLocaleString(LOCALE, { ...options, timeZone: DISPLAY_TIME_ZONE });
 };
 
+/**
+ * Extract individual field VALUES (weekday name, day, month name, …) for a date.
+ * Field values are stable across ICU versions; only the punctuation/literals that
+ * `toLocaleString` inserts BETWEEN them vary (e.g. Node renders "Monday 14 …"
+ * while browsers render "Monday, 14 …"). Composing our own strings from these
+ * parts — with separators WE control — keeps server and client output identical
+ * and avoids React hydration mismatches on SSR-rendered dates.
+ */
+const partsOf = (
+  d: Date,
+  options: Intl.DateTimeFormatOptions,
+): Record<string, string> => {
+  const dtf = new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: DISPLAY_TIME_ZONE });
+  const out: Record<string, string> = {};
+  for (const p of dtf.formatToParts(d)) {
+    if (p.type !== "literal") out[p.type] = p.value;
+  }
+  return out;
+};
+
 // ----------------------------------------------------------------------------
 // DISPLAY — read a true-UTC instant, render in the viewer's local timezone.
 // ----------------------------------------------------------------------------
@@ -68,23 +88,38 @@ export const formatDate = (value: DateInput): string =>
 export const formatDateLong = (value: DateInput): string =>
   fmt(value, { day: "numeric", month: "long", year: "numeric" });
 
-/** "Monday, 7 September 2026" */
-export const formatDateFull = (value: DateInput): string =>
-  fmt(value, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+/**
+ * "Monday, 7 September 2026" — composed from parts (not toLocaleString) so the
+ * comma after the weekday is OURS and identical on server + client. See partsOf.
+ */
+export const formatDateFull = (value: DateInput): string => {
+  const d = toDate(value);
+  if (!d) return PLACEHOLDER;
+  const p = partsOf(d, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  return `${p.weekday}, ${p.day} ${p.month} ${p.year}`;
+};
 
-/** "Mon, 7 Sep" */
-export const formatWeekdayShort = (value: DateInput): string =>
-  fmt(value, { weekday: "short", day: "numeric", month: "short" });
+/** "Mon, 7 Sep" — composed from parts (SSR-safe, see formatDateFull). */
+export const formatWeekdayShort = (value: DateInput): string => {
+  const d = toDate(value);
+  if (!d) return PLACEHOLDER;
+  const p = partsOf(d, { weekday: "short", day: "numeric", month: "short" });
+  return `${p.weekday}, ${p.day} ${p.month}`;
+};
 
-/** "Mon, 7 Sep, 09:00" */
-export const formatDateTime = (value: DateInput): string =>
-  fmt(value, {
+/** "Mon, 7 Sep, 09:00" — composed from parts (SSR-safe, see formatDateFull). */
+export const formatDateTime = (value: DateInput): string => {
+  const d = toDate(value);
+  if (!d) return PLACEHOLDER;
+  const p = partsOf(d, {
     weekday: "short",
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
   });
+  return `${p.weekday}, ${p.day} ${p.month}, ${p.hour}:${p.minute}`;
+};
 
 /** "09:00 – 10:00" */
 export const formatTimeRange = (start: DateInput, end: DateInput): string =>
