@@ -6,7 +6,7 @@ import { FullPageLoader } from "@/components/layout/full-page-loader";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/provider";
 import { ActiveEntityProvider, useActiveEntity } from "@/lib/studio/active-entity";
-import { entityPlansApi } from "@/lib/api/entityPlans";
+import { EntitlementProvider, useEntitlement } from "@/lib/studio/entitlement";
 import { studioApi } from "@/lib/api/studio";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -35,8 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-type ChannelKey = "marketplace" | "direct_hosted";
 
 interface ChannelStatuses {
   marketplace: NavItemStatus;
@@ -94,7 +92,9 @@ export default function StudioLayout({
     <EditModeProvider>
       <Suspense fallback={<FullPageLoader />}>
         <ActiveEntityProvider>
-          <StudioChrome>{children}</StudioChrome>
+          <EntitlementProvider>
+            <StudioChrome>{children}</StudioChrome>
+          </EntitlementProvider>
         </ActiveEntityProvider>
       </Suspense>
     </EditModeProvider>
@@ -115,24 +115,23 @@ function StudioChrome({ children }: { children: React.ReactNode }) {
     exitImpersonation,
   } = useActiveEntity();
 
+  const { allows } = useEntitlement();
+
   const [channelStatuses, setChannelStatuses] = useState<ChannelStatuses>({
     marketplace: "off",
     direct: "off",
   });
 
   // Resolve channel status for sidebar dots/locks against the active studio.
+  // Plan entitlement comes from the shared EntitlementProvider (single source of
+  // truth); only the per-channel enabled prefs are fetched here.
   useEffect(() => {
     if (!entityId) return;
     let cancelled = false;
     (async () => {
       try {
-        const [subRes, prefRes] = await Promise.all([
-          entityPlansApi.getSubscription(entityId),
-          studioApi.getChannelPrefs(entityId),
-        ]);
+        const prefRes = await studioApi.getChannelPrefs(entityId);
         if (cancelled) return;
-        const allowed = subRes.data.plan?.allowed_channel_types ?? [];
-        const allows = (k: ChannelKey) => allowed.includes(k);
         setChannelStatuses({
           marketplace: !allows("marketplace")
             ? "locked"
@@ -152,7 +151,7 @@ function StudioChrome({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [entityId]);
+  }, [entityId, allows]);
 
   const navItems = useMemo((): NavItem[] => {
     const items: NavItem[] = [

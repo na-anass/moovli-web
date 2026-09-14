@@ -1,7 +1,30 @@
 import { createClient } from "@/lib/supabase/server";
-import { MapPinIcon, StarIcon } from "lucide-react";
+import { CalendarOffIcon, MapPinIcon, StarIcon } from "lucide-react";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { BookingView, type SessionRow } from "./booking-view";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+/**
+ * Is this studio's direct booking page live? The subscription/plan gate lives in
+ * moovli-api (service role) because the anon RLS client here can't read
+ * entity_subscriptions. Fails CLOSED (unavailable) on any error so a lapsed or
+ * unreachable plan never leaks bookable sessions.
+ */
+async function isDirectBookable(slug: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${API_URL}/api/channels/public/direct-bookable/${encodeURIComponent(slug)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return false;
+    const json = (await res.json()) as { data?: { bookable?: boolean } };
+    return json.data?.bookable === true;
+  } catch {
+    return false;
+  }
+}
 
 interface PageProps {
   params: Promise<{ studioSlug: string }>;
@@ -10,14 +33,17 @@ interface PageProps {
 export default async function StudioPublicPage({ params }: PageProps) {
   const { studioSlug } = await params;
   const supabase = await createClient();
+  const t = await getTranslations("booking");
 
-  // Resolve the studio's default direct_hosted channel by slug
+  // Resolve the studio's default direct_hosted channel by slug. We deliberately
+  // do NOT filter on is_active here so an inactive/unentitled studio still
+  // resolves — we render the studio header with a "no sessions available" state
+  // rather than a bare 404 (only a truly unknown slug 404s).
   const { data: channel } = await supabase
     .from("channels")
-    .select("id, entity_id, label, settings")
+    .select("id, entity_id, label, settings, is_active")
     .eq("type", "direct_hosted")
     .eq("slug", studioSlug)
-    .eq("is_active", true)
     .maybeSingle();
 
   if (!channel?.entity_id) notFound();
@@ -32,37 +58,41 @@ export default async function StudioPublicPage({ params }: PageProps) {
 
   if (!entity) notFound();
 
-  // Studio's per-entity opt-out for direct_hosted — defaults to enabled.
-  const channelPrefs =
-    (entity.settings as { channels?: Record<string, boolean> } | null)?.channels ?? {};
-  if (channelPrefs.direct_hosted_enabled === false) notFound();
+  // Bookable = channel active AND plan grants direct_hosted AND per-entity
+  // opt-out not set. The plan check is authoritative in moovli-api; the pref +
+  // is_active are re-checked there too, so this single call is the gate.
+  const bookable = channel.is_active && (await isDirectBookable(studioSlug));
 
   // Branding from entity.settings.brand.primary_color (set via studio dashboard / DB)
   const brandColor =
     (entity.settings as { brand?: { primary_color?: string } } | null)?.brand?.primary_color ?? null;
 
-  // Fetch sessions published on this channel for the next 30 days
-  const horizon = new Date();
-  horizon.setDate(horizon.getDate() + 30);
-  const { data: sessionRows } = await supabase
-    .from("session_channels")
-    .select(
-      `session:sessions!inner(
-        id, start_time, end_time, capacity, booked_count, status, price_mad,
-        service:services(id, name, slug, duration_minutes),
-        provider:service_providers(id, name)
-      )`,
-    )
-    .eq("channel_id", channel.id)
-    .eq("session.lifecycle_status", "published")
-    .gte("session.start_time", new Date().toISOString())
-    .lte("session.start_time", horizon.toISOString())
-    .order("session(start_time)", { ascending: true })
-    .limit(500);
+  // Only fetch sessions when the page is bookable — otherwise it stays empty and
+  // we show the unavailable state.
+  let sessions: SessionRow[] = [];
+  if (bookable) {
+    const horizon = new Date();
+    horizon.setDate(horizon.getDate() + 30);
+    const { data: sessionRows } = await supabase
+      .from("session_channels")
+      .select(
+        `session:sessions!inner(
+          id, start_time, end_time, capacity, booked_count, status, price_mad,
+          service:services(id, name, slug, duration_minutes),
+          provider:service_providers(id, name)
+        )`,
+      )
+      .eq("channel_id", channel.id)
+      .eq("session.lifecycle_status", "published")
+      .gte("session.start_time", new Date().toISOString())
+      .lte("session.start_time", horizon.toISOString())
+      .order("session(start_time)", { ascending: true })
+      .limit(500);
 
-  const sessions: SessionRow[] = ((sessionRows as unknown as Array<{ session: SessionRow }>) ?? [])
-    .map((r) => r.session)
-    .filter((s) => s && s.status === "available");
+    sessions = ((sessionRows as unknown as Array<{ session: SessionRow }>) ?? [])
+      .map((r) => r.session)
+      .filter((s) => s && s.status === "available");
+  }
 
   const rating = entity.platform_rating ?? entity.google_rating ?? null;
 
@@ -117,14 +147,24 @@ export default async function StudioPublicPage({ params }: PageProps) {
         </div>
       </div>
 
-      <BookingView
-        sessions={sessions}
-        studioSlug={studioSlug}
-        entityId={channel.entity_id}
-        channelId={channel.id}
-        brandColor={brandColor}
-        currency={(entity as { currency_code?: string }).currency_code ?? "MAD"}
-      />
+      {bookable ? (
+        <BookingView
+          sessions={sessions}
+          studioSlug={studioSlug}
+          entityId={channel.entity_id}
+          channelId={channel.id}
+          brandColor={brandColor}
+          currency={(entity as { currency_code?: string }).currency_code ?? "MAD"}
+        />
+      ) : (
+        <div className="rounded-xl border border-border bg-card p-10 text-center">
+          <CalendarOffIcon className="mx-auto size-8 text-muted-foreground" />
+          <h2 className="mt-4 text-base font-semibold">{t("unavailable.title")}</h2>
+          <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+            {t("unavailable.body")}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -536,6 +536,10 @@
     }
   },
   "booking": {
+    "unavailable": {
+      "title": "No sessions available",
+      "body": "This studio isn't taking online bookings right now. Please check back later or contact the studio directly."
+    },
     "page": {
       "metaTitle": "Book a session — Moovli",
       "metaDescription": "Book your studio session in just a few clicks.",
@@ -950,6 +954,11 @@
       "planRequired": "Plan required",
       "toggleAria": "Toggle direct booking page",
       "noAccess": "No studio access found.",
+      "gate": {
+        "title": "No active subscription",
+        "body": "You need an active subscription to publish your direct booking page. Choose a plan to go live — every plan includes your direct booking page.",
+        "choosePlan": "Choose a plan"
+      },
       "yourPage": "Your page",
       "preview": "Preview",
       "pageHelpLive": "Your page is visible to anyone with this link. Bookings show up in your Bookings inbox as pending — confirm to lock in the seat.",
@@ -986,11 +995,15 @@
       "off": "Off",
       "toggleAria": "Toggle marketplace listing",
       "planUpgradeRequired": "Plan upgrade required",
+      "planRequired": "Plan required",
       "noAccess": "No studio access found.",
       "gate": {
         "title": "Unlock marketplace bookings",
         "body": "Your current plan ({plan}) doesn't include marketplace distribution. Upgrade to Marketplace to start receiving bookings from Moovli app users — you set a list price and a wholesale discount, and receive the net on every marketplace booking.",
-        "upgradePlan": "Upgrade plan"
+        "upgradePlan": "Upgrade plan",
+        "noPlanTitle": "No active subscription",
+        "noPlanBody": "You don't have an active subscription yet. Choose a plan to unlock marketplace distribution and start receiving bookings from Moovli app users.",
+        "choosePlan": "Choose a plan"
       },
       "listingStatus": "Listing status",
       "liveInApp": "Live in app",
@@ -1611,7 +1624,7 @@
         "enable": "Enable →",
         "notInPlan": "This channel isn't in your current plan.",
         "upgrade": "Upgrade →",
-        "noChannelWarning": "⚠ At least one channel should be selected, otherwise the session won't be visible to anyone.",
+        "noChannelWarning": "At least one channel should be selected, otherwise the session won't be visible to anyone.",
         "capacityAllocation": "Capacity allocation",
         "sharedInventory": "Shared inventory",
         "sharedInventoryDesc": "Any channel can book any of the {capacity} spots",

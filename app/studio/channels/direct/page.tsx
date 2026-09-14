@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { channelsApi, type Channel } from "@/lib/api/channels";
-import { entityPlansApi } from "@/lib/api/entityPlans";
 import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
+import { useEntitlement } from "@/lib/studio/entitlement";
 import {
   CheckIcon,
   CopyIcon,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 const DEFAULT_COLOR = "#7c3aed";
@@ -54,9 +55,14 @@ export default function StudioChannelDirectPage() {
   const role = activeEntity.role;
   const canManage = role === "owner" || role === "manager";
 
+  const { channelAccess, loading: planLoading } = useEntitlement();
+  // direct_hosted is granted by every plan, so the only "not allowed" case is
+  // having no active subscription at all.
+  const access = channelAccess("direct_hosted");
+  const planAllowsDirect = access === "allowed";
+
   const [channel, setChannel] = useState<Channel | null>(null);
   const [prefs, setPrefs] = useState<ChannelPrefs | null>(null);
-  const [planAllowsDirect, setPlanAllowsDirect] = useState<boolean>(true);
   const [loading, setLoading] = useState(true);
 
   // Branding state
@@ -71,20 +77,16 @@ export default function StudioChannelDirectPage() {
     if (!entityId) return;
     setLoading(true);
     try {
-      const [chRes, brandRes, prefRes, subRes] = await Promise.all([
+      const [chRes, brandRes, prefRes] = await Promise.all([
         channelsApi.listForEntity(entityId),
         studioApi.getBranding(entityId),
         studioApi.getChannelPrefs(entityId),
-        entityPlansApi.getSubscription(entityId),
       ]);
       setChannel(chRes.data.find((c) => c.type === "direct_hosted") ?? null);
       const c = brandRes.data.primary_color ?? DEFAULT_COLOR;
       setColor(c);
       setOriginalColor(c);
       setPrefs(prefRes.data);
-      setPlanAllowsDirect(
-        !!subRes.data.plan?.allowed_channel_types.includes("direct_hosted"),
-      );
     } catch (e) {
       console.error(e);
     } finally {
@@ -175,7 +177,7 @@ export default function StudioChannelDirectPage() {
     return <div className="p-8 text-muted-foreground">{t("noAccess")}</div>;
   }
 
-  if (loading) {
+  if (loading || planLoading) {
     return <div className="p-8 text-muted-foreground">{tc("loading")}</div>;
   }
 
@@ -210,6 +212,25 @@ export default function StudioChannelDirectPage() {
         ) : null
       }
     >
+      {/* Plan gate — direct is granted by every plan, so this only shows when
+          there is no active subscription at all. */}
+      {!planAllowsDirect && (
+        <section className="rounded-xl border border-amber-200 bg-amber-50/50 p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+              <LockIcon className="size-4" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm">{t("gate.title")}</h3>
+              <p className="text-xs text-muted-foreground mt-1">{t("gate.body")}</p>
+              <Button asChild size="sm" className="mt-3">
+                <Link href="/studio/billing">{t("gate.choosePlan")}</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Page URL section */}
       <section className="rounded-xl border bg-card p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">

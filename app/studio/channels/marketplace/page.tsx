@@ -9,9 +9,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { MarketplaceFaq, type FaqItem } from "./marketplace-faq";
-import { entityPlansApi, type EntityPlan } from "@/lib/api/entityPlans";
 import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
+import { useEntitlement } from "@/lib/studio/entitlement";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -40,7 +40,7 @@ export default function StudioChannelMarketplacePage() {
   const role = activeEntity.role;
   const canManage = role === "owner" || role === "manager";
 
-  const [plan, setPlan] = useState<EntityPlan | null>(null);
+  const { plan, channelAccess, loading: planLoading } = useEntitlement();
   const [prefs, setPrefs] = useState<ChannelPrefs | null>(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
@@ -63,23 +63,19 @@ export default function StudioChannelMarketplacePage() {
     if (!entityId) return;
     setLoading(true);
     try {
-      const [subRes, prefRes] = await Promise.all([
-        entityPlansApi.getSubscription(entityId),
-        studioApi.getChannelPrefs(entityId),
-      ]);
-      setPlan(subRes.data.plan);
+      const prefRes = await studioApi.getChannelPrefs(entityId);
       setPrefs(prefRes.data);
       // Initialize from the studio's saved discount, falling back to the plan's
       // baseline (clamped to the allowed floor).
       const saved = prefRes.data.marketplace_markup_pct;
-      const baseline = Math.round(Number(subRes.data.plan?.base_markup_pct ?? DISCOUNT_FLOOR));
+      const baseline = Math.round(Number(plan?.base_markup_pct ?? DISCOUNT_FLOOR));
       setMarkup(Math.max(DISCOUNT_FLOOR, saved ?? baseline));
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [entityId]);
+  }, [entityId, plan]);
 
   const saveMarkup = async () => {
     if (!entityId) return;
@@ -138,11 +134,12 @@ export default function StudioChannelMarketplacePage() {
     return <div className="p-8 text-muted-foreground">{t("noAccess")}</div>;
   }
 
-  if (loading) {
+  if (loading || planLoading) {
     return <div className="p-8 text-muted-foreground">{tc("loading")}</div>;
   }
 
-  const planAllows = !!plan?.allowed_channel_types.includes("marketplace");
+  const access = channelAccess("marketplace");
+  const planAllows = access === "allowed";
   const marketplaceOn = !!prefs?.marketplace_enabled;
   const isLive = planAllows && marketplaceOn;
   const baseMarkup = Math.round(Number(plan?.base_markup_pct ?? 0));
@@ -195,7 +192,8 @@ export default function StudioChannelMarketplacePage() {
             variant="outline"
             className="border-amber-200 bg-amber-50 text-amber-700"
           >
-            <LockIcon className="size-2.5 mr-1" /> {t("planUpgradeRequired")}
+            <LockIcon className="size-2.5 mr-1" />{" "}
+            {access === "no_subscription" ? t("planRequired") : t("planUpgradeRequired")}
           </Badge>
         ) : null
       }
@@ -209,13 +207,17 @@ export default function StudioChannelMarketplacePage() {
               <TrendingUpIcon className="size-4" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-sm">{t("gate.title")}</h3>
+              <h3 className="font-semibold text-sm">
+                {access === "no_subscription" ? t("gate.noPlanTitle") : t("gate.title")}
+              </h3>
               <p className="text-xs text-muted-foreground mt-1">
-                {t("gate.body", { plan: plan?.name ?? "Standard" })}
+                {access === "no_subscription"
+                  ? t("gate.noPlanBody")
+                  : t("gate.body", { plan: plan?.name ?? "" })}
               </p>
               <Button asChild size="sm" className="mt-3">
                 <Link href="/studio/billing">
-                  {t("gate.upgradePlan")}
+                  {access === "no_subscription" ? t("gate.choosePlan") : t("gate.upgradePlan")}
                   <ArrowRightIcon className="size-3.5 ml-1.5" />
                 </Link>
               </Button>

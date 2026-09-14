@@ -46,6 +46,7 @@ import {
 } from "@/lib/datetime";
 import Link from "next/link";
 import {
+  AlertTriangleIcon,
   CalendarIcon,
   CheckCircle2Icon,
   ChevronLeftIcon,
@@ -1967,7 +1968,8 @@ export default function SchedulePage() {
               />
             </div>
             {!form.publish_marketplace && !form.publish_direct && (
-              <p className="text-[11px] text-amber-600 mt-2">
+              <p className="text-[11px] text-amber-600 mt-2 inline-flex items-center gap-1">
+                <AlertTriangleIcon className="size-3 shrink-0" />
                 {t("schedule.form.noChannelWarning")}
               </p>
             )}

@@ -536,6 +536,10 @@
     }
   },
   "booking": {
+    "unavailable": {
+      "title": "Aucune séance disponible",
+      "body": "Ce studio n’accepte pas de réservations en ligne pour le moment. Revenez plus tard ou contactez directement le studio."
+    },
     "page": {
       "metaTitle": "Réserver une séance — Moovli",
       "metaDescription": "Réservez votre séance en studio en quelques clics.",
@@ -950,6 +954,11 @@
       "planRequired": "Abonnement requis",
       "toggleAria": "Activer/désactiver la page de réservation directe",
       "noAccess": "Aucun accès studio trouvé.",
+      "gate": {
+        "title": "Aucun abonnement actif",
+        "body": "Vous devez avoir un abonnement actif pour publier votre page de réservation directe. Choisissez un abonnement pour la mettre en ligne — tous les abonnements incluent votre page de réservation directe.",
+        "choosePlan": "Choisir un abonnement"
+      },
       "yourPage": "Votre page",
       "preview": "Aperçu",
       "pageHelpLive": "Votre page est visible par toute personne disposant de ce lien. Les réservations apparaissent dans votre boîte Réservations en attente — confirmez pour valider la place.",
@@ -986,11 +995,15 @@
       "off": "Désactivé",
       "toggleAria": "Activer/désactiver la mise en ligne sur la Marketplace",
       "planUpgradeRequired": "Abonnement supérieur requis",
+      "planRequired": "Abonnement requis",
       "noAccess": "Aucun accès studio trouvé.",
       "gate": {
         "title": "Débloquez les réservations Marketplace",
-        "body": "Votre abonnement Standard n’inclut pas la Marketplace. Activez-la pour capter les réservations des utilisateurs Moovli : vous définissez votre prix et votre remise partenaire, et touchez le net à chaque réservation.",
-        "upgradePlan": "Passer à l’abonnement Marketplace"
+        "body": "Votre abonnement actuel ({plan}) n’inclut pas la Marketplace. Passez à l’abonnement Marketplace pour capter les réservations des utilisateurs Moovli : vous définissez votre prix et votre remise partenaire, et touchez le net à chaque réservation.",
+        "upgradePlan": "Passer à l’abonnement Marketplace",
+        "noPlanTitle": "Aucun abonnement actif",
+        "noPlanBody": "Vous n’avez pas encore d’abonnement actif. Choisissez un abonnement pour débloquer la distribution Marketplace et commencer à recevoir des réservations des utilisateurs Moovli.",
+        "choosePlan": "Choisir un abonnement"
       },
       "listingStatus": "Statut de mise en ligne",
       "liveInApp": "En ligne dans l'app",
@@ -1611,7 +1624,7 @@
         "enable": "Activer →",
         "notInPlan": "Ce canal n'est pas inclus dans votre formule actuelle.",
         "upgrade": "Mettre à niveau →",
-        "noChannelWarning": "⚠ Au moins un canal doit être sélectionné, sinon la séance ne sera visible pour personne.",
+        "noChannelWarning": "Au moins un canal doit être sélectionné, sinon la séance ne sera visible pour personne.",
         "capacityAllocation": "Allocation de la capacité",
         "sharedInventory": "Inventaire partagé",
         "sharedInventoryDesc": "N'importe quel canal peut réserver l'une des {capacity} places",

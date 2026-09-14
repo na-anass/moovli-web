@@ -7,6 +7,7 @@ import { StatsCard } from "@/components/shared/stats-card";
 import { SetupChecklist } from "@/components/studio/setup-checklist";
 import { studioApi, type StudioDashboardMetrics } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
+import { useEntitlement } from "@/lib/studio/entitlement";
 import { formatMoneyWhole } from "@/lib/money";
 import { formatTime, formatDateCustom } from "@/lib/datetime";
 import { Badge } from "@/components/ui/badge";
@@ -29,8 +30,16 @@ import {
 export default function StudioDashboardPage() {
   const t = useTranslations("studioMain");
   const activeEntity = useActiveEntity();
+  const { allows } = useEntitlement();
   const [metrics, setMetrics] = useState<StudioDashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Channel mix compares marketplace vs direct — only meaningful (and only
+  // shown) when the plan grants BOTH families; otherwise it's a trivial 100%
+  // bar for a channel the studio can't even use (#5).
+  const showDirect =
+    allows("direct_hosted") || allows("direct_link") || allows("direct_embed");
+  const showChannelMix = allows("marketplace") && showDirect;
 
   const entityId = activeEntity.entityId;
   const currency = activeEntity.currencyCode;
@@ -144,10 +153,12 @@ export default function StudioDashboardPage() {
         />
       </div>
 
-      {/* Two-column: Upcoming sessions + Channel mix */}
+      {/* Two-column: Upcoming sessions + Channel mix (mix hidden on single-channel plans) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Upcoming (2/3 width) */}
-        <div className="lg:col-span-2 rounded-xl border border-border bg-card">
+        {/* Upcoming — full width when the channel-mix widget is hidden */}
+        <div
+          className={`${showChannelMix ? "lg:col-span-2" : "lg:col-span-3"} rounded-xl border border-border bg-card`}
+        >
           <div className="flex items-center justify-between p-5 border-b border-border">
             <div className="flex items-center gap-2">
               <CalendarIcon className="size-5 text-primary" />
@@ -242,7 +253,8 @@ export default function StudioDashboardPage() {
           )}
         </div>
 
-        {/* Channel mix (1/3 width) */}
+        {/* Channel mix (1/3 width) — only when the plan grants both channels */}
+        {showChannelMix && (
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUpIcon className="size-5 text-primary" />
@@ -297,6 +309,7 @@ export default function StudioDashboardPage() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Quick Links */}

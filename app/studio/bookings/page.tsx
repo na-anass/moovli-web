@@ -8,6 +8,7 @@ import { DataTable, type Column, type RowAction } from "@/components/shared/data
 import { Badge } from "@/components/ui/badge";
 import { studioApi, type StudioBookingRow } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
+import { useEntitlement } from "@/lib/studio/entitlement";
 import {
   CheckIcon,
   ClipboardCheckIcon,
@@ -35,8 +36,14 @@ const STATUS_VARIANT: Record<
 export default function StudioBookingsPage() {
   const t = useTranslations("studioMain");
   const activeEntity = useActiveEntity();
+  const { allows } = useEntitlement();
   const entityId = activeEntity.entityId;
   const currency = activeEntity.currencyCode;
+  // Which channel families the studio's plan grants. A channel the plan doesn't
+  // include gets no filter tab and no dedicated column treatment (#5).
+  const showMarketplace = allows("marketplace");
+  const showDirect =
+    allows("direct_hosted") || allows("direct_link") || allows("direct_embed");
   const formatPrice = (n: number | null) => (n != null ? formatMoneyWhole(n, currency) : "—");
 
   const [tab, setTab] = useState<FilterTab>("all");
@@ -99,6 +106,14 @@ export default function StudioBookingsPage() {
     setPage(1);
   }, [tab, search]);
 
+  // If the active plan doesn't include the currently-selected channel tab
+  // (e.g. after a downgrade), fall back to "all" so no channel-scoped view
+  // lingers for a channel the studio can't use (#5).
+  useEffect(() => {
+    if (tab === "marketplace" && !showMarketplace) setTab("all");
+    if (tab === "direct" && !showDirect) setTab("all");
+  }, [tab, showMarketplace, showDirect]);
+
   const handleConfirm = async (bookingId: string) => {
     if (!entityId) return;
     setActionLoading(bookingId);
@@ -160,6 +175,10 @@ export default function StudioBookingsPage() {
     }
   };
 
+  // The channel column only earns its place when the studio actually operates
+  // more than one channel family; a single-channel plan makes it redundant (#5).
+  const showChannelColumn = showMarketplace && showDirect;
+
   const columns: Column<StudioBookingRow>[] = [
     {
       header: t("bookings.columns.customer"),
@@ -183,22 +202,28 @@ export default function StudioBookingsPage() {
         </div>
       ),
     },
-    {
-      header: t("bookings.columns.channel"),
-      cell: (b) =>
-        b.channel ? (
-          <Badge variant={b.channel.type === "marketplace" ? "default" : "secondary"}>
-            {b.channel.type === "marketplace" ? (
-              <ShoppingBagIcon className="size-3 mr-1" />
-            ) : (
-              <GlobeIcon className="size-3 mr-1" />
-            )}
-            {b.channel.type === "marketplace" ? t("bookings.marketplace") : t("bookings.direct")}
-          </Badge>
-        ) : (
-          <Badge variant="outline">—</Badge>
-        ),
-    },
+    ...(showChannelColumn
+      ? [
+          {
+            header: t("bookings.columns.channel"),
+            cell: (b: StudioBookingRow) =>
+              b.channel ? (
+                <Badge variant={b.channel.type === "marketplace" ? "default" : "secondary"}>
+                  {b.channel.type === "marketplace" ? (
+                    <ShoppingBagIcon className="size-3 mr-1" />
+                  ) : (
+                    <GlobeIcon className="size-3 mr-1" />
+                  )}
+                  {b.channel.type === "marketplace"
+                    ? t("bookings.marketplace")
+                    : t("bookings.direct")}
+                </Badge>
+              ) : (
+                <Badge variant="outline">—</Badge>
+              ),
+          } as Column<StudioBookingRow>,
+        ]
+      : []),
     {
       header: t("bookings.columns.price"),
       cell: (b) => (
@@ -313,8 +338,12 @@ export default function StudioBookingsPage() {
           { id: "all", label: t("bookings.tabs.all") },
           { id: "pending", label: `${t("bookings.tabs.pending")}${pendingCount > 0 ? ` · ${pendingCount}` : ""}` },
           { id: "today", label: t("bookings.tabs.today") },
-          { id: "marketplace", label: t("bookings.tabs.marketplace") },
-          { id: "direct", label: t("bookings.tabs.direct") },
+          ...(showMarketplace
+            ? [{ id: "marketplace" as FilterTab, label: t("bookings.tabs.marketplace") }]
+            : []),
+          ...(showDirect
+            ? [{ id: "direct" as FilterTab, label: t("bookings.tabs.direct") }]
+            : []),
         ] as { id: FilterTab; label: string }[]).map((tab_) => (
           <button
             key={tab_.id}

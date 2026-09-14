@@ -237,7 +237,6 @@ export default function ServicesPage() {
         const cat = s.category_id ? categoryById.get(s.category_id) : null;
         return cat ? (
           <Badge variant="outline" className="text-[10px]">
-            {cat.icon ? `${cat.icon} ` : ""}
             {cat.name}
           </Badge>
         ) : (
@@ -308,7 +307,6 @@ export default function ServicesPage() {
             <SelectItem value="uncategorized">{t("services.filters.uncategorized")}</SelectItem>
             {categories.map((c) => (
               <SelectItem key={c.id} value={c.id}>
-                {c.icon ? `${c.icon} ` : ""}
                 {c.name}
               </SelectItem>
             ))}
