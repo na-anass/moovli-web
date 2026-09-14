@@ -59,7 +59,6 @@ interface Service {
 }
 
 type StatusFilter = "all" | "active" | "inactive";
-type FeaturedFilter = "all" | "featured" | "regular";
 
 export default function ServicesPage() {
   const t = useTranslations("studioMain");
@@ -84,7 +83,6 @@ export default function ServicesPage() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [featuredFilter, setFeaturedFilter] = useState<FeaturedFilter>("all");
 
   const entityId = activeEntity.entityId;
   const currentRole = activeEntity.role;
@@ -133,24 +131,20 @@ export default function ServicesPage() {
       }
       if (statusFilter === "active" && !s.is_active) return false;
       if (statusFilter === "inactive" && s.is_active) return false;
-      if (featuredFilter === "featured" && !s.is_featured) return false;
-      if (featuredFilter === "regular" && s.is_featured) return false;
       return true;
     });
-  }, [services, search, categoryFilter, statusFilter, featuredFilter]);
+  }, [services, search, categoryFilter, statusFilter]);
 
   const activeCount = services.filter((s) => s.is_active).length;
   const hasAnyFilter =
     !!search ||
     categoryFilter !== "all" ||
-    statusFilter !== "all" ||
-    featuredFilter !== "all";
+    statusFilter !== "all";
 
   const clearFilters = () => {
     setSearch("");
     setCategoryFilter("all");
     setStatusFilter("all");
-    setFeaturedFilter("all");
   };
 
   // ── Dialog handlers ──────────────────────────────────────────────────────
@@ -329,20 +323,6 @@ export default function ServicesPage() {
             <SelectItem value="all">{t("services.filters.allStatuses")}</SelectItem>
             <SelectItem value="active">{t("services.filters.active")}</SelectItem>
             <SelectItem value="inactive">{t("services.filters.inactive")}</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={featuredFilter}
-          onValueChange={(v) => setFeaturedFilter(v as FeaturedFilter)}
-        >
-          <SelectTrigger className="h-9 w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("services.filters.allServices")}</SelectItem>
-            <SelectItem value="featured">{t("services.filters.featured")}</SelectItem>
-            <SelectItem value="regular">{t("services.filters.notFeatured")}</SelectItem>
           </SelectContent>
         </Select>
 

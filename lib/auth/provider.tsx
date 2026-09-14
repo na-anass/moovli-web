@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<UserRoles | null>(null);
   const [loading, setLoading] = useState(true);
   const initialized = useRef(false);
+  const rolesRef = useRef<UserRoles | null>(null);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(user);
         if (user && session?.access_token) {
           const userRoles = await getUserRoles(session.access_token);
+          rolesRef.current = userRoles;
           setRoles(userRoles);
         }
       } catch (err) {
@@ -62,21 +64,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser && session?.access_token) {
-        // On a fresh sign-in we don't yet have roles for this identity. Hold
-        // `loading` until they resolve so route guards don't evaluate against
-        // empty roles and bounce the user to /no-access before the fetch lands
-        // (the bug where you'd hit /no-access on login but a refresh worked).
-        // Token refreshes keep the existing roles, so we skip the loader flash.
-        if (event === "SIGNED_IN") setLoading(true);
+        // Only gate the UI on a GENUINE fresh sign-in — i.e. when we don't yet
+        // have roles for this identity. Supabase also re-emits SIGNED_IN when the
+        // tab regains focus; if roles are already loaded we refresh them silently
+        // rather than flashing the full-page loader (which looked like a full
+        // reload on every tab switch). The first login is still gated so route
+        // guards don't evaluate empty roles and bounce to /no-access.
+        const gate = event === "SIGNED_IN" && !rolesRef.current;
+        if (gate) setLoading(true);
         try {
           const userRoles = await getUserRoles(session.access_token);
+          rolesRef.current = userRoles;
           setRoles(userRoles);
         } catch (err) {
           console.error("Role fetch error:", err);
         } finally {
-          if (event === "SIGNED_IN") setLoading(false);
+          if (gate) setLoading(false);
         }
       } else {
+        rolesRef.current = null;
         setRoles(null);
       }
     });
