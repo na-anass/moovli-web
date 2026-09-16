@@ -30,18 +30,27 @@ export interface SetupStatus {
 }
 
 export interface StudioDashboardMetrics {
-  bookingsThisWeek: number;
-  bookingsLastWeek: number;
-  uniqueMembers: number;
-  activeSessions: number;
-  /** Sum of marketplace bookings price_mad_at_booking for the last 7 days (confirmed/checked_in/completed). */
-  revenueMadThisWeek: number;
-  /** Direct-channel bookings awaiting studio confirmation. */
+  /** The resolved range (inclusive days) the numbers below cover. */
+  range: { from: string; to: string };
+  /** Sum of price_mad_at_booking for confirmed/checked_in/completed bookings made in the range, all channels. */
+  revenueMad: number;
+  /** Same as revenueMad for the equal-length period right before the range. */
+  previousRevenueMad: number;
+  /** Pending/confirmed/checked_in/completed bookings made in the range. */
+  bookings: number;
+  previousBookings: number;
+  /** Customers first seen on or before the last day of the range. */
+  totalCustomers: number;
+  /** Customers first seen within the range. */
+  newCustomers: number;
+  /** Published, non-cancelled sessions starting within the range. */
+  sessions: number;
+  /** Marketplace vs direct bookings made in the range. */
+  channelSplit: { marketplace: number; direct: number };
+  /** Direct-channel bookings awaiting studio confirmation (not range-bound). */
   pendingDirectBookings: number;
-  /** Up to 5 sessions starting in the next 24 hours. */
+  /** Up to 5 sessions starting in the next 24 hours (not range-bound). */
   upcomingSessions: DashboardUpcomingSession[];
-  /** Marketplace vs direct booking count over the last 30 days. */
-  channelSplitLast30Days: { marketplace: number; direct: number; other: number };
 }
 
 export interface DashboardUpcomingSession {
@@ -73,10 +82,16 @@ export const studioApi = {
   getMyEntities: () =>
     apiClient<{ success: boolean; data: EntityMembership[] }>("/api/studio/me"),
 
-  getDashboard: (entityId: string) =>
-    apiClient<{ success: boolean; data: StudioDashboardMetrics }>(
-      `/api/studio/${entityId}/dashboard`
-    ),
+  getDashboard: (entityId: string, range: { from: string; to: string }) => {
+    const params = new URLSearchParams({
+      from: range.from,
+      to: range.to,
+      tz: String(new Date().getTimezoneOffset()),
+    });
+    return apiClient<{ success: boolean; data: StudioDashboardMetrics }>(
+      `/api/studio/${entityId}/dashboard?${params}`
+    );
+  },
 
   getSetupStatus: (entityId: string) =>
     apiClient<{ success: boolean; data: SetupStatus }>(
@@ -325,10 +340,16 @@ export const studioApi = {
   getTeam: (entityId: string) =>
     apiClient<{ success: boolean; data: any[] }>(`/api/studio/${entityId}/team`),
 
-  addTeamMember: (entityId: string, userId: string, role: string) =>
-    apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/team`, {
+  addTeamMember: (
+    entityId: string,
+    data: { email: string; name?: string; role: "manager" | "staff" },
+  ) =>
+    apiClient<{
+      success: boolean;
+      data: { member: any; invited: boolean; alreadyMember: boolean };
+    }>(`/api/studio/${entityId}/team`, {
       method: "POST",
-      body: JSON.stringify({ userId, role }),
+      body: JSON.stringify(data),
     }),
 
   updateTeamMemberRole: (entityId: string, userId: string, role: string) =>

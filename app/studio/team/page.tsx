@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { formatDate } from "@/lib/datetime";
 import { BaseLayout } from "@/components/layout/base-layout";
@@ -28,7 +28,6 @@ import {
 import {
   Trash2Icon,
   UserPlusIcon,
-  SearchIcon,
   ShieldIcon,
   Users2Icon,
   UserIcon,
@@ -40,14 +39,6 @@ interface TeamMember {
   is_primary: boolean;
   created_at: string;
   user?: { name: string; email: string; avatar_url: string | null };
-}
-
-interface SearchUser {
-  id: string;
-  name: string;
-  email: string;
-  avatar_url: string | null;
-  city: string | null;
 }
 
 const ROLE_CONFIG: Record<string, { color: string; icon: React.ElementType }> = {
@@ -64,16 +55,22 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<SearchUser | null>(null);
-  const [inviteRole, setInviteRole] = useState("staff");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteRole, setInviteRole] = useState<"manager" | "staff">("staff");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const entityId = activeEntity.entityId;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim());
+
+  const resetInvite = () => {
+    setInviteEmail("");
+    setInviteName("");
+    setInviteRole("staff");
+    setError(null);
+  };
 
   const fetchTeam = useCallback(async () => {
     if (!entityId) return;
@@ -90,34 +87,29 @@ export default function TeamPage() {
 
   useEffect(() => { fetchTeam(); }, [fetchTeam]);
 
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-    setSelectedUser(null);
-    setError(null);
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    if (value.length < 3) { setSearchResults([]); return; }
-
-    searchTimeout.current = setTimeout(async () => {
-      if (!entityId) return;
-      setSearching(true);
-      try {
-        const res = await studioApi.searchUsers(entityId, value);
-        const existingIds = new Set(members.map((m) => m.user_id));
-        setSearchResults(res.data.filter((u) => !existingIds.has(u.id)));
-      } catch (e) { console.error(e); }
-      finally { setSearching(false); }
-    }, 300);
-  };
-
   const handleAdd = async () => {
-    if (!entityId || !selectedUser) return;
+    if (!entityId || !emailValid) return;
+    const email = inviteEmail.trim().toLowerCase();
     setAdding(true);
     setError(null);
     try {
-      await studioApi.addTeamMember(entityId, selectedUser.id, inviteRole);
+      const res = await studioApi.addTeamMember(entityId, {
+        email,
+        name: inviteName.trim() || undefined,
+        role: inviteRole,
+      });
+      const { invited, alreadyMember } = res.data;
+      setNotice(
+        alreadyMember
+          ? t("team.invite.noticeAlready", { email })
+          : invited
+            ? t("team.invite.noticeInvited", { email })
+            : t("team.invite.noticeAdded", { email }),
+      );
       setDialogOpen(false);
-      setSearchQuery(""); setSearchResults([]); setSelectedUser(null); setInviteRole("staff");
+      resetInvite();
       await fetchTeam();
+      window.setTimeout(() => setNotice(null), 6000);
     } catch (e: any) {
       setError(e.message || t("team.errors.addFailed"));
     } finally { setAdding(false); }
@@ -241,6 +233,12 @@ export default function TeamPage() {
           </Button>
         }
       >
+        {notice && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200">
+            {notice}
+          </div>
+        )}
+
         {/* Team table */}
         <DataTable
           columns={memberColumns}
@@ -260,17 +258,12 @@ export default function TeamPage() {
           }
         />
 
-        {/* Invite sheet */}
+        {/* Invite sheet — email-first: works whether or not the person is registered */}
         <FormSheet
           open={dialogOpen}
           onOpenChange={(open) => {
             setDialogOpen(open);
-            if (!open) {
-              setSearchQuery("");
-              setSearchResults([]);
-              setSelectedUser(null);
-              setError(null);
-            }
+            if (!open) resetInvite();
           }}
           title={t("team.invite.title")}
           subtitle={t("team.invite.subtitle")}
@@ -281,108 +274,67 @@ export default function TeamPage() {
               <Button variant="ghost" onClick={() => setDialogOpen(false)}>
                 {t("team.invite.cancel")}
               </Button>
-              <Button onClick={handleAdd} disabled={adding || !selectedUser}>
+              <Button onClick={handleAdd} disabled={adding || !emailValid}>
                 <UserPlusIcon className="size-4 mr-1.5" />
-                {adding ? t("team.invite.inviting") : t("team.invite.addToTeam")}
+                {adding ? t("team.invite.inviting") : t("team.invite.sendInvite")}
               </Button>
             </>
           }
         >
           <div className="space-y-4">
-
-              <div className="relative">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                <Input
-                  placeholder={t("team.invite.searchPlaceholder")}
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-
-              {searching && <p className="text-sm text-muted-foreground text-center py-2">{t("team.invite.searching")}</p>}
-
-              {!searching && searchQuery.length >= 3 && searchResults.length === 0 && !selectedUser && (
-                <div className="rounded-lg border border-dashed border-border p-4 text-center">
-                  <p className="text-sm text-muted-foreground">{t("team.invite.noUsers", { query: searchQuery })}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t("team.invite.needAccount")}</p>
-                </div>
-              )}
-
-              {searchResults.length > 0 && !selectedUser && (
-                <div className="rounded-lg border border-border divide-y divide-border max-h-48 overflow-y-auto">
-                  {searchResults.map((u) => (
-                    <button
-                      key={u.id}
-                      className="w-full flex items-center gap-3 p-3 hover:bg-muted/50 text-left transition-colors"
-                      onClick={() => { setSelectedUser(u); setSearchResults([]); }}
-                    >
-                      {u.avatar_url ? (
-                        <img src={u.avatar_url} alt="" className="size-8 rounded-full object-cover" />
-                      ) : (
-                        <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                          {u.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{u.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {selectedUser && (
-                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-                  <div className="flex items-center gap-3">
-                    {selectedUser.avatar_url ? (
-                      <img src={selectedUser.avatar_url} alt="" className="size-10 rounded-full object-cover" />
-                    ) : (
-                      <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                        {selectedUser.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium">{selectedUser.name}</p>
-                      <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
-                    </div>
-                    <Button variant="ghost" size="sm" className="text-xs"
-                      onClick={() => { setSelectedUser(null); setSearchQuery(""); }}>
-                      {t("team.invite.change")}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {selectedUser && (
-                <div>
-                  <label className="text-sm font-medium">{t("team.invite.role")}</label>
-                  <Select value={inviteRole} onValueChange={setInviteRole}>
-                    <SelectTrigger className="mt-1.5">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(ROLE_CONFIG).map(([key, cfg]) => (
-                        <SelectItem key={key} value={key}>
-                          <span className="flex items-center gap-2">
-                            <cfg.icon className="size-3.5" />
-                            {t(`team.roles.${key}.label`)}
-                            <span className="text-muted-foreground text-xs">— {t(`team.roles.${key}.description`)}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {error && (
-                <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
-                  <p className="text-sm text-destructive">{error}</p>
-                </div>
-              )}
+            <div>
+              <label className="text-sm font-medium">{t("team.invite.emailLabel")}</label>
+              <Input
+                type="email"
+                autoFocus
+                placeholder={t("team.invite.emailPlaceholder")}
+                value={inviteEmail}
+                onChange={(e) => { setInviteEmail(e.target.value); setError(null); }}
+                className="mt-1.5"
+              />
             </div>
+
+            <div>
+              <label className="text-sm font-medium">{t("team.invite.nameLabel")}</label>
+              <Input
+                placeholder={t("team.invite.namePlaceholder")}
+                value={inviteName}
+                onChange={(e) => setInviteName(e.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">{t("team.invite.role")}</label>
+              <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "manager" | "staff")}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(["manager", "staff"] as const).map((key) => {
+                    const Icon = ROLE_CONFIG[key].icon;
+                    return (
+                      <SelectItem key={key} value={key}>
+                        <span className="flex items-center gap-2">
+                          <Icon className="size-3.5" />
+                          {t(`team.roles.${key}.label`)}
+                          <span className="text-muted-foreground text-xs">— {t(`team.roles.${key}.description`)}</span>
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <p className="text-xs text-muted-foreground">{t("team.invite.hint")}</p>
+
+            {error && (
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
+          </div>
         </FormSheet>
       </BaseLayout>
     </TooltipProvider>

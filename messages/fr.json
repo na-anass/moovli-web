@@ -1186,17 +1186,16 @@
       "pendingBannerSub": "Réservations Direct en attente de confirmation ou de refus",
       "stats": {
         "revenue": "Revenus",
-        "revenueTip": "Valeur totale des réservations confirmées, enregistrées ou terminées effectuées ces 7 derniers jours, tous canaux confondus. Les réservations annulées et en attente ne sont pas comptées.",
-        "last7Days": "7 derniers jours",
-        "bookingsThisWeek": "Réservations cette semaine",
-        "bookingsThisWeekTip": "Réservations effectuées ces 7 derniers jours (en attente, confirmées, enregistrées ou terminées), comparées aux 7 jours précédents. Les annulations et absences sont exclues.",
-        "vsLastWeek": "vs semaine dernière",
+        "revenueTip": "Valeur totale des réservations confirmées, enregistrées ou terminées effectuées sur la période sélectionnée, tous canaux confondus. Les réservations en attente et annulées ne sont pas comptées. Une réservation compte le jour où elle a été faite, pas le jour de la séance.",
+        "bookings": "Réservations",
+        "bookingsTip": "Réservations effectuées sur la période sélectionnée (en attente, confirmées, enregistrées ou terminées), comptées le jour où elles ont été faites. Les annulations et absences sont exclues.",
+        "vsPreviousPeriod": "vs période précédente",
         "customers": "Clients",
-        "customersTip": "Personnes ayant réservé au moins une fois dans votre studio, y compris les invités sans compte. Les membres de votre équipe ne sont pas inclus.",
-        "allTime": "Depuis le début",
-        "activeSessions": "Séances actives",
-        "activeSessionsTip": "Séances à venir ouvertes à la réservation ou déjà complètes. Les séances passées, brouillons et annulées ne sont pas comptées.",
-        "availableOrFull": "Disponibles ou complètes"
+        "customersTip": "Toutes les personnes ayant réservé dans votre studio jusqu'à la fin de la période sélectionnée, y compris les invités sans compte. Les membres de votre équipe ne sont pas inclus.",
+        "newCustomers": "{count, plural, =0 {Aucun nouveau client sur la période} one {+# nouveau sur la période} other {+# nouveaux sur la période}}",
+        "sessions": "Séances",
+        "sessionsTip": "Séances publiées programmées sur la période sélectionnée (passées et à venir). Les brouillons et séances annulées ne sont pas comptés.",
+        "scheduledInPeriod": "Programmées sur la période"
       },
       "next24Hours": "Prochaines 24 heures",
       "viewSchedule": "Voir le planning",
@@ -1209,11 +1208,8 @@
         "full": "Complète"
       },
       "channelMix": "Répartition par canal",
-      "last30Days": "30 derniers jours",
-      "noBookings30": "Aucune réservation sur les 30 derniers jours.",
       "marketplace": "Marketplace",
       "directPage": "Page Direct",
-      "totalBookings30": "{count, plural, one {# réservation sur les 30 derniers jours} other {# réservations sur les 30 derniers jours}}",
       "quickLinks": {
         "manageBookings": "Gérer les réservations",
         "manageBookingsDesc": "Enregistrer les arrivées, confirmer les réservations Direct en attente",
@@ -1221,7 +1217,9 @@
         "servicesPricingDesc": "Modifier la durée, la capacité et les tarifs par défaut",
         "customers": "Clients",
         "customersDesc": "Voir qui a réservé chez vous et leur historique"
-      }
+      },
+      "totalBookingsRange": "{count, plural, one {# réservation sur la période} other {# réservations sur la période}}",
+      "noBookingsRange": "Aucune réservation sur la période."
     },
     "insights": {
       "title": "KPIs",
@@ -1443,16 +1441,19 @@
       },
       "invite": {
         "title": "Inviter un membre",
-        "subtitle": "Recherchez par e-mail pour ajouter un utilisateur Moovli existant à votre équipe.",
+        "subtitle": "Invitez n'importe qui par e-mail — un lien lui sera envoyé pour rejoindre votre équipe.",
         "cancel": "Annuler",
-        "inviting": "Invitation…",
-        "addToTeam": "Ajouter à l'équipe",
-        "searchPlaceholder": "Rechercher par e-mail...",
-        "searching": "Recherche...",
-        "noUsers": "Aucun utilisateur trouvé pour « {query} »",
-        "needAccount": "Ils doivent d'abord avoir un compte Moovli.",
-        "change": "Changer",
-        "role": "Rôle"
+        "inviting": "Envoi…",
+        "sendInvite": "Envoyer l'invitation",
+        "emailLabel": "E-mail",
+        "emailPlaceholder": "collegue@email.com",
+        "nameLabel": "Nom (facultatif)",
+        "namePlaceholder": "Son nom",
+        "role": "Rôle",
+        "hint": "S'ils ont déjà un compte Moovli, ils sont ajoutés immédiatement ; sinon ils reçoivent une invitation pour définir un mot de passe.",
+        "noticeInvited": "Invitation envoyée à {email}.",
+        "noticeAdded": "{email} a été ajouté à votre équipe.",
+        "noticeAlready": "{email} fait déjà partie de votre équipe."
       }
     },
     "schedule": {
@@ -1860,6 +1861,21 @@
       "capacity": "Capacité *",
       "price": "Prix ({currency}) *",
       "featured": "À la une"
+    }
+  },
+  "dateRange": {
+    "label": "Période",
+    "from": "Du",
+    "to": "Au",
+    "invalid": "Choisissez une date de début avant la date de fin, {max} jours maximum.",
+    "presets": {
+      "today": "Aujourd'hui",
+      "7d": "7 derniers jours",
+      "30d": "30 derniers jours",
+      "90d": "90 derniers jours",
+      "thisMonth": "Ce mois-ci",
+      "lastMonth": "Mois dernier",
+      "custom": "Période personnalisée"
     }
   }
 }
