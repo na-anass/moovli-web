@@ -1186,12 +1186,16 @@
       "pendingBannerSub": "Direct page reservations awaiting confirm or decline",
       "stats": {
         "revenue": "Revenue",
+        "revenueTip": "Total value of confirmed, checked-in and completed bookings made in the last 7 days, across all channels. Cancelled and pending bookings are not counted.",
         "last7Days": "Last 7 days",
         "bookingsThisWeek": "Bookings this week",
+        "bookingsThisWeekTip": "Bookings made in the last 7 days (pending, confirmed, checked-in or completed), compared with the 7 days before. Cancellations and no-shows are excluded.",
         "vsLastWeek": "vs last week",
-        "uniqueMembers": "Unique members",
+        "customers": "Customers",
+        "customersTip": "People who have booked with your studio at least once, including guests who booked without an account. Your team members are not included.",
         "allTime": "All time",
         "activeSessions": "Active sessions",
+        "activeSessionsTip": "Upcoming sessions that are open for booking or already full. Past, draft and cancelled sessions are not counted.",
         "availableOrFull": "Available or full"
       },
       "next24Hours": "Next 24 hours",
@@ -1305,7 +1309,7 @@
         "bookings": "Bookings",
         "lifetimeValue": "Lifetime value",
         "lastBooking": "Last booking",
-        "status": "Status"
+        "accountType": "Type"
       },
       "source": {
         "marketplace": "Marketplace",

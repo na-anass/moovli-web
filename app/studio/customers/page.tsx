@@ -131,7 +131,7 @@ export default function StudioCustomersPage() {
       cell: (c) => <span className="text-sm">{formatDate(c.last_booking_at)}</span>,
     },
     {
-      header: t("customers.columns.status"),
+      header: t("customers.columns.accountType"),
       cell: (c) => (
         <div className="text-xs text-muted-foreground">
           {c.user_id ? <Badge variant="outline">{t("customers.account")}</Badge> : <Badge variant="outline">{t("customers.guest")}</Badge>}

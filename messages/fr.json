@@ -1186,12 +1186,16 @@
       "pendingBannerSub": "Réservations Direct en attente de confirmation ou de refus",
       "stats": {
         "revenue": "Revenus",
+        "revenueTip": "Valeur totale des réservations confirmées, enregistrées ou terminées effectuées ces 7 derniers jours, tous canaux confondus. Les réservations annulées et en attente ne sont pas comptées.",
         "last7Days": "7 derniers jours",
         "bookingsThisWeek": "Réservations cette semaine",
+        "bookingsThisWeekTip": "Réservations effectuées ces 7 derniers jours (en attente, confirmées, enregistrées ou terminées), comparées aux 7 jours précédents. Les annulations et absences sont exclues.",
         "vsLastWeek": "vs semaine dernière",
-        "uniqueMembers": "Membres uniques",
+        "customers": "Clients",
+        "customersTip": "Personnes ayant réservé au moins une fois dans votre studio, y compris les invités sans compte. Les membres de votre équipe ne sont pas inclus.",
         "allTime": "Depuis le début",
         "activeSessions": "Séances actives",
+        "activeSessionsTip": "Séances à venir ouvertes à la réservation ou déjà complètes. Les séances passées, brouillons et annulées ne sont pas comptées.",
         "availableOrFull": "Disponibles ou complètes"
       },
       "next24Hours": "Prochaines 24 heures",
@@ -1305,7 +1309,7 @@
         "bookings": "Réservations",
         "lifetimeValue": "Valeur vie client",
         "lastBooking": "Dernière réservation",
-        "status": "Statut"
+        "accountType": "Type de compte"
       },
       "source": {
         "marketplace": "Marketplace",
