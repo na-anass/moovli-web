@@ -32,8 +32,16 @@ export interface SetupStatus {
 export interface StudioDashboardMetrics {
   /** The resolved range (inclusive days) the numbers below cover. */
   range: { from: string; to: string };
-  /** Sum of price_mad_at_booking for confirmed/checked_in/completed bookings made in the range, all channels. */
+  /**
+   * Earned revenue for sessions held in the range (by session date): checked-in/completed
+   * bookings plus marketplace no-shows, at the studio's amount — direct full price,
+   * marketplace net of commission.
+   */
   revenueMad: number;
+  /** revenueMad split by channel family. */
+  revenueByChannel: { marketplace: number; direct: number };
+  /** Confirmed bookings for sessions in the range that haven't happened yet. */
+  expectedRevenueMad: number;
   /** Same as revenueMad for the equal-length period right before the range. */
   previousRevenueMad: number;
   /** Pending/confirmed/checked_in/completed bookings made in the range. */
@@ -51,6 +59,20 @@ export interface StudioDashboardMetrics {
   pendingDirectBookings: number;
   /** Up to 5 sessions starting in the next 24 hours (not range-bound). */
   upcomingSessions: DashboardUpcomingSession[];
+}
+
+export interface StudioInsights {
+  range: { from: string; to: string };
+  /** Bookings made in the range (all statuses except waitlist). */
+  totalBookings: number;
+  cancelledCount: number;
+  noShowCount: number;
+  /** Cancelled / total, percentage with one decimal. */
+  cancellationRate: number;
+  previousTotalBookings: number;
+  previousCancellationRate: number;
+  /** One zero-filled entry per viewer-local day in the range. */
+  daily: { date: string; bookings: number; cancelled: number }[];
 }
 
 export interface DashboardUpcomingSession {
@@ -329,8 +351,16 @@ export const studioApi = {
       body: JSON.stringify(data),
     }),
 
-  getInsights: (entityId: string, days: number = 30) =>
-    apiClient<{ success: boolean; data: any }>(`/api/studio/${entityId}/insights?days=${days}`),
+  getInsights: (entityId: string, range: { from: string; to: string }) => {
+    const params = new URLSearchParams({
+      from: range.from,
+      to: range.to,
+      tz: String(new Date().getTimezoneOffset()),
+    });
+    return apiClient<{ success: boolean; data: StudioInsights }>(
+      `/api/studio/${entityId}/insights?${params}`
+    );
+  },
 
   searchUsers: (entityId: string, email: string) =>
     apiClient<{ success: boolean; data: { id: string; name: string; email: string; avatar_url: string | null; city: string | null }[] }>(

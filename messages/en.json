@@ -1186,10 +1186,13 @@
       "pendingBannerSub": "Direct page reservations awaiting confirm or decline",
       "stats": {
         "revenue": "Revenue",
-        "revenueTip": "Total value of confirmed, checked-in and completed bookings made in the selected period, across all channels. Pending and cancelled bookings are not counted. Bookings count on the day they were made, not the day of the session.",
+        "revenueTip": "Money earned from sessions that took place in the selected period, counted on the session date. Includes customers who attended (checked in or completed) and Marketplace no-shows, since their spot was held and paid for. Direct bookings count at full price, Marketplace bookings after the Moovli commission. Pending, cancelled and Direct no-show bookings are not counted. \"Expected\" is confirmed bookings for sessions in the period that haven't happened yet.",
+        "revenueByChannel": "Marketplace {marketplace} · Direct {direct}",
+        "expectedRevenue": "+ {amount} expected from upcoming sessions",
         "bookings": "Bookings",
-        "bookingsTip": "Bookings made in the selected period (pending, confirmed, checked-in or completed), counted on the day they were made. Cancellations and no-shows are excluded.",
+        "bookingsTip": "Bookings made in the selected period (pending, confirmed, checked-in or completed), counted on the day they were booked, not the day of the session. Cancellations and no-shows are excluded.",
         "vsPreviousPeriod": "vs previous period",
+        "periodInProgress": "Period in progress",
         "customers": "Customers",
         "customersTip": "Everyone who had booked with your studio by the end of the selected period, including guests without an account. Your team members are not included.",
         "newCustomers": "{count, plural, =0 {No new customers in this period} one {+# new in this period} other {+# new in this period}}",
@@ -1224,15 +1227,34 @@
     "insights": {
       "title": "Insights",
       "stats": {
-        "totalBookings": "Total Bookings",
-        "last30Days": "Last 30 days",
+        "totalBookings": "Total bookings",
+        "totalBookingsTip": "Bookings made in the selected period, whatever their status (including cancelled and no-shows). Waitlist entries are not counted.",
+        "vsPreviousPeriod": "vs previous period",
+        "periodInProgress": "Period in progress",
         "cancelled": "Cancelled",
         "cancelledDesc": "Cancelled bookings",
-        "cancellationRate": "Cancellation Rate",
-        "ofTotalBookings": "Of total bookings"
+        "cancelledTip": "Bookings made in the selected period that have since been cancelled, by the customer or by your studio.",
+        "cancellationRate": "Cancellation rate",
+        "cancellationRateTip": "Cancelled bookings divided by total bookings for the selected period.",
+        "cancellationRateDesc": "Of total bookings",
+        "previousRate": "{rate}% in previous period",
+        "noShows": "No-shows",
+        "noShowsDesc": "Booked but did not attend",
+        "noShowsTip": "Bookings made in the selected period that were marked as no-show."
       },
-      "dailyBookings": "Daily Bookings (Last 30 Days)",
-      "noData": "No booking data available."
+      "bookingsOverTime": "Bookings over time",
+      "noData": "No bookings in this period.",
+      "chart": {
+        "weekOf": "Week of {date}",
+        "bookings": "{count, plural, one {# booking} other {# bookings}}",
+        "cancelled": "{count} cancelled",
+        "captionDaily": "Bookings per day",
+        "captionWeekly": "Bookings per week",
+        "day": "Day",
+        "week": "Week",
+        "bookingsHeader": "Bookings",
+        "cancelledHeader": "Cancelled"
+      }
     },
     "bookings": {
       "title": "Bookings",

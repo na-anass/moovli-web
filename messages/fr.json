@@ -1186,10 +1186,13 @@
       "pendingBannerSub": "Réservations Direct en attente de confirmation ou de refus",
       "stats": {
         "revenue": "Revenus",
-        "revenueTip": "Valeur totale des réservations confirmées, enregistrées ou terminées effectuées sur la période sélectionnée, tous canaux confondus. Les réservations en attente et annulées ne sont pas comptées. Une réservation compte le jour où elle a été faite, pas le jour de la séance.",
+        "revenueTip": "Revenus gagnés sur les séances ayant eu lieu pendant la période sélectionnée, comptés à la date de la séance. Inclut les clients venus (enregistrés ou terminés) et les absences Marketplace, car la place a été réservée et payée. Les réservations Direct comptent au prix plein, les réservations Marketplace après la commission Moovli. Les réservations en attente, annulées et les absences Direct ne sont pas comptées. « Prévu » correspond aux réservations confirmées pour les séances de la période qui n'ont pas encore eu lieu.",
+        "revenueByChannel": "Marketplace {marketplace} · Direct {direct}",
+        "expectedRevenue": "+ {amount} prévus sur les séances à venir",
         "bookings": "Réservations",
-        "bookingsTip": "Réservations effectuées sur la période sélectionnée (en attente, confirmées, enregistrées ou terminées), comptées le jour où elles ont été faites. Les annulations et absences sont exclues.",
+        "bookingsTip": "Réservations effectuées sur la période sélectionnée (en attente, confirmées, enregistrées ou terminées), comptées le jour de la réservation, pas le jour de la séance. Les annulations et absences sont exclues.",
         "vsPreviousPeriod": "vs période précédente",
+        "periodInProgress": "Période en cours",
         "customers": "Clients",
         "customersTip": "Toutes les personnes ayant réservé dans votre studio jusqu'à la fin de la période sélectionnée, y compris les invités sans compte. Les membres de votre équipe ne sont pas inclus.",
         "newCustomers": "{count, plural, =0 {Aucun nouveau client sur la période} one {+# nouveau sur la période} other {+# nouveaux sur la période}}",
@@ -1225,14 +1228,33 @@
       "title": "KPIs",
       "stats": {
         "totalBookings": "Total des réservations",
-        "last30Days": "30 derniers jours",
+        "totalBookingsTip": "Réservations effectuées sur la période sélectionnée, quel que soit leur statut (y compris annulées et absences). Les inscriptions en liste d'attente ne sont pas comptées.",
+        "vsPreviousPeriod": "vs période précédente",
+        "periodInProgress": "Période en cours",
         "cancelled": "Annulées",
         "cancelledDesc": "Réservations annulées",
+        "cancelledTip": "Réservations effectuées sur la période sélectionnée puis annulées, par le client ou par votre studio.",
         "cancellationRate": "Taux d'annulation",
-        "ofTotalBookings": "Du total des réservations"
+        "cancellationRateTip": "Réservations annulées divisées par le total des réservations de la période sélectionnée.",
+        "cancellationRateDesc": "Du total des réservations",
+        "previousRate": "{rate} % sur la période précédente",
+        "noShows": "Absences",
+        "noShowsDesc": "Réservé mais non venu",
+        "noShowsTip": "Réservations effectuées sur la période sélectionnée et marquées comme absence."
       },
-      "dailyBookings": "Réservations quotidiennes (30 derniers jours)",
-      "noData": "Aucune donnée de réservation disponible."
+      "bookingsOverTime": "Réservations dans le temps",
+      "noData": "Aucune réservation sur la période.",
+      "chart": {
+        "weekOf": "Semaine du {date}",
+        "bookings": "{count, plural, one {# réservation} other {# réservations}}",
+        "cancelled": "{count, plural, one {# annulée} other {# annulées}}",
+        "captionDaily": "Réservations par jour",
+        "captionWeekly": "Réservations par semaine",
+        "day": "Jour",
+        "week": "Semaine",
+        "bookingsHeader": "Réservations",
+        "cancelledHeader": "Annulées"
+      }
     },
     "bookings": {
       "title": "Réservations",

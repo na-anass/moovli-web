@@ -1,14 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { BaseLayout } from "@/components/layout/base-layout";
 import { StatsCard } from "@/components/shared/stats-card";
+import { DateRangeFilter } from "@/components/shared/date-range-filter";
 import { SetupChecklist } from "@/components/studio/setup-checklist";
 import { studioApi, type StudioDashboardMetrics } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
 import { useEntitlement } from "@/lib/studio/entitlement";
 import { formatMoneyWhole } from "@/lib/money";
+import {
+  isRangeComplete,
+  parseDateRange,
+  serializeDateRange,
+  type DateRange,
+} from "@/lib/date-range";
 import { formatTime, formatDateCustom } from "@/lib/datetime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,12 +35,48 @@ import {
   WalletIcon,
 } from "lucide-react";
 
+/** Keep an amount on one line so a wrapped description breaks between channels, not inside one. */
+const noWrap = (text: string) => text.replace(/\s/g, "\u00A0");
+
+/**
+ * Percent change vs the previous period; undefined when there is nothing to compare
+ * or the selected period hasn't finished yet.
+ */
+const trendVs = (current: number, previous: number, complete: boolean) => {
+  if (!complete || previous <= 0) return undefined;
+  const value = Math.round(((current - previous) / previous) * 100);
+  return value === 0 ? undefined : { value, isPositive: value > 0 };
+};
+
+// useSearchParams needs a Suspense boundary in the App Router.
 export default function StudioDashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <StudioDashboard />
+    </Suspense>
+  );
+}
+
+function StudioDashboard() {
   const t = useTranslations("studioMain");
   const activeEntity = useActiveEntity();
   const { allows } = useEntitlement();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [metrics, setMetrics] = useState<StudioDashboardMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Key of the entity+range whose numbers are currently shown; while it differs
+  // from the requested key, the cards are dimmed instead of blanked.
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+
+  // Selected period lives in the URL (?range=30d / ?range=custom&from=&to=).
+  const searchKey = searchParams.toString();
+  const range = useMemo(() => parseDateRange(new URLSearchParams(searchKey)), [searchKey]);
+
+  const setRange = (next: DateRange) => {
+    const params = serializeDateRange(next, new URLSearchParams(searchKey));
+    router.replace(`${pathname}?${params}`, { scroll: false });
+  };
 
   // Channel mix compares marketplace vs direct — only meaningful (and only
   // shown) when the plan grants BOTH families; otherwise it's a trivial 100%
@@ -47,14 +91,26 @@ export default function StudioDashboardPage() {
   // Onboarding gate now lives in app/studio/layout.tsx (runs before any studio
   // page paints), so the dashboard no longer needs its own redirect.
 
+  const requestKey = `${entityId}|${range.from}|${range.to}`;
+  const loading = loadedKey === null;
+  const refreshing = !loading && loadedKey !== requestKey;
+
   useEffect(() => {
     if (!entityId) return;
+    let cancelled = false;
     studioApi
-      .getDashboard(entityId)
-      .then((res) => setMetrics(res.data))
+      .getDashboard(entityId, { from: range.from, to: range.to })
+      .then((res) => {
+        if (!cancelled) setMetrics(res.data);
+      })
       .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [entityId]);
+      .finally(() => {
+        if (!cancelled) setLoadedKey(`${entityId}|${range.from}|${range.to}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [entityId, range.from, range.to]);
 
   if (loading) {
     return (
@@ -69,16 +125,8 @@ export default function StudioDashboardPage() {
     );
   }
 
-  const weekChange =
-    metrics && metrics.bookingsLastWeek > 0
-      ? Math.round(
-          ((metrics.bookingsThisWeek - metrics.bookingsLastWeek) /
-            metrics.bookingsLastWeek) *
-            100,
-        )
-      : 0;
-
-  const channels = metrics?.channelSplitLast30Days ?? { marketplace: 0, direct: 0, other: 0 };
+  const rangeComplete = isRangeComplete(range);
+  const channels = metrics?.channelSplit ?? { marketplace: 0, direct: 0 };
   const channelTotal = channels.marketplace + channels.direct;
   const marketplacePct = channelTotal > 0 ? Math.round((channels.marketplace / channelTotal) * 100) : 0;
 
@@ -91,6 +139,7 @@ export default function StudioDashboardPage() {
       title={t("dashboard.title")}
       action={
         <>
+          <DateRangeFilter value={range} onChange={setRange} />
           <Link href="/studio/schedule">
             <Button variant="outline" size="sm">
               <PlusIcon className="size-4 mr-1.5" />
@@ -124,32 +173,58 @@ export default function StudioDashboardPage() {
         </Link>
       )}
 
-      {/* Stats — 4 columns: revenue, bookings, members, active sessions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats — 4 columns for the selected period: revenue, bookings, customers, sessions */}
+      <div
+        className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity ${refreshing ? "opacity-60" : ""}`}
+        aria-busy={refreshing}
+      >
         <StatsCard
           title={t("dashboard.stats.revenue")}
-          value={formatMoneyWhole(metrics?.revenueMadThisWeek ?? 0, currency)}
+          value={formatMoneyWhole(metrics?.revenueMad ?? 0, currency)}
           icon={<WalletIcon className="size-5" />}
-          description={t("dashboard.stats.last7Days")}
+          trend={trendVs(metrics?.revenueMad ?? 0, metrics?.previousRevenueMad ?? 0, rangeComplete)}
+          description={
+            showChannelMix
+              ? t("dashboard.stats.revenueByChannel", {
+                  marketplace: noWrap(formatMoneyWhole(metrics?.revenueByChannel.marketplace ?? 0, currency)),
+                  direct: noWrap(formatMoneyWhole(metrics?.revenueByChannel.direct ?? 0, currency)),
+                })
+              : rangeComplete
+                ? t("dashboard.stats.vsPreviousPeriod")
+                : t("dashboard.stats.periodInProgress")
+          }
+          footnote={
+            (metrics?.expectedRevenueMad ?? 0) > 0
+              ? t("dashboard.stats.expectedRevenue", {
+                  amount: noWrap(formatMoneyWhole(metrics?.expectedRevenueMad ?? 0, currency)),
+                })
+              : undefined
+          }
+          tooltip={t("dashboard.stats.revenueTip")}
         />
         <StatsCard
-          title={t("dashboard.stats.bookingsThisWeek")}
-          value={metrics?.bookingsThisWeek ?? 0}
+          title={t("dashboard.stats.bookings")}
+          value={metrics?.bookings ?? 0}
           icon={<CalendarIcon className="size-5" />}
-          trend={weekChange !== 0 ? { value: weekChange, isPositive: weekChange > 0 } : undefined}
-          description={t("dashboard.stats.vsLastWeek")}
+          trend={trendVs(metrics?.bookings ?? 0, metrics?.previousBookings ?? 0, rangeComplete)}
+          description={
+            rangeComplete ? t("dashboard.stats.vsPreviousPeriod") : t("dashboard.stats.periodInProgress")
+          }
+          tooltip={t("dashboard.stats.bookingsTip")}
         />
         <StatsCard
-          title={t("dashboard.stats.uniqueMembers")}
-          value={metrics?.uniqueMembers ?? 0}
+          title={t("dashboard.stats.customers")}
+          value={metrics?.totalCustomers ?? 0}
           icon={<UsersIcon className="size-5" />}
-          description={t("dashboard.stats.allTime")}
+          description={t("dashboard.stats.newCustomers", { count: metrics?.newCustomers ?? 0 })}
+          tooltip={t("dashboard.stats.customersTip")}
         />
         <StatsCard
-          title={t("dashboard.stats.activeSessions")}
-          value={metrics?.activeSessions ?? 0}
+          title={t("dashboard.stats.sessions")}
+          value={metrics?.sessions ?? 0}
           icon={<ClockIcon className="size-5" />}
-          description={t("dashboard.stats.availableOrFull")}
+          description={t("dashboard.stats.scheduledInPeriod")}
+          tooltip={t("dashboard.stats.sessionsTip")}
         />
       </div>
 
@@ -259,11 +334,10 @@ export default function StudioDashboardPage() {
           <div className="flex items-center gap-2 mb-4">
             <TrendingUpIcon className="size-5 text-primary" />
             <h2 className="font-semibold">{t("dashboard.channelMix")}</h2>
-            <span className="ml-auto text-[10px] text-muted-foreground">{t("dashboard.last30Days")}</span>
           </div>
 
           {channelTotal === 0 ? (
-            <p className="text-xs text-muted-foreground py-4">{t("dashboard.noBookings30")}</p>
+            <p className="text-xs text-muted-foreground py-4">{t("dashboard.noBookingsRange")}</p>
           ) : (
             <div className="space-y-4">
               {/* Marketplace */}
@@ -304,7 +378,7 @@ export default function StudioDashboardPage() {
               </div>
 
               <div className="pt-3 border-t text-xs text-muted-foreground">
-                {t("dashboard.totalBookings30", { count: channelTotal })}
+                {t("dashboard.totalBookingsRange", { count: channelTotal })}
               </div>
             </div>
           )}
