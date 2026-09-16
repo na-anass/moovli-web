@@ -8,6 +8,7 @@ import { DataTable, type Column } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { studioApi, type AcquisitionSource, type EntityCustomer } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
+import { useEntitlement } from "@/lib/studio/entitlement";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EyeIcon } from "lucide-react";
@@ -34,9 +35,16 @@ const VISIBLE_FILTER_SOURCES: AcquisitionSource[] = ["marketplace", "direct_host
 export default function StudioCustomersPage() {
   const t = useTranslations("studioMain");
   const activeEntity = useActiveEntity();
+  const { allows } = useEntitlement();
   const router = useRouter();
   const currency = activeEntity.currencyCode;
   const entityId = activeEntity.entityId;
+
+  // Only surface source filters for channels the plan grants (#3): a studio
+  // without marketplace shouldn't see a "Marketplace" customer-source filter.
+  const visibleSources = VISIBLE_FILTER_SOURCES.filter((s) =>
+    s === "marketplace" ? allows("marketplace") : allows("direct_hosted"),
+  );
 
   const [customers, setCustomers] = useState<EntityCustomer[]>([]);
   const [total, setTotal] = useState(0);
@@ -70,6 +78,14 @@ export default function StudioCustomersPage() {
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+
+  // Drop a source filter the plan no longer grants (e.g. after a downgrade).
+  useEffect(() => {
+    if (sourceFilter && !visibleSources.includes(sourceFilter as AcquisitionSource)) {
+      setSourceFilter("");
+      setPage(1);
+    }
+  }, [sourceFilter, visibleSources]);
 
   const columns: Column<EntityCustomer>[] = [
     {
@@ -156,7 +172,7 @@ export default function StudioCustomersPage() {
             },
             options: [
               { label: t("customers.allSources"), value: "all" },
-              ...VISIBLE_FILTER_SOURCES.map((src) => ({
+              ...visibleSources.map((src) => ({
                 label: t(`customers.source.${SOURCE_LABEL[src].labelKey}`),
                 value: src,
               })),

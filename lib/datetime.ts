@@ -28,8 +28,17 @@ import {
   startOfWeek,
 } from "date-fns";
 
-/** Locale used for every human-facing date/time string. */
+/** Fallback locale when the caller doesn't pass the active app locale. */
 const LOCALE = "en-GB";
+
+/**
+ * Map the app locale ("en"/"fr", from next-intl) to a BCP-47 tag for Intl.
+ * Callers thread the value from `useLocale()` so weekday/month names localize
+ * (e.g. the planning calendar showing "lun." instead of "Mon"). Passing it
+ * explicitly keeps SSR and client output identical (no hydration mismatch).
+ */
+const resolveLocale = (locale?: string): string =>
+  locale === "fr" ? "fr-FR" : locale === "en" ? "en-GB" : LOCALE;
 
 /** undefined = viewer's local timezone. Set to an IANA zone to pin display tz. */
 const DISPLAY_TIME_ZONE: string | undefined = undefined;
@@ -46,10 +55,14 @@ const toDate = (value: DateInput): Date | null => {
 };
 
 /** The single Intl chokepoint — all display formatters go through here. */
-const fmt = (value: DateInput, options: Intl.DateTimeFormatOptions): string => {
+const fmt = (
+  value: DateInput,
+  options: Intl.DateTimeFormatOptions,
+  locale?: string,
+): string => {
   const d = toDate(value);
   if (!d) return PLACEHOLDER;
-  return d.toLocaleString(LOCALE, { ...options, timeZone: DISPLAY_TIME_ZONE });
+  return d.toLocaleString(resolveLocale(locale), { ...options, timeZone: DISPLAY_TIME_ZONE });
 };
 
 /**
@@ -63,8 +76,9 @@ const fmt = (value: DateInput, options: Intl.DateTimeFormatOptions): string => {
 const partsOf = (
   d: Date,
   options: Intl.DateTimeFormatOptions,
+  locale?: string,
 ): Record<string, string> => {
-  const dtf = new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: DISPLAY_TIME_ZONE });
+  const dtf = new Intl.DateTimeFormat(resolveLocale(locale), { ...options, timeZone: DISPLAY_TIME_ZONE });
   const out: Record<string, string> = {};
   for (const p of dtf.formatToParts(d)) {
     if (p.type !== "literal") out[p.type] = p.value;
@@ -77,38 +91,38 @@ const partsOf = (
 // ----------------------------------------------------------------------------
 
 /** "09:00" */
-export const formatTime = (value: DateInput): string =>
-  fmt(value, { hour: "2-digit", minute: "2-digit" });
+export const formatTime = (value: DateInput, locale?: string): string =>
+  fmt(value, { hour: "2-digit", minute: "2-digit" }, locale);
 
 /** "7 Sep 2026" */
-export const formatDate = (value: DateInput): string =>
-  fmt(value, { day: "numeric", month: "short", year: "numeric" });
+export const formatDate = (value: DateInput, locale?: string): string =>
+  fmt(value, { day: "numeric", month: "short", year: "numeric" }, locale);
 
 /** "7 September 2026" */
-export const formatDateLong = (value: DateInput): string =>
-  fmt(value, { day: "numeric", month: "long", year: "numeric" });
+export const formatDateLong = (value: DateInput, locale?: string): string =>
+  fmt(value, { day: "numeric", month: "long", year: "numeric" }, locale);
 
 /**
  * "Monday, 7 September 2026" — composed from parts (not toLocaleString) so the
  * comma after the weekday is OURS and identical on server + client. See partsOf.
  */
-export const formatDateFull = (value: DateInput): string => {
+export const formatDateFull = (value: DateInput, locale?: string): string => {
   const d = toDate(value);
   if (!d) return PLACEHOLDER;
-  const p = partsOf(d, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const p = partsOf(d, { weekday: "long", day: "numeric", month: "long", year: "numeric" }, locale);
   return `${p.weekday}, ${p.day} ${p.month} ${p.year}`;
 };
 
 /** "Mon, 7 Sep" — composed from parts (SSR-safe, see formatDateFull). */
-export const formatWeekdayShort = (value: DateInput): string => {
+export const formatWeekdayShort = (value: DateInput, locale?: string): string => {
   const d = toDate(value);
   if (!d) return PLACEHOLDER;
-  const p = partsOf(d, { weekday: "short", day: "numeric", month: "short" });
+  const p = partsOf(d, { weekday: "short", day: "numeric", month: "short" }, locale);
   return `${p.weekday}, ${p.day} ${p.month}`;
 };
 
 /** "Mon, 7 Sep, 09:00" — composed from parts (SSR-safe, see formatDateFull). */
-export const formatDateTime = (value: DateInput): string => {
+export const formatDateTime = (value: DateInput, locale?: string): string => {
   const d = toDate(value);
   if (!d) return PLACEHOLDER;
   const p = partsOf(d, {
@@ -117,7 +131,7 @@ export const formatDateTime = (value: DateInput): string => {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
-  });
+  }, locale);
   return `${p.weekday}, ${p.day} ${p.month}, ${p.hour}:${p.minute}`;
 };
 
@@ -136,8 +150,11 @@ export const formatRelative = (value: DateInput): string => {
  * don't warrant a named helper. Locale and timezone stay fixed — callers choose
  * only WHICH fields to show, not the locale, so the app stays consistent.
  */
-export const formatDateCustom = (value: DateInput, options: Intl.DateTimeFormatOptions): string =>
-  fmt(value, options);
+export const formatDateCustom = (
+  value: DateInput,
+  options: Intl.DateTimeFormatOptions,
+  locale?: string,
+): string => fmt(value, options, locale);
 
 // ----------------------------------------------------------------------------
 // FORMS — wall-clock ↔ instant boundary (viewer-local). Centralized because

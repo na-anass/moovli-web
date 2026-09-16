@@ -104,6 +104,7 @@ export default function StudioLayout({
 /** Studio sidebar/topbar chrome — reads the active studio (selection or admin impersonation). */
 function StudioChrome({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const t = useTranslations("studioMain");
   const {
     entityId,
@@ -124,7 +125,9 @@ function StudioChrome({ children }: { children: React.ReactNode }) {
 
   // Resolve channel status for sidebar dots/locks against the active studio.
   // Plan entitlement comes from the shared EntitlementProvider (single source of
-  // truth); only the per-channel enabled prefs are fetched here.
+  // truth); only the per-channel enabled prefs are fetched here. `pathname` is a
+  // dep so the dots re-sync after the user toggles a channel on its page and
+  // navigates away (otherwise the dot stayed stale until a full reload).
   useEffect(() => {
     if (!entityId) return;
     let cancelled = false;
@@ -151,7 +154,7 @@ function StudioChrome({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [entityId, allows]);
+  }, [entityId, allows, pathname]);
 
   const navItems = useMemo((): NavItem[] => {
     const items: NavItem[] = [

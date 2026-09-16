@@ -66,7 +66,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 // ============================================================================
 // TYPES
@@ -279,6 +279,7 @@ const MAX_CALENDAR_COLS = 3;
 
 export default function SchedulePage() {
   const t = useTranslations("studioMain");
+  const locale = useLocale();
   const activeEntity = useActiveEntity();
   const currency = activeEntity.currencyCode;
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -940,10 +941,10 @@ export default function SchedulePage() {
 
   const headerLabel = useMemo(() => {
     if (view === "day") {
-      return formatDateCustom(calendarDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      return formatDateCustom(calendarDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" }, locale);
     }
-    return `${formatDateCustom(weekDays[0], { month: "short", day: "numeric" })} — ${formatDateCustom(weekDays[6], { month: "short", day: "numeric", year: "numeric" })}`;
-  }, [calendarDate, view, weekDays]);
+    return `${formatDateCustom(weekDays[0], { month: "short", day: "numeric" }, locale)} — ${formatDateCustom(weekDays[6], { month: "short", day: "numeric", year: "numeric" }, locale)}`;
+  }, [calendarDate, view, weekDays, locale]);
 
   // ============================================================================
   // LIST COLUMNS
@@ -1396,7 +1397,7 @@ export default function SchedulePage() {
                   className={`flex-1 text-center py-2 border-r border-border last:border-r-0 cursor-pointer hover:bg-muted/50 ${isToday ? "bg-primary/5" : ""}`}
                   onClick={() => { setCalendarDate(day); setView("day"); }}
                 >
-                  <p className="text-[10px] text-muted-foreground uppercase">{formatDateCustom(day, { weekday: "short" })}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">{formatDateCustom(day, { weekday: "short" }, locale)}</p>
                   <p className={`text-sm font-semibold ${isToday ? "text-primary" : ""}`}>{day.getDate()}</p>
                   {daySessionCount > 0 && (
                     <p className="text-[10px] text-muted-foreground">{t("schedule.daySessionCount", { count: daySessionCount })}</p>
@@ -2276,7 +2277,7 @@ export default function SchedulePage() {
                   <div className="flex items-start gap-2.5">
                     <CalendarIcon className="size-4 text-muted-foreground mt-0.5 shrink-0" />
                     <div>
-                      <p>{formatDateCustom(s.start_time, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+                      <p>{formatDateCustom(s.start_time, { weekday: "long", day: "numeric", month: "long", year: "numeric" }, locale)}</p>
                       <p className="text-muted-foreground text-xs">
                         {formatTime(s.start_time)} — {formatTime(s.end_time)} · {minutesBetweenTimes(toTimeInput(s.start_time), toTimeInput(s.end_time))} min
                       </p>
