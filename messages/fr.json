@@ -1152,7 +1152,10 @@
         "planRequiredShort": "Formule supérieure requise",
         "meter": "{used} sur {limit} {feature}"
       },
-      "free": "Gratuit"
+      "free": "Gratuit",
+      "planCopy": {
+        "moovli": "Gratuit. Votre propre page de réservation, des liens partageables, un widget intégrable et une visibilité auprès des utilisateurs de l'app Moovli. Moovli ne prend une commission que sur les réservations Marketplace — les réservations directes ne vous coûtent rien."
+      }
     },
     "deactivate": {
       "channelLabel": {

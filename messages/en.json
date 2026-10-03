@@ -1152,7 +1152,10 @@
         "planRequiredShort": "Plan upgrade required",
         "meter": "{used} of {limit} {feature}"
       },
-      "free": "Free"
+      "free": "Free",
+      "planCopy": {
+        "moovli": "Free to use. Your own booking page, shareable links, an embeddable widget, and exposure to Moovli app users. Moovli only earns a commission on marketplace bookings — direct bookings cost you nothing."
+      }
     },
     "deactivate": {
       "channelLabel": {

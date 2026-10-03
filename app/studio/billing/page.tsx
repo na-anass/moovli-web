@@ -101,6 +101,16 @@ export default function StudioBillingPage() {
    * by the registry. Replaces the old hardcoded bullet list, which claimed the
    * widget and calendar links on every plan regardless of the plan.
    */
+  /**
+   * Plan descriptions live in the DB and are never translated, so a French
+   * studio would read English copy. Prefer a translated string keyed by plan
+   * slug, and fall back to the DB text for plans created later in the admin UI.
+   */
+  const planDescription = (plan: EntityPlan): string | null => {
+    const key = `planCopy.${plan.slug}`;
+    return t.has(key) ? t(key) : plan.description;
+  };
+
   type PlanFeature = { key: string; text: string };
 
   const planFeatures = (plan: EntityPlan): PlanFeature[] =>
@@ -270,8 +280,8 @@ export default function StudioBillingPage() {
         <CardContent className="space-y-4">
           {/* With the catalogue hidden on a free plan, this is the only place
               that explains what the plan covers and how Moovli earns. */}
-          {onFreePlan && activePlan?.description && (
-            <p className="text-sm text-muted-foreground">{activePlan.description}</p>
+          {onFreePlan && activePlan && planDescription(activePlan) && (
+            <p className="text-sm text-muted-foreground">{planDescription(activePlan)}</p>
           )}
           {subscription && (
             <dl className="grid grid-cols-2 gap-4 text-sm">
@@ -351,7 +361,7 @@ export default function StudioBillingPage() {
                         </>
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground mb-4">{plan.description}</p>
+                    <p className="text-xs text-muted-foreground mb-4">{planDescription(plan)}</p>
                     <ul className="space-y-1 text-xs mb-4">
                       {planFeatures(plan).map((feature) => (
                         <li key={feature.key} className="flex items-start gap-1">
