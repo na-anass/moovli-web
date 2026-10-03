@@ -28,6 +28,9 @@ export default function StudioDetailPage() {
   const [saving, setSaving] = useState(false);
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerRole, setOwnerRole] = useState<string>("owner");
+  const [ownerError, setOwnerError] = useState<string | null>(null);
+  /** "invited" = a new account was created and emailed; "linked" = existing account. */
+  const [ownerNotice, setOwnerNotice] = useState<"invited" | "linked" | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -60,12 +63,15 @@ export default function StudioDetailPage() {
   const handleAssignOwner = async () => {
     if (!ownerEmail) return;
     setSaving(true);
+    setOwnerError(null);
     try {
-      // In a real implementation, we'd look up the user by email first
-      await adminApi.assignOwner(id, ownerEmail, ownerRole);
+      // The API resolves the email: it links an existing account, or creates one
+      // and sends an invite.
+      const res = await adminApi.assignOwner(id, ownerEmail.trim(), ownerRole);
       setOwnerEmail("");
+      setOwnerNotice(res.data?.invited ? "invited" : "linked");
     } catch (e) {
-      console.error(e);
+      setOwnerError((e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -158,9 +164,14 @@ export default function StudioDetailPage() {
         </p>
         <div className="flex gap-3">
           <Input
-            placeholder={t("studioDetail.userIdPlaceholder")}
+            type="email"
+            placeholder={t("studioDetail.ownerEmailPlaceholder")}
             value={ownerEmail}
-            onChange={(e) => setOwnerEmail(e.target.value)}
+            onChange={(e) => {
+              setOwnerEmail(e.target.value);
+              setOwnerNotice(null);
+              setOwnerError(null);
+            }}
             className="flex-1"
           />
           <Select value={ownerRole} onValueChange={setOwnerRole}>
@@ -177,6 +188,12 @@ export default function StudioDetailPage() {
             {t("studioDetail.assign")}
           </Button>
         </div>
+        {ownerNotice && (
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">
+            {t(`studioDetail.owner${ownerNotice === "invited" ? "Invited" : "Linked"}`)}
+          </p>
+        )}
+        {ownerError && <p className="text-sm text-destructive">{ownerError}</p>}
       </div>
     </div>
   );

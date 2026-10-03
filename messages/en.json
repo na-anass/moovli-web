@@ -373,12 +373,14 @@
         "inactive": "inactive"
       },
       "assignOwner": "Assign Owner",
-      "assignOwnerHint": "Enter the user ID to assign as owner/manager/staff of this entity.",
-      "userIdPlaceholder": "User ID",
+      "assignOwnerHint": "Enter an email address. If they already have a Moovli account it is linked; otherwise an invitation is sent.",
       "roleOwner": "Owner",
       "roleManager": "Manager",
       "roleStaff": "Staff",
-      "assign": "Assign"
+      "assign": "Assign",
+      "ownerEmailPlaceholder": "owner@studio.com",
+      "ownerInvited": "Invitation sent — they can set a password from the email.",
+      "ownerLinked": "Access granted to their existing Moovli account."
     },
     "users": {
       "title": "Users",

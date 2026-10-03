@@ -115,11 +115,19 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
 
-  assignOwner: (entityId: string, userId: string, role: string = "owner") =>
-    apiClient<{ success: boolean; data: any }>(`/api/admin/entities/${entityId}/assign-owner`, {
-      method: "POST",
-      body: JSON.stringify({ userId, role }),
-    }),
+  /** Normally an email — the person may not have a Moovli account yet. */
+  assignOwner: (entityId: string, emailOrUserId: string, role: string = "owner") =>
+    apiClient<{ success: boolean; data: { invited: boolean } }>(
+      `/api/admin/entities/${entityId}/assign-owner`,
+      {
+        method: "POST",
+        body: JSON.stringify(
+          emailOrUserId.includes("@")
+            ? { email: emailOrUserId, role }
+            : { userId: emailOrUserId, role },
+        ),
+      },
+    ),
 
   getEntityTypes: () =>
     apiClient<{ success: boolean; data: EntityType[] }>("/api/admin/entity-types"),

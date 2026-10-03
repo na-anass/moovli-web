@@ -373,12 +373,14 @@
         "inactive": "inactif"
       },
       "assignOwner": "Attribuer un propriétaire",
-      "assignOwnerHint": "Saisissez l'identifiant de l'utilisateur à désigner comme propriétaire/gestionnaire/employé de cette entité.",
-      "userIdPlaceholder": "Identifiant utilisateur",
+      "assignOwnerHint": "Saisissez une adresse e-mail. Si la personne a déjà un compte Moovli, il est relié ; sinon une invitation est envoyée.",
       "roleOwner": "Propriétaire",
       "roleManager": "Gestionnaire",
       "roleStaff": "Employé",
-      "assign": "Attribuer"
+      "assign": "Attribuer",
+      "ownerEmailPlaceholder": "proprietaire@studio.com",
+      "ownerInvited": "Invitation envoyée — la personne peut définir son mot de passe depuis l'e-mail.",
+      "ownerLinked": "Accès accordé à son compte Moovli existant."
     },
     "users": {
       "title": "Utilisateurs",
