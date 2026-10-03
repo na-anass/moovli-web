@@ -1083,17 +1083,24 @@
       "plansDesc": "Choisissez l'abonnement adapté à votre studio",
       "current": "Actuel",
       "perMonth": "/mois",
-      "featureMarketplace": "Mise en ligne sur la Marketplace",
-      "featureBookingPage": "Page de réservation publique",
-      "featureCalendarLinks": "Liens de calendrier personnalisés",
-      "featureWidget": "Widget intégrable",
       "upgrade": "Mettre à niveau",
       "choosePlan": "Choisir l'abonnement",
       "billingHistory": "Historique de facturation",
       "invoiceCount": "{count, plural, one {# facture} other {# factures}}",
       "colDate": "Date",
       "colAmount": "Montant",
-      "colInvoice": "Facture"
+      "colInvoice": "Facture",
+      "featureUnlimited": "{feature} en illimité",
+      "featureUpTo": "Jusqu'à {count} {feature}",
+      "gate": {
+        "title": "{feature} ne fait pas partie de votre formule",
+        "notInPlanBody": "Votre formule {plan} n’inclut pas {feature}. Passez à une formule supérieure pour l’activer.",
+        "noSubscriptionBody": "Choisissez une formule pour utiliser {feature}.",
+        "limitReachedTitle": "Vous avez atteint votre limite de {feature}",
+        "limitReachedBody": "Votre formule en inclut {limit} au maximum. Passez à une formule supérieure pour en avoir plus.",
+        "planRequiredShort": "Formule supérieure requise",
+        "meter": "{used} sur {limit} {feature}"
+      }
     },
     "deactivate": {
       "channelLabel": {

@@ -1083,17 +1083,24 @@
       "plansDesc": "Choose a plan that fits your studio",
       "current": "Current",
       "perMonth": "/mo",
-      "featureMarketplace": "Marketplace listing",
-      "featureBookingPage": "Public booking page",
-      "featureCalendarLinks": "Custom calendar links",
-      "featureWidget": "Embeddable widget",
       "upgrade": "Upgrade",
       "choosePlan": "Choose plan",
       "billingHistory": "Billing history",
       "invoiceCount": "{count, plural, one {# invoice} other {# invoices}}",
       "colDate": "Date",
       "colAmount": "Amount",
-      "colInvoice": "Invoice"
+      "colInvoice": "Invoice",
+      "featureUnlimited": "Unlimited {feature}",
+      "featureUpTo": "Up to {count} {feature}",
+      "gate": {
+        "title": "{feature} is not in your plan",
+        "notInPlanBody": "Your {plan} plan does not include {feature}. Upgrade to switch it on.",
+        "noSubscriptionBody": "Choose a plan to use {feature}.",
+        "limitReachedTitle": "You have reached your {feature} limit",
+        "limitReachedBody": "Your plan includes up to {limit}. Upgrade for more.",
+        "planRequiredShort": "Plan upgrade required",
+        "meter": "{used} of {limit} {feature}"
+      }
     },
     "deactivate": {
       "channelLabel": {

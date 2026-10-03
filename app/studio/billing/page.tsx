@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/card";
 import {
   entityPlansApi,
+  type ChannelType,
   type EntityInvoice,
   type EntityPlan,
   type EntitySubscription,
 } from "@/lib/api/entityPlans";
+import type { PlanCapability } from "@/lib/entitlements/capabilities";
 import { useActiveEntity } from "@/lib/studio/active-entity";
 import {
   AlertCircleIcon,
@@ -63,6 +65,9 @@ export default function StudioBillingPage() {
   const [activePlan, setActivePlan] = useState<EntityPlan | null>(null);
   const [invoices, setInvoices] = useState<EntityInvoice[]>([]);
   const [allPlans, setAllPlans] = useState<EntityPlan[]>([]);
+  // Admin-editable capability registry — the plan cards' feature lists are
+  // rendered from it, so a new capability needs no frontend change.
+  const [capabilities, setCapabilities] = useState<PlanCapability[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -78,6 +83,7 @@ export default function StudioBillingPage() {
       setActivePlan(subRes.data.plan);
       setInvoices(subRes.data.invoices);
       setAllPlans(plansRes.data);
+      setCapabilities(subRes.data.capabilities ?? []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -89,7 +95,48 @@ export default function StudioBillingPage() {
     fetchAll();
   }, [fetchAll]);
 
-  const launchCheckout = async (planSlug: "standard" | "marketplace") => {
+  /**
+   * A plan's selling points, derived from what it actually grants: channels
+   * from allowed_channel_types, everything else from its entitlements, labelled
+   * by the registry. Replaces the old hardcoded bullet list, which claimed the
+   * widget and calendar links on every plan regardless of the plan.
+   */
+  type PlanFeature = { key: string; text: string };
+
+  const planFeatures = (plan: EntityPlan): PlanFeature[] =>
+    capabilities
+      .map((capability): PlanFeature | null => {
+        const isChannel = capability.kind === "channel";
+        const granted = isChannel
+          ? plan.allowed_channel_types.includes(
+              capability.key.replace("channel.", "") as ChannelType,
+            )
+          : plan.entitlements?.[capability.key];
+
+        if (capability.kind === "limit") {
+          // A cap is only worth listing when it IS capped; unlimited reads as a
+          // plain feature line.
+          if (granted === undefined) return null;
+          return {
+            key: capability.key,
+            text:
+              granted === null
+                ? t("featureUnlimited", { feature: capability.label })
+                : t("featureUpTo", { count: granted as number, feature: capability.label }),
+          };
+        }
+
+        if (!granted) return null;
+        return { key: capability.key, text: capability.label };
+      })
+      .filter((f): f is PlanFeature => f !== null);
+
+  // "Upgrade" is a position in the catalog, not a pair of known slugs.
+  const hasHigherPlan = allPlans.some(
+    (p) => p.is_self_serve && (!activePlan || p.sort_order > activePlan.sort_order),
+  );
+
+  const launchCheckout = async (planSlug: string) => {
     if (!entityId) return;
     setActionLoading(planSlug);
     try {
@@ -250,7 +297,10 @@ export default function StudioBillingPage() {
       </Card>
 
       {/* PLAN CATALOG / UPGRADE */}
-      {(noCardOnTrial || !subscription || subscription.status === "cancelled" || activePlan?.slug === "standard") && (
+      {(noCardOnTrial ||
+        !subscription ||
+        subscription.status === "cancelled" ||
+        hasHigherPlan) && (
         <Card>
           <CardHeader>
             <CardTitle>{t("plans")}</CardTitle>
@@ -262,7 +312,7 @@ export default function StudioBillingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {allPlans.map((plan) => {
                 const isCurrent = activePlan?.slug === plan.slug;
-                const isUpgrade = activePlan?.slug === "standard" && plan.slug === "marketplace";
+                const isUpgrade = !!activePlan && plan.sort_order > activePlan.sort_order;
                 return (
                   <div
                     key={plan.id}
@@ -286,24 +336,12 @@ export default function StudioBillingPage() {
                     </p>
                     <p className="text-xs text-muted-foreground mb-4">{plan.description}</p>
                     <ul className="space-y-1 text-xs mb-4">
-                      {plan.allowed_channel_types.includes("marketplace") && (
-                        <li className="flex items-start gap-1">
+                      {planFeatures(plan).map((feature) => (
+                        <li key={feature.key} className="flex items-start gap-1">
                           <CheckIcon className="size-3 mt-0.5 text-emerald-600" />
-                          {t("featureMarketplace")}
+                          {feature.text}
                         </li>
-                      )}
-                      <li className="flex items-start gap-1">
-                        <CheckIcon className="size-3 mt-0.5 text-emerald-600" />
-                        {t("featureBookingPage")}
-                      </li>
-                      <li className="flex items-start gap-1">
-                        <CheckIcon className="size-3 mt-0.5 text-emerald-600" />
-                        {t("featureCalendarLinks")}
-                      </li>
-                      <li className="flex items-start gap-1">
-                        <CheckIcon className="size-3 mt-0.5 text-emerald-600" />
-                        {t("featureWidget")}
-                      </li>
+                      ))}
                     </ul>
                     {!isCurrent && canManage && (
                       <Button

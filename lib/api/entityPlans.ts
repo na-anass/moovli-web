@@ -1,4 +1,8 @@
 import { apiClient } from "./client";
+import type {
+  PlanCapability,
+  ResolvedEntitlements,
+} from "@/lib/entitlements/capabilities";
 
 export type ChannelType =
   | "marketplace"
@@ -8,17 +12,27 @@ export type ChannelType =
 
 export interface EntityPlan {
   id: string;
-  slug: "standard" | "marketplace";
+  /** Plan slugs are data — a new plan must not require a frontend deploy. */
+  slug: string;
   name: string;
   description: string | null;
   price_mad: number;
   billing_interval: "month" | "year";
   allowed_channel_types: ChannelType[];
+  /** @deprecated superseded by the commission.marketplace_floor_pct entitlement. */
   base_markup_pct: number;
   stripe_product_id: string | null;
   stripe_price_id: string | null;
   is_active: boolean;
   sort_order: number;
+  /** Capability key → value (channels excluded — allowed_channel_types owns those). */
+  entitlements: Record<string, boolean | number | null>;
+  /** Whether the plan shows in the public catalog. */
+  is_self_serve: boolean;
+  /** The plan new studios are provisioned onto. */
+  is_default_signup: boolean;
+  /** Where a lapsed card-less trial lands; null = cancel. */
+  downgrade_plan_id: string | null;
 }
 
 export type EntitySubscriptionStatus =
@@ -62,6 +76,12 @@ interface SubscriptionResponse {
   subscription: EntitySubscription | null;
   plan: EntityPlan | null;
   invoices: EntityInvoice[];
+  /** Resolved capabilities (plan + per-studio overrides). */
+  entitlements: ResolvedEntitlements;
+  /** Usage counts for capped capabilities, so meters need no extra request. */
+  usage: Record<string, number>;
+  /** Public capability registry — admin-editable labels for gates and plan cards. */
+  capabilities: PlanCapability[];
 }
 
 export const entityPlansApi = {
@@ -75,7 +95,7 @@ export const entityPlansApi = {
 
   createCheckoutSession: (params: {
     entityId: string;
-    planSlug: "standard" | "marketplace";
+    planSlug: string;
     successUrl: string;
     cancelUrl: string;
   }) =>
