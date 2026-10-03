@@ -135,6 +135,9 @@ export default function StudioBillingPage() {
   const hasHigherPlan = allPlans.some(
     (p) => p.is_self_serve && (!activePlan || p.sort_order > activePlan.sort_order),
   );
+  // On a free plan with nothing above it there is nothing to choose or pay for,
+  // so the whole catalogue is noise.
+  const onFreePlan = !!activePlan && Number(activePlan.price_mad) === 0;
 
   const launchCheckout = async (planSlug: string) => {
     if (!entityId) return;
@@ -250,9 +253,11 @@ export default function StudioBillingPage() {
                 <InfoTip term="moovliProSubscription" />
               </CardTitle>
               <CardDescription>
-                {activePlan
-                  ? `${activePlan.name} — ${formatMoneyWhole(activePlan.price_mad, currency)} / ${activePlan.billing_interval}`
-                  : t("noActivePlan")}
+                {!activePlan
+                  ? t("noActivePlan")
+                  : Number(activePlan.price_mad) === 0
+                    ? `${activePlan.name} — ${t("free")}`
+                    : `${activePlan.name} — ${formatMoneyWhole(activePlan.price_mad, currency)} / ${activePlan.billing_interval}`}
               </CardDescription>
             </div>
             {subscription && (
@@ -263,6 +268,11 @@ export default function StudioBillingPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* With the catalogue hidden on a free plan, this is the only place
+              that explains what the plan covers and how Moovli earns. */}
+          {onFreePlan && activePlan?.description && (
+            <p className="text-sm text-muted-foreground">{activePlan.description}</p>
+          )}
           {subscription && (
             <dl className="grid grid-cols-2 gap-4 text-sm">
               {subscription.current_period_end && (
@@ -297,10 +307,11 @@ export default function StudioBillingPage() {
       </Card>
 
       {/* PLAN CATALOG / UPGRADE */}
-      {(noCardOnTrial ||
-        !subscription ||
-        subscription.status === "cancelled" ||
-        hasHigherPlan) && (
+      {!onFreePlan &&
+        (noCardOnTrial ||
+          !subscription ||
+          subscription.status === "cancelled" ||
+          hasHigherPlan) && (
         <Card>
           <CardHeader>
             <CardTitle>{t("plans")}</CardTitle>
@@ -329,10 +340,16 @@ export default function StudioBillingPage() {
                       )}
                     </div>
                     <p className="text-2xl font-bold mb-1">
-                      {formatMoneyWhole(plan.price_mad, currency)}{" "}
-                      <span className="text-sm font-normal text-muted-foreground">
-                        {t("perMonth")}
-                      </span>
+                      {Number(plan.price_mad) === 0 ? (
+                        t("free")
+                      ) : (
+                        <>
+                          {formatMoneyWhole(plan.price_mad, currency)}{" "}
+                          <span className="text-sm font-normal text-muted-foreground">
+                            {t("perMonth")}
+                          </span>
+                        </>
+                      )}
                     </p>
                     <p className="text-xs text-muted-foreground mb-4">{plan.description}</p>
                     <ul className="space-y-1 text-xs mb-4">
@@ -343,7 +360,7 @@ export default function StudioBillingPage() {
                         </li>
                       ))}
                     </ul>
-                    {!isCurrent && canManage && (
+                    {!isCurrent && canManage && Number(plan.price_mad) > 0 && (
                       <Button
                         size="sm"
                         className="w-full"

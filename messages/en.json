@@ -217,7 +217,7 @@
     },
     "moovliProSubscription": {
       "term": "Moovli Pro subscription",
-      "tip": "Your monthly plan to use the dashboard (Standard or Marketplace)."
+      "tip": "Your plan for the Moovli dashboard. The current plan is free — Moovli only earns a commission on marketplace bookings."
     },
     "endCustomerSubscription": {
       "term": "End-customer subscription",
@@ -1151,7 +1151,8 @@
         "limitReachedBody": "Your plan includes up to {limit}. Upgrade for more.",
         "planRequiredShort": "Plan upgrade required",
         "meter": "{used} of {limit} {feature}"
-      }
+      },
+      "free": "Free"
     },
     "deactivate": {
       "channelLabel": {

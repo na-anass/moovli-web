@@ -217,7 +217,7 @@
     },
     "moovliProSubscription": {
       "term": "Abonnement Moovli Pro",
-      "tip": "Votre formule mensuelle pour utiliser le dashboard (Standard ou Marketplace)."
+      "tip": "Votre formule pour le tableau de bord Moovli. La formule actuelle est gratuite — Moovli ne prend une commission que sur les réservations Marketplace."
     },
     "endCustomerSubscription": {
       "term": "Abonnement client final",
@@ -1151,7 +1151,8 @@
         "limitReachedBody": "Votre formule en inclut {limit} au maximum. Passez à une formule supérieure pour en avoir plus.",
         "planRequiredShort": "Formule supérieure requise",
         "meter": "{used} sur {limit} {feature}"
-      }
+      },
+      "free": "Gratuit"
     },
     "deactivate": {
       "channelLabel": {
