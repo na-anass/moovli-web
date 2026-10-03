@@ -246,7 +246,8 @@
       "bookings": "Réservations",
       "analytics": "Analyses",
       "policies": "Règles",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "plans": "Formules"
     },
     "dashboard": {
       "title": "Tableau de bord",
@@ -451,6 +452,56 @@
       "openDashboard": "Ouvrir le tableau de bord (en tant que studio)",
       "provisionAnother": "Configurer un autre studio",
       "errorTitle": "Impossible de configurer le studio"
+    },
+    "plans": {
+      "title": "Formules",
+      "subtitle": "Ce que chaque formule donne. Les changements s’appliquent immédiatement — sans déploiement.",
+      "newPlan": "Nouvelle formule",
+      "duplicate": "Dupliquer",
+      "edit": "Modifier",
+      "create": "Créer la formule",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "cancel": "Annuler",
+      "channels": "canaux",
+      "unlimited": "Illimité",
+      "cloneNothing": "Partir de zéro",
+      "cancelOnLapse": "Annuler à la fin de l’essai",
+      "createStripePrice": "Créer le tarif Stripe",
+      "priceImmutable": "Les tarifs Stripe ne sont pas modifiables. Enregistrer un nouveau prix efface l’ancien ; créez un nouveau tarif Stripe pour que les nouveaux abonnés soient facturés correctement. Les abonnés actuels conservent leur tarif.",
+      "subscribers": "{count, plural, =0 {Aucun studio} one {# studio} other {# studios}}",
+      "subscriberWarning": "{count, plural, =0 {Aucun studio sur cette formule pour l’instant.} one {# studio utilise cette formule — les changements s’appliquent immédiatement.} other {# studios utilisent cette formule — les changements s’appliquent immédiatement.}}",
+      "badges": {
+        "inactive": "Inactive",
+        "defaultSignup": "Par défaut",
+        "notSelfServe": "Non self-service",
+        "noStripePrice": "Pas de tarif Stripe"
+      },
+      "sections": {
+        "details": "Détails",
+        "channels": "Canaux",
+        "features": "Fonctionnalités",
+        "limits": "Limites",
+        "commission": "Commission et tarifs"
+      },
+      "fields": {
+        "name": "Nom",
+        "slug": "Identifiant",
+        "description": "Description",
+        "price": "Prix (MAD / mois)",
+        "sortOrder": "Ordre",
+        "isActive": "Active",
+        "isSelfServe": "Afficher dans le catalogue",
+        "isDefaultSignup": "Par défaut pour les nouveaux studios",
+        "downgradePlan": "À la fin de l’essai",
+        "cloneFrom": "Copier les réglages de"
+      },
+      "hints": {
+        "isActive": "Une formule inactive conserve ses abonnés mais ne peut plus être choisie.",
+        "isSelfServe": "Les studios peuvent choisir cette formule depuis la page facturation.",
+        "isDefaultSignup": "Les nouveaux studios sont créés sur cette formule.",
+        "downgradePlan": "Où atterrit un studio quand son essai sans carte se termine."
+      }
     }
   },
   "auth": {

@@ -246,7 +246,8 @@
       "bookings": "Bookings",
       "analytics": "Analytics",
       "policies": "Policies",
-      "settings": "Settings"
+      "settings": "Settings",
+      "plans": "Plans"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -451,6 +452,56 @@
       "openDashboard": "Open dashboard (as studio)",
       "provisionAnother": "Set up another studio",
       "errorTitle": "Could not set up the studio"
+    },
+    "plans": {
+      "title": "Plans",
+      "subtitle": "What each plan grants. Changes apply immediately — no deploy.",
+      "newPlan": "New plan",
+      "duplicate": "Duplicate",
+      "edit": "Edit",
+      "create": "Create plan",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "channels": "channels",
+      "unlimited": "Unlimited",
+      "cloneNothing": "Start from scratch",
+      "cancelOnLapse": "Cancel when the trial lapses",
+      "createStripePrice": "Create Stripe price",
+      "priceImmutable": "Stripe prices cannot be edited. Saving a new price clears the old one; create a new Stripe price so new subscribers are charged correctly. Existing subscribers keep their current price.",
+      "subscribers": "{count, plural, =0 {No studios} one {# studio} other {# studios}}",
+      "subscriberWarning": "{count, plural, =0 {No studios are on this plan yet.} one {# studio is on this plan — changes affect it immediately.} other {# studios are on this plan — changes affect them immediately.}}",
+      "badges": {
+        "inactive": "Inactive",
+        "defaultSignup": "Default for new studios",
+        "notSelfServe": "Not self-serve",
+        "noStripePrice": "No Stripe price"
+      },
+      "sections": {
+        "details": "Details",
+        "channels": "Channels",
+        "features": "Features",
+        "limits": "Limits",
+        "commission": "Commission & pricing"
+      },
+      "fields": {
+        "name": "Name",
+        "slug": "Slug",
+        "description": "Description",
+        "price": "Price (MAD / month)",
+        "sortOrder": "Order",
+        "isActive": "Active",
+        "isSelfServe": "Show in the plan catalogue",
+        "isDefaultSignup": "Default for new studios",
+        "downgradePlan": "When a trial lapses",
+        "cloneFrom": "Copy settings from"
+      },
+      "hints": {
+        "isActive": "Inactive plans keep existing subscribers but cannot be chosen.",
+        "isSelfServe": "Studios can pick this plan themselves on the billing page.",
+        "isDefaultSignup": "New studios are provisioned onto this plan.",
+        "downgradePlan": "Where a studio lands when its card-less trial ends."
+      }
     }
   },
   "auth": {

@@ -16,6 +16,7 @@ import {
   SettingsIcon,
   SlidersHorizontalIcon,
   GraduationCapIcon,
+  CreditCardIcon,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -34,6 +35,7 @@ export default function AdminLayout({
     { label: t("sidebar.instructors"), icon: GraduationCapIcon, href: "/admin/instructors" },
     { label: t("sidebar.bookings"), icon: BookOpenIcon, href: "/admin/bookings" },
     { label: t("sidebar.analytics"), icon: BarChart3Icon, href: "/admin/analytics" },
+    { label: t("sidebar.plans"), icon: CreditCardIcon, href: "/admin/plans" },
     { label: t("sidebar.policies"), icon: SlidersHorizontalIcon, href: "/admin/policies" },
   ];
 
