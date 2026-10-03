@@ -993,6 +993,12 @@
     },
     "loader": {
       "label": "Chargement…"
+    },
+    "export": {
+      "label": "Exporter",
+      "working": "Préparation…",
+      "csv": "CSV",
+      "excel": "Excel (.xlsx)"
     }
   },
   "studioChannels": {
@@ -1287,35 +1293,100 @@
       "noBookingsRange": "Aucune réservation sur la période."
     },
     "insights": {
-      "title": "KPIs",
+      "title": "Statistiques",
+      "sections": {
+        "revenue": "Chiffre d'affaires",
+        "fill": "Taux de remplissage",
+        "services": "Services"
+      },
       "stats": {
         "totalBookings": "Total des réservations",
-        "totalBookingsTip": "Réservations effectuées sur la période sélectionnée, quel que soit leur statut (y compris annulées et absences). Les inscriptions en liste d'attente ne sont pas comptées.",
-        "vsPreviousPeriod": "vs période précédente",
-        "periodInProgress": "Période en cours",
+        "totalBookingsTip": "Réservations effectuées sur la période sélectionnée, quel que soit leur statut (annulations et absences comprises). Les inscriptions en liste d'attente ne sont pas comptées. Comptées le jour de la réservation.",
+        "revenue": "Chiffre d'affaires",
+        "revenueTip": "Ce que votre studio gagne sur les séances ayant eu lieu pendant la période : réservations Direct au prix plein, réservations Marketplace après la commission Moovli. Compté à la date de la séance, donc toujours identique à votre tableau de bord.",
+        "averageBasket": "Panier moyen",
+        "averageBasketTip": "Chiffre d'affaires divisé par les réservations qui l'ont généré — ce que rapporte en moyenne un client par séance honorée.",
+        "perBooking": "Par réservation",
         "cancelled": "Annulées",
-        "cancelledDesc": "Réservations annulées",
-        "cancelledTip": "Réservations effectuées sur la période sélectionnée puis annulées, par le client ou par votre studio.",
+        "cancelledTip": "Réservations effectuées sur la période puis annulées, par le client ou par votre studio.",
         "cancellationRate": "Taux d'annulation",
-        "cancellationRateTip": "Réservations annulées divisées par le total des réservations de la période sélectionnée.",
-        "cancellationRateDesc": "Du total des réservations",
-        "previousRate": "{rate} % sur la période précédente",
-        "noShows": "Absences",
-        "noShowsDesc": "Réservé mais non venu",
-        "noShowsTip": "Réservations effectuées sur la période sélectionnée et marquées comme absence."
+        "noShows": "Absences (no-show)",
+        "noShowsTip": "Réservations effectuées sur la période où le client n'est jamais venu.",
+        "rateOfBookings": "{rate} % des réservations",
+        "vsPreviousPeriod": "vs période précédente",
+        "periodInProgress": "Période en cours"
       },
-      "bookingsOverTime": "Réservations dans le temps",
-      "noData": "Aucune réservation sur la période.",
+      "sources": {
+        "direct": "Direct",
+        "marketplace": "Marketplace",
+        "other": "Autre"
+      },
+      "revenuePerDay": "Chiffre d'affaires par jour",
+      "revenuePerDaySub": "Réparti par source de réservation",
+      "revenueSplit": "Répartition du CA",
+      "revenueSplitSub": "Par source de réservation",
+      "noRevenue": "Aucun chiffre d'affaires sur cette période.",
+      "fill": {
+        "title": "Remplissage par créneau",
+        "subtitle": "Séances ayant déjà eu lieu",
+        "overall": "{rate} % de remplissage sur {sessions} séances",
+        "rate": "Taux de remplissage",
+        "emptySeats": "Places vides",
+        "filled": "de remplissage",
+        "perSession": "~{count} pers. par séance · {sessions} séances",
+        "noSessions": "Aucune séance",
+        "empty": "Aucune séance n'a encore eu lieu sur cette période.",
+        "legendLow": "Vide",
+        "legendHigh": "Complet",
+        "caption": "Remplissage par jour et par heure",
+        "slot": "Créneau",
+        "sessionsHeader": "Séances",
+        "rateHeader": "Remplissage"
+      },
+      "services": {
+        "title": "Performance par service",
+        "subtitle": "Réservations, remplissage et chiffre d'affaires sur la période",
+        "activeCount": "{count, plural, =0 {Aucun service} one {# service} other {# services}}",
+        "service": "Service",
+        "sessions": "Séances",
+        "bookings": "Réservations",
+        "fill": "Remplissage",
+        "revenue": "CA",
+        "averageBasket": "Panier moyen",
+        "duration": "{minutes} min",
+        "listed": "Listé",
+        "notListed": "Non listé",
+        "total": "Total",
+        "empty": "Aucune séance n'a encore eu lieu sur cette période."
+      },
+      "callouts": {
+        "emptySeats": "{count, plural, one {# place est restée vide sur la période.} other {# places sont restées vides sur la période.}} Vos créneaux les plus calmes sont de bons candidats pour le marketplace.",
+        "quietSlots": "Vos créneaux récurrents les plus vides : {slots}. Ce sont les heures à mettre en avant en priorité."
+      },
+      "export": {
+        "summary": "Résumé",
+        "perDay": "Par jour",
+        "perService": "Par service",
+        "metric": "Indicateur",
+        "value": "Valeur",
+        "date": "Date"
+      },
       "chart": {
+        "total": "Total",
         "weekOf": "Semaine du {date}",
-        "bookings": "{count, plural, one {# réservation} other {# réservations}}",
-        "cancelled": "{count, plural, one {# annulée} other {# annulées}}",
-        "captionDaily": "Réservations par jour",
-        "captionWeekly": "Réservations par semaine",
+        "captionDaily": "Chiffre d'affaires par jour et par source",
+        "captionWeekly": "Chiffre d'affaires par semaine et par source",
         "day": "Jour",
-        "week": "Semaine",
-        "bookingsHeader": "Réservations",
-        "cancelledHeader": "Annulées"
+        "week": "Semaine"
+      },
+      "weekdays": {
+        "1": "Lun",
+        "2": "Mar",
+        "3": "Mer",
+        "4": "Jeu",
+        "5": "Ven",
+        "6": "Sam",
+        "7": "Dim"
       }
     },
     "bookings": {

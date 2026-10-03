@@ -993,6 +993,12 @@
     },
     "loader": {
       "label": "Loading…"
+    },
+    "export": {
+      "label": "Export",
+      "working": "Preparing…",
+      "csv": "CSV",
+      "excel": "Excel (.xlsx)"
     }
   },
   "studioChannels": {
@@ -1288,34 +1294,99 @@
     },
     "insights": {
       "title": "Insights",
+      "sections": {
+        "revenue": "Revenue",
+        "fill": "Fill rate",
+        "services": "Services"
+      },
       "stats": {
         "totalBookings": "Total bookings",
-        "totalBookingsTip": "Bookings made in the selected period, whatever their status (including cancelled and no-shows). Waitlist entries are not counted.",
-        "vsPreviousPeriod": "vs previous period",
-        "periodInProgress": "Period in progress",
+        "totalBookingsTip": "Bookings made in the selected period, whatever their status (cancellations and no-shows included). Waitlist entries are not counted. Counted on the day the booking was made.",
+        "revenue": "Revenue",
+        "revenueTip": "What your studio earns from sessions that took place in the selected period: Direct bookings at full price, Marketplace bookings after the Moovli commission. Counted on the session date, so this always matches your dashboard.",
+        "averageBasket": "Average basket",
+        "averageBasketTip": "Revenue divided by the bookings that produced it — the average a customer is worth per attended session.",
+        "perBooking": "Per booking",
         "cancelled": "Cancelled",
-        "cancelledDesc": "Cancelled bookings",
-        "cancelledTip": "Bookings made in the selected period that have since been cancelled, by the customer or by your studio.",
+        "cancelledTip": "Bookings made in the selected period that were later cancelled, by the customer or by your studio.",
         "cancellationRate": "Cancellation rate",
-        "cancellationRateTip": "Cancelled bookings divided by total bookings for the selected period.",
-        "cancellationRateDesc": "Of total bookings",
-        "previousRate": "{rate}% in previous period",
         "noShows": "No-shows",
-        "noShowsDesc": "Booked but did not attend",
-        "noShowsTip": "Bookings made in the selected period that were marked as no-show."
+        "noShowsTip": "Bookings made in the selected period where the customer never arrived.",
+        "rateOfBookings": "{rate}% of bookings",
+        "vsPreviousPeriod": "vs previous period",
+        "periodInProgress": "Period in progress"
       },
-      "bookingsOverTime": "Bookings over time",
-      "noData": "No bookings in this period.",
+      "sources": {
+        "direct": "Direct",
+        "marketplace": "Marketplace",
+        "other": "Other"
+      },
+      "revenuePerDay": "Revenue per day",
+      "revenuePerDaySub": "Split by where the booking came from",
+      "revenueSplit": "Revenue split",
+      "revenueSplitSub": "By booking source",
+      "noRevenue": "No revenue in this period yet.",
+      "fill": {
+        "title": "Fill rate by time slot",
+        "subtitle": "Sessions that have already taken place",
+        "overall": "{rate}% filled across {sessions} sessions",
+        "rate": "Fill rate",
+        "emptySeats": "Empty seats",
+        "filled": "filled",
+        "perSession": "~{count} people per session · {sessions} sessions",
+        "noSessions": "No sessions",
+        "empty": "No sessions have taken place in this period yet.",
+        "legendLow": "Empty",
+        "legendHigh": "Full",
+        "caption": "Fill rate by weekday and time",
+        "slot": "Slot",
+        "sessionsHeader": "Sessions",
+        "rateHeader": "Fill rate"
+      },
+      "services": {
+        "title": "Performance by service",
+        "subtitle": "Bookings, fill rate and revenue for the selected period",
+        "activeCount": "{count, plural, =0 {No services} one {# service} other {# services}}",
+        "service": "Service",
+        "sessions": "Sessions",
+        "bookings": "Bookings",
+        "fill": "Fill",
+        "revenue": "Revenue",
+        "averageBasket": "Average basket",
+        "duration": "{minutes} min",
+        "listed": "Listed",
+        "notListed": "Not listed",
+        "total": "Total",
+        "empty": "No sessions have taken place in this period yet."
+      },
+      "callouts": {
+        "emptySeats": "{count, plural, one {# seat went unfilled in this period.} other {# seats went unfilled in this period.}} Your quietest slots are the ones worth opening up to the marketplace.",
+        "quietSlots": "Your emptiest recurring slots: {slots}. These are the hours to promote first."
+      },
+      "export": {
+        "summary": "Summary",
+        "perDay": "Per day",
+        "perService": "Per service",
+        "metric": "Metric",
+        "value": "Value",
+        "date": "Date"
+      },
       "chart": {
+        "total": "Total",
         "weekOf": "Week of {date}",
-        "bookings": "{count, plural, one {# booking} other {# bookings}}",
-        "cancelled": "{count} cancelled",
-        "captionDaily": "Bookings per day",
-        "captionWeekly": "Bookings per week",
+        "captionDaily": "Revenue per day by source",
+        "captionWeekly": "Revenue per week by source",
         "day": "Day",
-        "week": "Week",
-        "bookingsHeader": "Bookings",
-        "cancelledHeader": "Cancelled"
+        "week": "Week"
+      },
+      "weekdays": {
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat",
+        "7": "Sun"
       }
     },
     "bookings": {

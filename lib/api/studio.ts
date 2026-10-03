@@ -61,18 +61,79 @@ export interface StudioDashboardMetrics {
   upcomingSessions: DashboardUpcomingSession[];
 }
 
+export interface InsightsDailyPoint {
+  date: string;
+  bookings: number;
+  cancelled: number;
+}
+
+export interface InsightsDailyRevenuePoint {
+  date: string;
+  direct: number;
+  marketplace: number;
+  other: number;
+}
+
+export interface InsightsSlot {
+  /** 1 = Monday … 7 = Sunday. */
+  weekday: number;
+  hour: number;
+  sessions: number;
+  capacity: number;
+  booked: number;
+}
+
+export interface InsightsService {
+  id: string;
+  name: string;
+  durationMinutes: number | null;
+  sessions: number;
+  capacity: number;
+  booked: number;
+  /** Active bookings on this service's sessions. */
+  bookings: number;
+  /** The bookings that produced `revenue` — the average basket's denominator. */
+  delivered: number;
+  revenue: number;
+  listedOnMarketplace: boolean;
+}
+
 export interface StudioInsights {
   range: { from: string; to: string };
-  /** Bookings made in the range (all statuses except waitlist). */
+
+  // ── Counted on the day the booking was MADE ───────────────────────────────
+  /** All statuses except waitlist. */
   totalBookings: number;
   cancelledCount: number;
   noShowCount: number;
-  /** Cancelled / total, percentage with one decimal. */
   cancellationRate: number;
+  noShowRate: number;
   previousTotalBookings: number;
   previousCancellationRate: number;
-  /** One zero-filled entry per viewer-local day in the range. */
-  daily: { date: string; bookings: number; cancelled: number }[];
+  daily: InsightsDailyPoint[];
+
+  // ── Counted on the day the SESSION ran (same rule as the dashboard) ───────
+  /** Earned revenue at the studio's amount: direct full price, marketplace net. */
+  revenue: number;
+  previousRevenue: number;
+  revenueByChannel: { direct: number; marketplace: number; other: number };
+  /** The bookings behind `revenue` — the average basket's denominator. */
+  deliveredBookings: number;
+  averageBasket: number;
+  previousAverageBasket: number;
+  dailyRevenue: InsightsDailyRevenuePoint[];
+
+  /** Sessions that have already started within the range. */
+  fill: {
+    sessions: number;
+    capacity: number;
+    booked: number;
+    emptySeats: number;
+    rate: number;
+    slots: InsightsSlot[];
+  };
+
+  services: InsightsService[];
 }
 
 export interface DashboardUpcomingSession {
