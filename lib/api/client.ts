@@ -53,25 +53,73 @@ export function isEntitlementError(
   );
 }
 
+/** Transient server-side failures: the API restarting (deploys) or a proxy blip. */
+const RETRYABLE_STATUSES = new Set([502, 503, 504]);
+
+const isReadOnly = (options: RequestInit) => {
+  const method = (options.method ?? "GET").toUpperCase();
+  return method === "GET" || method === "HEAD";
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Call moovli-api with the current Supabase access token.
+ *
+ * Two recoveries, because their absence was indistinguishable from "you have no
+ * data": pages catch the error and render an empty state, so a studio with 400
+ * sessions saw a blank planning page whenever a request failed.
+ *
+ *  - 401 → refresh the session once and retry. A stale access token on a tab
+ *    that has been open a while is the common case.
+ *  - network error / 502-504 → retry once. The API restarts on every deploy,
+ *    and whoever was mid-request got an empty screen.
+ *
+ * Only GET/HEAD are retried: replaying a POST could create a second booking.
+ */
 export async function apiClient<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  // Get auth token from Supabase cookie via browser client
   const { createClient } = await import("@/lib/supabase/client");
   const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(session?.access_token
-        ? { Authorization: `Bearer ${session.access_token}` }
-        : {}),
-      ...options.headers,
-    },
-  });
+  const send = async (token: string | undefined) =>
+    fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+
+  const { data: { session } } = await supabase.auth.getSession();
+  let token = session?.access_token;
+
+  let res: Response;
+  try {
+    res = await send(token);
+  } catch (networkError) {
+    if (!isReadOnly(options)) throw networkError;
+    await sleep(400);
+    res = await send(token);
+  }
+
+  // A stale token looks exactly like "no access" to the caller — refresh once.
+  if (res.status === 401) {
+    const { data } = await supabase.auth.refreshSession();
+    const refreshed = data.session?.access_token;
+    if (refreshed && refreshed !== token) {
+      token = refreshed;
+      res = await send(token);
+    }
+  }
+
+  if (RETRYABLE_STATUSES.has(res.status) && isReadOnly(options)) {
+    await sleep(400);
+    res = await send(token);
+  }
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: res.statusText }));

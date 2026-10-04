@@ -1804,7 +1804,9 @@
         "releaseHint": "At that point, unused spots from any channel become bookable by the other.",
         "notes": "Notes (optional)",
         "notesPlaceholder": "Internal notes for this session..."
-      }
+      },
+      "loadFailed": "Couldn't load your planning",
+      "retry": "Retry"
     },
     "instructorsPage": {
       "title": "Instructors or coaches",

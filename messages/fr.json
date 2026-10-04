@@ -1804,7 +1804,9 @@
         "releaseHint": "À ce moment-là, les places inutilisées de n'importe quel canal deviennent réservables par l'autre.",
         "notes": "Notes (facultatif)",
         "notesPlaceholder": "Notes internes pour cette séance..."
-      }
+      },
+      "loadFailed": "Impossible de charger votre planning",
+      "retry": "Réessayer"
     },
     "instructorsPage": {
       "title": "Instructeurs ou coachs",

@@ -46,6 +46,7 @@ import {
 } from "@/lib/datetime";
 import Link from "next/link";
 import {
+  AlertCircleIcon,
   AlertTriangleIcon,
   CalendarIcon,
   CheckCircle2Icon,
@@ -283,6 +284,8 @@ export default function SchedulePage() {
   const activeEntity = useActiveEntity();
   const currency = activeEntity.currencyCode;
   const [sessions, setSessions] = useState<Session[]>([]);
+  /** Set when the fetch failed, so an error is never shown as an empty planning. */
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   // List-view sort (default: soonest first).
   const [sortKey, setSortKey] = useState<"start_time" | "price_mad" | "booked_count" | "updated_at">("start_time");
@@ -424,6 +427,7 @@ export default function SchedulePage() {
   const fetchSessions = useCallback(async () => {
     if (!entityId) return;
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await studioApi.getSessions(entityId, {
         page: 1,
@@ -434,7 +438,10 @@ export default function SchedulePage() {
       setSessions(res.data);
       setTotal(res.pagination.total);
     } catch (e) {
+      // Without this the planning renders empty, which reads as "no sessions"
+      // even for a studio with hundreds of them.
       console.error(e);
+      setLoadError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -1328,6 +1335,20 @@ export default function SchedulePage() {
         </>
       }
     >
+      {/* A failed fetch must never look like an empty week. */}
+      {loadError && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+          <AlertCircleIcon className="size-5 shrink-0 text-destructive" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">{t("schedule.loadFailed")}</p>
+            <p className="text-xs text-muted-foreground">{loadError}</p>
+          </div>
+          <Button size="sm" variant="outline" className="ml-auto" onClick={() => fetchSessions()}>
+            {t("schedule.retry")}
+          </Button>
+        </div>
+      )}
+
       {/* Filters — search + a single plain-language status + archived toggle */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full sm:w-56">
