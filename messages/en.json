@@ -1001,6 +1001,13 @@
       "working": "Preparing…",
       "csv": "CSV",
       "excel": "Excel (.xlsx)"
+    },
+    "errors": {
+      "auth": "Your session expired. Refresh the page or sign in again.",
+      "offline": "Connection problem. Check your network and try again.",
+      "unavailable": "The service is temporarily unavailable. Try again in a moment.",
+      "denied": "You don't have access to this.",
+      "unknown": "Something went wrong. Try again."
     }
   },
   "studioChannels": {

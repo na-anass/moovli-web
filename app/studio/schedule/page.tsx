@@ -1,6 +1,12 @@
 "use client";
 
 import { BaseLayout } from "@/components/layout/base-layout";
+import {
+  classifyFailure,
+  failureMessageKey,
+  logFailure,
+  type FailureKind,
+} from "@/lib/api/failure";
 import { type RowAction } from "@/components/shared/data-table";
 import { FormSheet } from "@/components/shared/form-sheet";
 import { Badge } from "@/components/ui/badge";
@@ -280,12 +286,13 @@ const MAX_CALENDAR_COLS = 3;
 
 export default function SchedulePage() {
   const t = useTranslations("studioMain");
+  const tShared = useTranslations("shared");
   const locale = useLocale();
   const activeEntity = useActiveEntity();
   const currency = activeEntity.currencyCode;
   const [sessions, setSessions] = useState<Session[]>([]);
-  /** Set when the fetch failed, so an error is never shown as an empty planning. */
-  const [loadError, setLoadError] = useState<string | null>(null);
+  /** Why the fetch failed, so an error is never shown as an empty planning. */
+  const [loadError, setLoadError] = useState<FailureKind | null>(null);
   const [total, setTotal] = useState(0);
   // List-view sort (default: soonest first).
   const [sortKey, setSortKey] = useState<"start_time" | "price_mad" | "booked_count" | "updated_at">("start_time");
@@ -439,9 +446,10 @@ export default function SchedulePage() {
       setTotal(res.pagination.total);
     } catch (e) {
       // Without this the planning renders empty, which reads as "no sessions"
-      // even for a studio with hundreds of them.
-      console.error(e);
-      setLoadError((e as Error).message);
+      // even for a studio with hundreds of them. The studio sees a plain-language
+      // reason; the technical detail goes to the log.
+      logFailure("schedule", e);
+      setLoadError(classifyFailure(e));
     } finally {
       setLoading(false);
     }
@@ -1341,7 +1349,7 @@ export default function SchedulePage() {
           <AlertCircleIcon className="size-5 shrink-0 text-destructive" />
           <div className="min-w-0">
             <p className="text-sm font-medium">{t("schedule.loadFailed")}</p>
-            <p className="text-xs text-muted-foreground">{loadError}</p>
+            <p className="text-xs text-muted-foreground">{tShared(failureMessageKey(loadError))}</p>
           </div>
           <Button size="sm" variant="outline" className="ml-auto" onClick={() => fetchSessions()}>
             {t("schedule.retry")}
