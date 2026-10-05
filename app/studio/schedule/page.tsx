@@ -448,7 +448,7 @@ export default function SchedulePage() {
       // Without this the planning renders empty, which reads as "no sessions"
       // even for a studio with hundreds of them. The studio sees a plain-language
       // reason; the technical detail goes to the log.
-      logFailure("schedule", e);
+      logFailure("schedule", e, { path: "/api/studio/:id/sessions", entityId: entityId ?? undefined });
       setLoadError(classifyFailure(e));
     } finally {
       setLoading(false);
