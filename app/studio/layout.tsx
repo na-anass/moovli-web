@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/provider";
 import { ActiveEntityProvider, useActiveEntity } from "@/lib/studio/active-entity";
 import { EntitlementProvider, useEntitlement } from "@/lib/studio/entitlement";
-import { studioApi } from "@/lib/api/studio";
+import { ChannelPrefsProvider, useChannelPrefs } from "@/lib/studio/channel-prefs";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import {
   BarChart3Icon,
   BookOpenIcon,
@@ -93,7 +93,9 @@ export default function StudioLayout({
       <Suspense fallback={<FullPageLoader />}>
         <ActiveEntityProvider>
           <EntitlementProvider>
-            <StudioChrome>{children}</StudioChrome>
+            <ChannelPrefsProvider>
+              <StudioChrome>{children}</StudioChrome>
+            </ChannelPrefsProvider>
           </EntitlementProvider>
         </ActiveEntityProvider>
       </Suspense>
@@ -104,7 +106,6 @@ export default function StudioLayout({
 /** Studio sidebar/topbar chrome — reads the active studio (selection or admin impersonation). */
 function StudioChrome({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const t = useTranslations("studioMain");
   const {
     entityId,
@@ -118,43 +119,26 @@ function StudioChrome({ children }: { children: React.ReactNode }) {
 
   const { allows } = useEntitlement();
 
-  const [channelStatuses, setChannelStatuses] = useState<ChannelStatuses>({
-    marketplace: "off",
-    direct: "off",
-  });
+  const { prefs: channelPrefs } = useChannelPrefs();
 
-  // Resolve channel status for sidebar dots/locks against the active studio.
-  // Plan entitlement comes from the shared EntitlementProvider (single source of
-  // truth); only the per-channel enabled prefs are fetched here. `pathname` is a
-  // dep so the dots re-sync after the user toggles a channel on its page and
-  // navigates away (otherwise the dot stayed stale until a full reload).
-  useEffect(() => {
-    if (!entityId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const prefRes = await studioApi.getChannelPrefs(entityId);
-        if (cancelled) return;
-        setChannelStatuses({
-          marketplace: !allows("marketplace")
-            ? "locked"
-            : prefRes.data.marketplace_enabled
-              ? "on"
-              : "off",
-          direct: !allows("direct_hosted")
-            ? "locked"
-            : prefRes.data.direct_hosted_enabled
-              ? "on"
-              : "off",
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [entityId, allows, pathname]);
+  // Sidebar dots/locks: plan entitlement from EntitlementProvider, on/off from the
+  // shared ChannelPrefsProvider — the channel pages sync into it on every toggle,
+  // so the dot follows immediately instead of waiting for a reload.
+  const channelStatuses = useMemo(
+    (): ChannelStatuses => ({
+      marketplace: !allows("marketplace")
+        ? "locked"
+        : channelPrefs?.marketplace_enabled
+          ? "on"
+          : "off",
+      direct: !allows("direct_hosted")
+        ? "locked"
+        : channelPrefs?.direct_hosted_enabled
+          ? "on"
+          : "off",
+    }),
+    [allows, channelPrefs],
+  );
 
   const navItems = useMemo((): NavItem[] => {
     const items: NavItem[] = [

@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { channelsApi, type Channel } from "@/lib/api/channels";
 import { studioApi, type ChannelPrefs } from "@/lib/api/studio";
 import { useActiveEntity } from "@/lib/studio/active-entity";
+import { useChannelPrefs } from "@/lib/studio/channel-prefs";
 import { useEntitlement } from "@/lib/studio/entitlement";
 import {
   CheckIcon,
@@ -63,6 +64,12 @@ export default function StudioChannelDirectPage() {
 
   const [channel, setChannel] = useState<Channel | null>(null);
   const [prefs, setPrefs] = useState<ChannelPrefs | null>(null);
+  // Mirror every change (optimistic, confirmed or rolled back) into the shared
+  // prefs so the sidebar dot follows the toggle without a reload.
+  const { sync: syncChannelPrefs } = useChannelPrefs();
+  useEffect(() => {
+    if (prefs) syncChannelPrefs(prefs);
+  }, [prefs, syncChannelPrefs]);
   const [loading, setLoading] = useState(true);
 
   // Branding state
