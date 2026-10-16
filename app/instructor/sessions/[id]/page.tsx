@@ -57,6 +57,8 @@ export default function SessionAttendeesPage() {
       );
     } catch (e) {
       console.error(e);
+      const key = `session.checkinErrors.${(e as Error).message}`;
+      if (t.has(key)) alert(t(key));
     } finally {
       setCheckingIn(null);
     }

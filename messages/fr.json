@@ -756,7 +756,12 @@
       "userLabel": "Utilisateur {id}...",
       "bookedOn": "Réservé le {date}",
       "creditsCost": "{credits} crédits",
-      "checkIn": "Enregistrer"
+      "checkIn": "Enregistrer",
+      "checkinErrors": {
+        "BOOKING_NOT_CHECKINABLE": "Cette réservation ne peut pas être enregistrée (non confirmée, ou pas la vôtre).",
+        "CHECKIN_TOO_EARLY": "L'enregistrement ouvre 1 heure avant le début de la séance.",
+        "CHECKIN_SESSION_ENDED": "Cette séance est déjà terminée."
+      }
     }
   },
   "onboarding": {
@@ -1151,6 +1156,7 @@
       "perMonth": "/mois",
       "upgrade": "Mettre à niveau",
       "choosePlan": "Choisir l'abonnement",
+      "addPaymentMethod": "Ajouter un moyen de paiement",
       "billingHistory": "Historique de facturation",
       "invoiceCount": "{count, plural, one {# facture} other {# factures}}",
       "colDate": "Date",
@@ -1169,7 +1175,7 @@
       },
       "free": "Gratuit",
       "planCopy": {
-        "moovli": "Gratuit. Votre propre page de réservation, des liens partageables, un widget intégrable et une visibilité auprès des utilisateurs de l'app Moovli. Moovli ne prend une commission que sur les réservations Marketplace — les réservations directes ne vous coûtent rien."
+        "moovli": "Votre propre page de réservation, des liens partageables, un widget intégrable et une visibilité auprès des utilisateurs de l'app Moovli. Commence par un essai gratuit de 60 jours. Les réservations directes sont sans commission."
       }
     },
     "deactivate": {
@@ -1450,6 +1456,9 @@
           "ALREADY_CHECKED_IN": "Cette réservation est déjà enregistrée.",
           "BOOKING_NOT_ACTIVE": "Cette réservation est annulée ou déjà terminée.",
           "MARKETPLACE_BOOKINGS_AUTO_CONFIRMED": "Utilisez l'enregistrement marketplace pour cette réservation.",
+          "BOOKING_NOT_CHECKINABLE": "Cette réservation ne peut pas être enregistrée (non confirmée, ou pas la vôtre).",
+          "CHECKIN_TOO_EARLY": "L'enregistrement ouvre 1 heure avant le début de la séance.",
+          "CHECKIN_SESSION_ENDED": "Cette séance est déjà terminée.",
           "generic": "Enregistrement impossible. Veuillez réessayer."
         }
       }

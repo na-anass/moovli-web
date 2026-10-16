@@ -756,7 +756,12 @@
       "userLabel": "User {id}...",
       "bookedOn": "Booked {date}",
       "creditsCost": "{credits} credits",
-      "checkIn": "Check In"
+      "checkIn": "Check In",
+      "checkinErrors": {
+        "BOOKING_NOT_CHECKINABLE": "This booking can't be checked in (not confirmed, or not one of yours).",
+        "CHECKIN_TOO_EARLY": "Check-in opens 1 hour before the session starts.",
+        "CHECKIN_SESSION_ENDED": "This session has already ended."
+      }
     }
   },
   "onboarding": {
@@ -1151,6 +1156,7 @@
       "perMonth": "/mo",
       "upgrade": "Upgrade",
       "choosePlan": "Choose plan",
+      "addPaymentMethod": "Add payment method",
       "billingHistory": "Billing history",
       "invoiceCount": "{count, plural, one {# invoice} other {# invoices}}",
       "colDate": "Date",
@@ -1169,7 +1175,7 @@
       },
       "free": "Free",
       "planCopy": {
-        "moovli": "Free to use. Your own booking page, shareable links, an embeddable widget, and exposure to Moovli app users. Moovli only earns a commission on marketplace bookings — direct bookings cost you nothing."
+        "moovli": "Your own booking page, shareable links, an embeddable widget, and exposure to Moovli app users. Starts with a 60-day free trial. Direct bookings carry no commission."
       }
     },
     "deactivate": {
@@ -1450,6 +1456,9 @@
           "ALREADY_CHECKED_IN": "This booking is already checked in.",
           "BOOKING_NOT_ACTIVE": "This booking is cancelled or already finished.",
           "MARKETPLACE_BOOKINGS_AUTO_CONFIRMED": "Use the marketplace check-in for this booking.",
+          "BOOKING_NOT_CHECKINABLE": "This booking can't be checked in (not confirmed, or not one of yours).",
+          "CHECKIN_TOO_EARLY": "Check-in opens 1 hour before the session starts.",
+          "CHECKIN_SESSION_ENDED": "This session has already ended.",
           "generic": "Could not check in. Please try again."
         }
       }

@@ -18,6 +18,17 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+const CHECKIN_OPENS_BEFORE_MS = 60 * 60 * 1000;
+
+const inCheckinWindow = (session: { start_time: string; end_time: string } | null | undefined) => {
+  if (!session) return true; // no times to judge by — let the API decide
+  const now = Date.now();
+  return (
+    now >= new Date(session.start_time).getTime() - CHECKIN_OPENS_BEFORE_MS &&
+    now <= new Date(session.end_time).getTime()
+  );
+};
+
 type FilterTab = "all" | "pending" | "today" | "marketplace" | "direct";
 
 const STATUS_VARIANT: Record<
@@ -149,7 +160,8 @@ export default function StudioBookingsPage() {
       await studioApi.checkinBooking(entityId, bookingId);
       await fetchBookings();
     } catch (e) {
-      alert((e as Error).message || t("bookings.errors.checkinFailed"));
+      const key = `bookings.scan.errors.${(e as Error).message}`;
+      alert(t.has(key) ? t(key) : t("bookings.errors.checkinFailed"));
     } finally {
       setActionLoading(null);
     }
@@ -248,10 +260,10 @@ export default function StudioBookingsPage() {
   const rowActions = (b: StudioBookingRow): RowAction[] => {
     const isPendingDirect =
       b.status === "pending" && b.channel?.type !== "marketplace";
-    // Any confirmed booking can be checked in — the studio check-in endpoint is
-    // channel-agnostic and windowless. Direct bookings need this too, otherwise
-    // they never leave `confirmed` and bookingStatus.job marks them `no_show`.
-    const isConfirmed = b.status === "confirmed";
+    // Any confirmed booking can be checked in, whatever the channel, from 1h
+    // before start until the session ends — the API enforces the same window
+    // (BOOKING_POLICIES.CHECK_IN_WINDOW_HOURS). Outside it the button is hidden.
+    const isConfirmed = b.status === "confirmed" && inCheckinWindow(b.session);
     const busy = actionLoading === b.id;
 
     if (isPendingDirect) {

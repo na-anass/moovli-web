@@ -370,7 +370,9 @@ export default function StudioBillingPage() {
                         </li>
                       ))}
                     </ul>
-                    {!isCurrent && canManage && Number(plan.price_mad) > 0 && (
+                    {/* On a card-less trial the current plan still needs a card to
+                        continue past trial_end — checkout keeps the trial date. */}
+                    {(!isCurrent || noCardOnTrial) && canManage && Number(plan.price_mad) > 0 && (
                       <Button
                         size="sm"
                         className="w-full"
@@ -379,9 +381,11 @@ export default function StudioBillingPage() {
                       >
                         {actionLoading === plan.slug
                           ? tc("loading")
-                          : isUpgrade
-                            ? t("upgrade")
-                            : t("choosePlan")}
+                          : isCurrent
+                            ? t("addPaymentMethod")
+                            : isUpgrade
+                              ? t("upgrade")
+                              : t("choosePlan")}
                       </Button>
                     )}
                   </div>
