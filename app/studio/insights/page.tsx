@@ -189,7 +189,8 @@ function Insights() {
           <StatsCard
             title={t("stats.totalBookings")}
             value={insights?.totalBookings ?? 0}
-            icon={<CalendarIcon className="size-5" />}
+            icon={<CalendarIcon className="size-4.5" />}
+            accent="primary"
             trend={delta(insights?.totalBookings ?? 0, insights?.previousTotalBookings ?? 0)}
             description={rangeComplete ? t("stats.vsPreviousPeriod") : t("stats.periodInProgress")}
             tooltip={t("stats.totalBookingsTip")}
@@ -197,7 +198,8 @@ function Insights() {
           <StatsCard
             title={t("stats.revenue")}
             value={formatMoneyWhole(insights?.revenue ?? 0, currency)}
-            icon={<CoinsIcon className="size-5" />}
+            icon={<CoinsIcon className="size-4.5" />}
+            accent="emerald"
             trend={delta(insights?.revenue ?? 0, insights?.previousRevenue ?? 0)}
             description={rangeComplete ? t("stats.vsPreviousPeriod") : t("stats.periodInProgress")}
             tooltip={t("stats.revenueTip")}
@@ -205,7 +207,8 @@ function Insights() {
           <StatsCard
             title={t("stats.averageBasket")}
             value={formatMoneyWhole(insights?.averageBasket ?? 0, currency)}
-            icon={<ShoppingBagIcon className="size-5" />}
+            icon={<ShoppingBagIcon className="size-4.5" />}
+            accent="sky"
             trend={delta(insights?.averageBasket ?? 0, insights?.previousAverageBasket ?? 0)}
             description={t("stats.perBooking")}
             tooltip={t("stats.averageBasketTip")}
@@ -213,14 +216,16 @@ function Insights() {
           <StatsCard
             title={t("stats.cancelled")}
             value={insights?.cancelledCount ?? 0}
-            icon={<XCircleIcon className="size-5" />}
+            icon={<XCircleIcon className="size-4.5" />}
+            accent="amber"
             description={t("stats.rateOfBookings", { rate: insights?.cancellationRate ?? 0 })}
             tooltip={t("stats.cancelledTip")}
           />
           <StatsCard
             title={t("stats.noShows")}
             value={insights?.noShowCount ?? 0}
-            icon={<UserXIcon className="size-5" />}
+            icon={<UserXIcon className="size-4.5" />}
+            accent="rose"
             description={t("stats.rateOfBookings", { rate: insights?.noShowRate ?? 0 })}
             tooltip={t("stats.noShowsTip")}
           />
